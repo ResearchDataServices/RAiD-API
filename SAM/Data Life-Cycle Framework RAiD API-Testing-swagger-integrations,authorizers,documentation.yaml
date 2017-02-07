@@ -1,0 +1,470 @@
+---
+swagger: "2.0"
+info:
+  version: "1.2.0"
+  title: "Data Life-Cycle Framework RAiD API"
+host: "<domain>.com"
+basePath: "/V1"
+schemes:
+- "https"
+paths:
+  /activity:
+    get:
+      operationId: "getActivities"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "keyword"
+        in: "query"
+        required: false
+        type: "string"
+      - name: "orcid"
+        in: "query"
+        required: false
+        type: "string"
+      - name: "pageSize"
+        in: "query"
+        required: false
+        type: "string"
+      - name: "pageNumber"
+        in: "query"
+        required: false
+        type: "string"
+      - name: "researcher"
+        in: "query"
+        required: false
+        type: "string"
+      - name: "activityId"
+        in: "query"
+        required: false
+        type: "string"
+      - name: "institution"
+        in: "query"
+        required: false
+        type: "string"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/ArrayOfActivity"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: "[\n{\n    \"id\": \"000001\",\n    \"dateCreated\"\
+                : \"2016-12-01 13:22:43\",\n    \"dateModified\": \"2016-12-01 13:22:43\"\
+                ,\n    \"grid\": \"grid.1001.0\",\n    \"institution\": \"Australian\
+                \ National University\",\n    \"owner\": \"marguerite.curtish@anu.edu.au\"\
+                ,\n    \"purl\": \"http://purl.org/au-research/activity/RAiD/A2016-P000001\"\
+                ,\n  \"researchers\" : [\n {\n    \"displayName\": \"Dr. Marguerite\
+                \ Curtis\",\n    \"institution\": \"University of Queensland\",\n\
+                \    \"mail\": \"marguerite.curtish@anu.edu.au\",\n    \"orcid\":\
+                \ \"0000-0002-1825-0097\"\n  },\n  {\n    \"displayName\": \"Prof.\
+                \ Henry Manning\",\n    \"institution\": \"University of Queensland\"\
+                ,\n    \"mail\": \"h.manning@uq.edu.au\",\n    \"orcid\": \"0000-0002-7373-9524\"\
+                \n  },\n  {\n    \"displayName\": \"Dr. Carole Harris\",\n    \"institution\"\
+                : \"University of Queensland\",\n    \"mail\": \"carole.harris@uq.edu.au\"\
+                ,\n    \"orcid\": \"0000-0002-9531-1135\"\n  } \n]\n},\n{\n    \"\
+                id\": \"000002\",\n    \"dateCreated\": \"2016-12-01 14:11:11\",\n\
+                \    \"dateModified\": \"2016-12-01 14:11:11\",\n    \"grid\": \"\
+                grid.1004.5\",\n    \"institution\": \"Macquarie University\",\n \
+                \   \"owner\": \"pablo.holmes@mq.edu.au\",\n    \"purl\": \"http://purl.org/au-research/activity/RAiD/A2016-P000002\"\
+                ,\n  \"researchers\" : [\n {\n    \"displayName\": \"Dr. Pablo Holmes\"\
+                ,\n    \"institution\": \"Macquarie University\",\n    \"mail\": \"\
+                pablo.holmes@mq.edu.au\",\n    \"orcid\": \"0000-0002-1825-0467\"\n\
+                \  } \n]\n},\n{\n    \"id\": \"000003\",\n    \"dateCreated\": \"\
+                2016-12-01 14:24:13\",\n    \"dateModified\": \"2016-12-01 14:24:13\"\
+                ,\n    \"grid\": \"grid.1013.3\",\n    \"institution\": \"University\
+                \ of Sydney\",\n    \"owner\": \"robin.martinez@usyd.edu.au\",\n \
+                \   \"purl\": \"http://purl.org/au-research/activity/RAiD/A2016-P000003\"\
+                ,\n  \"researchers\" : [\n {\n    \"displayName\": \"Dr. Robin Martinez\"\
+                ,\n    \"institution\": \"University of Sydney\",\n    \"mail\": \"\
+                robin.martinez@usyd.edu.au\",\n    \"orcid\": \"0000-0002-1742-2947\"\
+                \n  },\n  {\n    \"displayName\": \"Mr. Charles Berry\",\n    \"institution\"\
+                : \"University of Sydney\",\n    \"mail\": \"c.berry@usyd.edu.au\"\
+                ,\n    \"orcid\": \"0000-0002-1663-1010\"\n  } \n]\n},\n{\n    \"\
+                id\": \"000004\",\n    \"dateCreated\": \"2016-12-01 15:23:13\",\n\
+                \    \"dateModified\": \"2016-12-01 15:23:13\",\n    \"grid\": \"\
+                grid.1042.7\",\n    \"institution\": \"Walter and Eliza Hall Institute\
+                \ of Medical Research\",\n    \"owner\": \"earl.dean@um.edu.au\",\n\
+                \    \"purl\": \"http://purl.org/au-research/activity/RAiD/A2016-P000004\"\
+                ,\n  \"researchers\" : [\n {\n    \"displayName\": \"Dr. Earl Dean\"\
+                ,\n    \"institution\": \"University of Melbourne\",\n    \"mail\"\
+                : \"earl.dean@um.edu.au\",\n    \"orcid\": \"0000-0002-1905-2567\"\
+                \n  } \n]\n},\n{\n    \"id\": \"000005\",\n    \"dateCreated\": \"\
+                2016-12-06 09:41:22\",\n    \"dateModified\": \"2016-12-06 09:41:22\"\
+                ,\n    \"grid\": \"grid.1003.2\",\n    \"institution\": \"University\
+                \ of Queensland\",\n    \"owner\": \"h.manning@uq.edu.au\",\n    \"\
+                purl\": \"http://purl.org/au-research/activity/RAiD/A2016-P000005\"\
+                ,\n  \"researchers\" : [\n {\n    \"displayName\": \"Prof. Henry Manning\"\
+                ,\n    \"institution\": \"University of Queensland\",\n    \"mail\"\
+                : \"h.manning@uq.edu.au\",\n    \"orcid\": \"0000-0002-7373-9524\"\
+                \n  } \n]\n},\n{\n    \"id\": \"000006\",\n    \"dateCreated\": \"\
+                2016-12-06 13:12:32\",\n    \"dateModified\": \"2016-12-06 13:12:32\"\
+                ,\n    \"grid\": \"grid.1011.1\",\n    \"institution\": \"James Cook\
+                \ University\",\n    \"owner\": \"e.neal@jc.edu.au\",\n    \"purl\"\
+                : \"http://purl.org/au-research/activity/RAiD/A2016-P000006\",\n \
+                \ \"researchers\" : [\n {\n    \"displayName\": \"Prof. Estelle Neal\"\
+                ,\n    \"institution\": \"James Cook University\",\n    \"mail\":\
+                \ \"e.neal@jc.edu.au\",\n    \"orcid\": \"0000-0002-2300-1238\"\n\
+                \  } \n]\n},\n{\n    \"id\": \"000007\",\n    \"dateCreated\": \"\
+                2016-12-07 16:45:21\",\n    \"dateModified\": \"2016-12-07 16:45:21\"\
+                ,\n    \"grid\": \"grid.1003.2\",\n    \"institution\": \"University\
+                \ of Queensland\",\n    \"owner\": \"carole.harris@uq.edu.au\",\n\
+                \    \"purl\": \"http://purl.org/au-research/activity/RAiD/A2016-P000007\"\
+                ,\n  \"researchers\" : [\n {\n    \"displayName\": \"Dr. Carole Harris\"\
+                ,\n    \"institution\": \"University of Queensland\",\n    \"mail\"\
+                : \"carole.harris@uq.edu.au\",\n    \"orcid\": \"0000-0002-9531-1135\"\
+                \n  },\n   {\n    \"displayName\": \"Prof. David Murdoch\",\n    \"\
+                institution\": \"University of Queensland\",\n    \"mail\": \"david.murdoch@uq.edu.au\"\
+                ,\n    \"orcid\": \"0000-0002-9531-1135\"\n  },\n   {\n    \"displayName\"\
+                : \"Mr. Todd Baker\",\n    \"institution\": \"University of Queensland\"\
+                ,\n    \"mail\": \"todd.baker@uq.edu.au\",\n    \"orcid\": \"0000-0002-9531-4565\"\
+                \n  } \n]\n},\n{\n    \"id\": \"000008\",\n    \"dateCreated\": \"\
+                2016-12-14 11:05:57\",\n    \"dateModified\": \"2016-12-14 11:05:57\"\
+                ,\n    \"grid\": \"grid.1022.1\",\n    \"institution\": \"Griffith\
+                \ University\",\n    \"owner\": \"tiffany.simpson@griffith.edu.au\"\
+                ,\n    \"purl\": \"http://purl.org/au-research/activity/RAiD/A2016-P000008\"\
+                ,\n  \"researchers\" : [\n {\n    \"displayName\": \"Dr. Tiffany Simpson\"\
+                ,\n    \"institution\": \"Griffith University\",\n    \"mail\": \"\
+                tiffany.simpson@griffith.edu.au\",\n    \"orcid\": \"0000-0002-4312-6934\"\
+                \n  } \n]\n},\n{\n    \"id\": \"000009\",\n    \"dateCreated\": \"\
+                2016-12-21 08:35:11\",\n    \"dateModified\": \"2016-12-21 08:35:11\"\
+                ,\n    \"grid\": \"grid.1003.2\",\n    \"institution\": \"University\
+                \ of Queensland\",\n    \"owner\": \"josh.sutton@uq.edu.au\",\n  \
+                \  \"purl\": \"http://purl.org/au-research/activity/RAiD/A2016-P000009\"\
+                ,\n  \"researchers\" : [\n {\n    \"displayName\": \"Dr. Josh Sutton\"\
+                ,\n    \"institution\": \"University of Queensland\",\n    \"mail\"\
+                : \"josh.sutton@uq.edu.au\",\n    \"orcid\": \"0000-0002-2572-0099\"\
+                \n  } \n]\n},\n{\n    \"id\": \"000010\",\n    \"dateCreated\": \"\
+                2017-01-07 23:02:43\",\n    \"dateModified\": \"2017-01-07 23:02:43\"\
+                ,\n    \"grid\": \"grid.1010.0\",\n    \"institution\": \"University\
+                \ of Adelaide\",\n    \"owner\": \"adrienne.lee@uq.edu.au\",\n   \
+                \ \"purl\": \"http://purl.org/au-research/activity/RAiD/A2017-P000010\"\
+                ,\n  \"researchers\" : [\n {\n    \"displayName\": \"Dr. Adrienne\
+                \ Lee\",\n    \"institution\": \"University of Adelaide\",\n    \"\
+                mail\": \"adrienne.lee@uq.edu.au\",\n    \"orcid\": \"0000-0002-2245-0097\"\
+                \n  } \n]\n},\n{\n    \"id\": \"000011\",\n    \"dateCreated\":  \"\
+                2017-01-10 13:22:43\",\n    \"dateModified\": \"2017-01-10 13:22:43\"\
+                ,\n    \"grid\": \"grid.1003.2\",\n    \"institution\": \"University\
+                \ of Queensland\",\n    \"owner\": \"marilyn.chapman@uq.edu.au\",\n\
+                \    \"purl\": \"http://purl.org/au-research/activity/RAiD/A2017-P000011\"\
+                ,\n  \"researchers\" : [\n {\n    \"displayName\": \"Dr. Marilyn Chapman\"\
+                ,\n    \"institution\": \"University of Queensland\",\n    \"mail\"\
+                : \"marilyn.chapman@uq.edu.au\",\n    \"orcid\": \"0000-0002-0082-2289\"\
+                \n  },\n   {\n    \"displayName\": \"Dr. Marguerite Curtis\",\n  \
+                \  \"institution\": \"University of Queensland\",\n    \"mail\": \"\
+                marguerite.curtish@anu.edu.au\",\n    \"orcid\": \"0000-0002-1825-0097\"\
+                \n  }\n]\n},\n{\n    \"id\": \"000012\",\n    \"dateCreated\": \"\
+                2017-01-11 12:20:00\",\n    \"dateModified\": \"2017-01-11 12:20:00\"\
+                ,\n    \"grid\": \"grid.1009.8\",\n    \"institution\": \"University\
+                \ of Tasmania\",\n    \"owner\": \"genevieve.scott@uq.ur.au\",\n \
+                \   \"purl\": \"http://purl.org/au-research/activity/RAiD/A2017-P000012\"\
+                ,\n  \"researchers\" : [\n {\n    \"displayName\": \"Dr. Genevieve\
+                \ Scott\",\n    \"institution\": \"University of Tasmania\",\n   \
+                \ \"mail\": \"genevieve.scott@ut.edu.au\",\n    \"orcid\": \"0000-0002-1252-5564\"\
+                \n  },\n  {\n    \"displayName\": \"Ms. Alsion Crunch\",\n    \"institution\"\
+                : \"University of Tasmania\",\n    \"mail\": \"a.crunch@ut.edu.au\"\
+                ,\n    \"orcid\": \"0000-0002-1352-5522\"\n  } \n]\n}\n]"
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+    post:
+      operationId: "postActivity"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "ActivityViewModel"
+        required: true
+        schema:
+          $ref: "#/definitions/ActivityViewModel"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/Activity"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+        405:
+          description: "405 response"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: "{\n  \"id\": \"000001\",\n  \"dateCreated\": \"2016-12-01\
+                \ 13:22:43\",\n  \"dateModified\": \"2016-12-01 13:22:43\",\n  \"\
+                grid\": \"grid.1003.2\",\n  \"institution\": \"University of Queensland\"\
+                ,\n  \"owner\": \"john.smith@uq.edu.au\",\n  \"purl\": \"http://purl.org/au-research/activity/RAiD/A2016-P000001\"\
+                ,\n  \"researchers\": [\n    {\n      \"displayName\": \"Dr. John\
+                \ Smith\",\n      \"institution\": \"The University of Queensland\"\
+                ,\n      \"mail\": \"john.smith@uq.edu.au\",\n      \"orcid\": \"\
+                0000-0002-1825-0097\"\n    }\n  ]\n}"
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+    options:
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "200 response"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'POST,GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /activity/{identifier}:
+    get:
+      operationId: "getActivityById"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "identifier"
+        in: "path"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/Activity"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+        400:
+          description: "400 response"
+        404:
+          description: "404 response"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: "{\n  \"id\": \"000001\",\n  \"dateCreated\": \"2016-12-01\
+                \ 13:22:43\",\n  \"dateModified\": \"2016-12-01 13:22:43\",\n  \"\
+                grid\": \"grid.1003.2\",\n  \"institution\": \"University of Queensland\"\
+                ,\n  \"owner\": \"john.smith@uq.edu.au\",\n  \"purl\": \"http://purl.org/au-research/activity/RAiD/A2016-P000001\"\
+                ,\n  \"researchers\": [\n    {\n      \"displayName\": \"Dr. John\
+                \ Smith\",\n      \"institution\": \"The University of Queensland\"\
+                ,\n      \"mail\": \"john.smith@uq.edu.au\",\n      \"orcid\": \"\
+                0000-0002-1825-0097\"\n    }\n  ]\n}"
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+    put:
+      operationId: "updateActivity"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "identifier"
+        in: "path"
+        required: true
+        type: "string"
+      - in: "body"
+        name: "ActivityViewModel"
+        required: true
+        schema:
+          $ref: "#/definitions/ActivityViewModel"
+      responses:
+        200:
+          description: "200 response"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+        400:
+          description: "400 response"
+        404:
+          description: "404 response"
+        405:
+          description: "405 response"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: "{\n  \"id\": \"000001\",\n  \"dateCreated\": \"2016-12-01\
+                \ 13:22:43\",\n  \"dateModified\": \"2016-12-01 13:22:43\",\n  \"\
+                grid\": \"grid.1003.2\",\n  \"institution\": \"University of Queensland\"\
+                ,\n  \"owner\": \"john.smith@uq.edu.au\",\n  \"purl\": \"http://purl.org/au-research/activity/RAiD/A2016-P000001\"\
+                ,\n  \"researchers\": [\n    {\n      \"displayName\": \"Dr. John\
+                \ Smith\",\n      \"institution\": \"The University of Queensland\"\
+                ,\n      \"mail\": \"john.smith@uq.edu.au\",\n      \"orcid\": \"\
+                0000-0002-1825-0097\"\n    }\n  ]\n}"
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+    options:
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "200 response"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Headers:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+  /auth/jwt:
+    post:
+      consumes:
+      - "application/x-www-form-urlencoded"
+      responses:
+        302:
+          description: "302 response"
+          headers:
+            Set-Cookie:
+              type: "string"
+            location:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "302"
+            responseParameters:
+              method.response.header.Set-Cookie: "integration.response.body.cookie"
+              method.response.header.location: "integration.response.body.location"
+        requestTemplates:
+          application/x-www-form-urlencoded: "{\n  \"body\" : $input.json('$')\n}"
+        uri: "arn:aws:apigateway:<Region>:lambda:path/2015-03-31/functions/arn:aws:lambda:<Region>:<AccountNumber>:function:Redirection/invocations"
+        passthroughBehavior: "when_no_templates"
+        httpMethod: "POST"
+        contentHandling: "CONVERT_TO_TEXT"
+        type: "aws"
+definitions:
+  ArrayOfActivity:
+    type: "array"
+    items:
+      $ref: "#/definitions/Activity"
+  ActivityViewModel:
+    type: "object"
+    properties:
+      institution:
+        type: "string"
+        description: "Full descriptive name of the research institution that the activity\
+          \ is owned by."
+      researchers:
+        type: "array"
+        description: "An array of researcher ORCIDs that are involved in the research\
+          \ activity. It will consist of an ORCID ID at minimum."
+        items:
+          type: "string"
+    description: "Research activity view model for create and update JSON body requests."
+  Researcher:
+    type: "object"
+    required:
+    - "orcid"
+    properties:
+      displayName:
+        type: "string"
+        description: "Display name from AAF that includes; title, given names and\
+          \ last name"
+      institution:
+        type: "string"
+        description: "Name of the affiliation/organisation/institution of the researcher"
+      mail:
+        type: "string"
+        description: "Contact email address of researcher"
+      orcid:
+        type: "string"
+        description: "URI with a 16-digit number that is compatible with the ISO Standard.\
+          \ As seen at http://orcid.org"
+    description: "AAF affiliated researchers"
+  Activity:
+    type: "object"
+    properties:
+      id:
+        type: "number"
+        description: "Auto-incremented numeric value that along with the year created\
+          \ will generate a valid PURL"
+      dateCreated:
+        type: "string"
+        description: "Created date of research activity in 'YYYY-MM-DD HH:MM:SS' format."
+      dateModified:
+        type: "string"
+        description: "Last modified date of research activity in 'YYYY-MM-DD HH:MM:SS'\
+          \ format."
+      grid:
+        type: "string"
+        description: "Unique oranisation ID listed by GRID. Example 'grid.1003.2'\
+          \ for the University of Queensland: 'https://www.grid.ac/institutes/grid.1003.2'."
+      institution:
+        type: "string"
+        description: "Full descriptive name of the research institution that the activity\
+          \ is owned by"
+      owner:
+        type: "string"
+        description: "Mail address of the creator/owner of the activity. Authenticated\
+          \ information collected from their AAF authentication JWT token."
+      purl:
+        type: "string"
+        description: "Persistent uniform resource locator that will be registered\
+          \ under the ANDS group: ‘http://purl.org/au-research/activity/RAiD/<id string>’\
+          . String <id_string> structure is: ‘A<Year>-P00000x’, with ‘00000x’ being\
+          \ a numeric with leading zeroes incrementing for each new PURL."
+      researchers:
+        type: "array"
+        description: "An array of researchers that are involved in the research activity.\
+          \ It will consist of an ORCID ID at minimum."
+        items:
+          $ref: "#/definitions/Researcher"
+    description: "Research Activity. XML Schema used for reference 'http://services.ands.org.au/documentation/rifcs/1.6.1/schema/activity.xsd'\
+      \ and 'http://services.ands.org.au/documentation/rifcs/1.6/vocabs/vocabularies.html'."
