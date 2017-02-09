@@ -1,37 +1,63 @@
-'''
+"""
 Authentication AWS Lambda handler code
 
 Perform validation and redirection on custom authentication from third party
 provided JWT.
-
-'''
+"""
 from __future__ import print_function
 
 import os
 import json
+import base64
 import urlparse
 import re
-import boto3
 import jwt
 
-from boto3.dynamodb.conditions import Key
-from boto3.session import Session
+import datetime
 
-JWT_SECRET =  os.environ['JWT_SECRET']
-SITE_URL =  os.environ['SITE_URL']
-SITE_DOMAIN =  os.environ['SITE_DOMAIN']
-JWT_ISSUER =  os.environ['JWT_ISSUER']
-JWT_AUDIENCE =  os.environ['JWT_AUDIENCE']
+JWT_SECRET = os.environ['JWT_SECRET']
+SITE_URL = os.environ['SITE_URL']
+SITE_DOMAIN = os.environ['SITE_DOMAIN']
+JWT_ISSUER_3RD_PARTY = os.environ['JWT_ISSUER_3RD_PARTY']
+JWT_ISSUER_SELF = os.environ['JWT_ISSUER_SELF']
+JWT_AUDIENCE = os.environ['JWT_AUDIENCE']
 
-def jwt_validate(jwtToken):
-    '''
-    Validate authenticity and validity of JWT token.
+
+def jwt_self_encode(jwt_audience, jwt_issuer_self, subject, organisation, months=6):
+    """
+    Generate a JWT token for an organisation that will last a number months of months after the current date.
+    """
+    future_date = datetime.date.today() + datetime.timedelta(months*365/12)
+    payload = {
+        'sub': subject,
+        'aud': jwt_audience,
+        'iss': jwt_issuer_self,
+        'iat': datetime.datetime.now(),
+        'exp': datetime.datetime.combine(future_date, datetime.time.min),
+        'o': organisation
+    }
+    token = jwt.encode(payload, JWT_SECRET)
+    return token
+    
+
+def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_issuer_self):
+    """
+    Validate authenticity and validity of JWT token against authorised third party or self signed .
     Client should handle invalid token by sending a 401 Unauthorized response.
-    '''
-    print("JWT token: " + jwtToken)
+    """
+    print("JWT token: " + jwt_token)
     try:
-        decoded = jwt.decode(jwtToken, JWT_SECRET, issuer=JWT_ISSUER, audience=JWT_AUDIENCE)
-        return decoded
+        # Identify token issuer and attributes
+        decoded_base64_attributes = base64.b64decode(jwt_token.split('.')[1])
+        attributes_obj = json.loads(decoded_base64_attributes)
+        
+        if attributes_obj["iss"] == jwt_issuer_3rd_party:
+            # Authorized 3rd party
+            return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_3rd_party, audience=jwt_audience)
+        else:
+            # Self Signed
+            return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_self, audience=jwt_audience)
+
     except jwt.ExpiredSignatureError:
         # Signature has expired
         print("JWT Signature has expired")
@@ -44,50 +70,54 @@ def jwt_validate(jwtToken):
         # Invalid audience
         print("JWT Invalid audience")
         raise Exception('Unauthorized')
-    except jwt.InvalidIssuedAtError :
+    except jwt.InvalidIssuedAtError:
         # Invalid audience
         print("JWT InvalidIssuedAtError")
         raise Exception('Unauthorized')
     except:
         print("JWT Unexpected error")
         raise Exception('Unauthorized')
-    
+
+
 def jwt_redirection_handler(event, context):
-    '''
+    """
     Perform validation and redirection for a SAML assertion endpoint. 
     Parse url encoded form data for JWT token and check against secret.
-    '''
-    #Parse form data which should contain at minimum an SAML assertion
+    """
+    # Parse form data which should contain at minimum an SAML assertion
     body_parse = urlparse.parse_qs(event["body"])
     
-    #Capture JWT and validate
-    jwtToken = body_parse["assertion"][0]
-    decoded = jwt_validate(jwtToken)
+    # Capture JWT token
+    jwt_token = body_parse["assertion"][0]
+
+    # Decode and validate JWT token
+    decoded = jwt_validate(jwt_token, JWT_SECRET, JWT_AUDIENCE, JWT_ISSUER_3RD_PARTY, JWT_ISSUER_SELF)
     print(json.dumps(decoded))
     
-    #Generate Cookie string
-    cookie_string = 'jwtToken={0}; domain={1}; Path=/;'.format(jwtToken, SITE_DOMAIN)
+    # Generate Cookie string
+    cookie_string = 'jwt_token={0}; domain={1}; Path=/;'.format(jwt_token, SITE_DOMAIN)
     
     return {
-        'location' : SITE_URL,
+        'location': SITE_URL,
         'cookie': cookie_string
     }
 
+
 def jwt_validation_handler(event, context):
-    '''
+    """
     Perform validation of API Gateway custom authoriser by checking JWT user token
     from cookie.
-    '''
+    """
     print("Client token: " + event['authorizationToken'])
     print("Method ARN: " + event['methodArn'])
 
     # Validate the incoming JWT token from pass Auth header
-    jwtToken = event["authorizationToken"]
+    jwt_token = event["authorizationToken"]
     
-    decoded = jwt_validate(jwtToken)
+    decoded = jwt_validate(jwt_token)
 
     # User email will be Principal ID to be associated with calls. Ex 'user|j.smith@example.com'
-    principalId = 'user|' + decoded["mail"]
+    principal_id = 'user|' + decoded["mail"]
 
     '''
     If the token is valid, a policy must be generated which will allow or deny
@@ -100,36 +130,37 @@ def jwt_validation_handler(event, context):
     method/resource in the RestApi made with the same token.
     '''
     tmp = event['methodArn'].split(':')
-    apiGatewayArnTmp = tmp[5].split('/')
-    awsAccountId = tmp[4]
+    api_gateway_arn_tmp = tmp[5].split('/')
+    aws_account_id = tmp[4]
 
-    policy = AuthPolicy(principalId, awsAccountId)
-    policy.restApiId = apiGatewayArnTmp[0]
+    policy = AuthPolicy(principal_id, aws_account_id)
+    policy.restApiId = api_gateway_arn_tmp[0]
     policy.region = tmp[3]
-    policy.stage = apiGatewayArnTmp[1]
-   
-    #Permit method usage. Ex policy.allowMethod(HttpVerb.GET, '/pets/*')
-    policy.allowAllMethods()
+    policy.stage = api_gateway_arn_tmp[1]
+
+    if decoded["iss"] == JWT_ISSUER_3RD_PARTY:
+        # 3rd party users only have permission to view activities
+        policy.allow_method(HttpVerb.GET, '/activity/*')
+
+        # Insert AAF member information to context
+        context = {
+            'mail': decoded["https://aaf.edu.au/attributes"]["mail"],
+            'auEduPersonSharedToken': decoded["https://aaf.edu.au/attributes"]["auEduPersonSharedToken"],
+            'displayname': decoded["https://aaf.edu.au/attributes"]["displayname"],
+            'o': decoded["https://aaf.edu.au/attributes"]["o"]   
+        }
+
+    else:
+        # Self signed provider or organisation users can use all HTTP methods
+        policy.allow_all_methods()
+        context = {
+            'o': decoded["organisation"]
+        }
 
     # Finally, build the policy
-    authResponse = policy.build()
-
-    '''
-    Key-value pairs associated with the authenticated principal
-    these are made available by APIGW like so: $context.authorizer.<key>
-    additional context is cached. $context.authorizer.key -> value
-    '''
-
-    # Insert AAF member information
-    context = {
-        'mail': decoded["mail"] ,
-        'edupersonsharedtoken': decoded["edupersonsharedtoken"],
-        'displayname': decoded["displayname"]
-    }
-
-    authResponse['context'] = context
-
-    return authResponse
+    auth_response = policy.build()
+    auth_response['context'] = context
+    return auth_response
 
 
 class HttpVerb:
@@ -169,41 +200,46 @@ class AuthPolicy(object):
     # The name of the stage used in the policy. By default this is set to '*'
     stage = '*'
 
-    def __init__(self, principal, awsAccountId):
-        self.awsAccountId = awsAccountId
+    def __init__(self, principal, aws_account_id):
+        self.awsAccountId = aws_account_id
         self.principalId = principal
         self.allowMethods = []
         self.denyMethods = []
 
-    def _addMethod(self, effect, verb, resource, conditions):
-        '''Adds a method to the internal lists of allowed or denied methods. Each object in
+    def _add_method(self, effect, verb, resource, conditions):
+        """
+        Adds a method to the internal lists of allowed or denied methods. Each object in
         the internal list contains a resource ARN and a condition statement. The condition
-        statement can be null.'''
+        statement can be null.
+        """
         if verb != '*' and not hasattr(HttpVerb, verb):
             raise NameError('Invalid HTTP verb ' + verb + '. Allowed verbs in HttpVerb class')
-        resourcePattern = re.compile(self.pathRegex)
-        if not resourcePattern.match(resource):
+        resource_pattern = re.compile(self.pathRegex)
+        if not resource_pattern.match(resource):
             raise NameError('Invalid resource path: ' + resource + '. Path should match ' + self.pathRegex)
 
         if resource[:1] == '/':
             resource = resource[1:]
 
-        resourceArn = 'arn:aws:execute-api:{}:{}:{}/{}/{}/{}'.format(self.region, self.awsAccountId, self.restApiId, self.stage, verb, resource)
+        resource_arn = 'arn:aws:execute-api:{}:{}:{}/{}/{}/{}'.format(self.region, self.awsAccountId, self.restApiId,
+                                                                      self.stage, verb, resource)
 
         if effect.lower() == 'allow':
             self.allowMethods.append({
-                'resourceArn': resourceArn,
+                'resource_arn': resource_arn,
                 'conditions': conditions
             })
         elif effect.lower() == 'deny':
             self.denyMethods.append({
-                'resourceArn': resourceArn,
+                'resource_arn': resource_arn,
                 'conditions': conditions
             })
 
-    def _getEmptyStatement(self, effect):
-        '''Returns an empty statement object prepopulated with the correct action and the
-        desired effect.'''
+    def _get_empty_statement(self, effect):
+        """
+        Returns an empty statement object prepopulated with the correct action and the
+        desired effect.
+        """
         statement = {
             'Action': 'execute-api:Invoke',
             'Effect': effect[:1].upper() + effect[1:].lower(),
@@ -212,63 +248,79 @@ class AuthPolicy(object):
 
         return statement
 
-    def _getStatementForEffect(self, effect, methods):
-        '''This function loops over an array of objects containing a resourceArn and
-        conditions statement and generates the array of statements for the policy.'''
+    def _get_statement_for_effect(self, effect, methods):
+        """
+        This function loops over an array of objects containing a resourceArn and
+        conditions statement and generates the array of statements for the policy.
+        """
         statements = []
 
         if len(methods) > 0:
-            statement = self._getEmptyStatement(effect)
+            statement = self._get_empty_statement(effect)
 
             for curMethod in methods:
                 if curMethod['conditions'] is None or len(curMethod['conditions']) == 0:
                     statement['Resource'].append(curMethod['resourceArn'])
                 else:
-                    conditionalStatement = self._getEmptyStatement(effect)
-                    conditionalStatement['Resource'].append(curMethod['resourceArn'])
-                    conditionalStatement['Condition'] = curMethod['conditions']
-                    statements.append(conditionalStatement)
+                    conditional_statement = self._get_empty_statement(effect)
+                    conditional_statement['Resource'].append(curMethod['resourceArn'])
+                    conditional_statement['Condition'] = curMethod['conditions']
+                    statements.append(conditional_statement)
 
             if statement['Resource']:
                 statements.append(statement)
 
         return statements
 
-    def allowAllMethods(self):
-        '''Adds a '*' allow to the policy to authorize access to all methods of an API'''
-        self._addMethod('Allow', HttpVerb.ALL, '*', [])
+    def allow_all_methods(self):
+        """
+        Adds a '*' allow to the policy to authorize access to all methods of an API
+        """
+        self._add_method('Allow', HttpVerb.ALL, '*', [])
 
-    def denyAllMethods(self):
-        '''Adds a '*' allow to the policy to deny access to all methods of an API'''
-        self._addMethod('Deny', HttpVerb.ALL, '*', [])
+    def deny_all_methods(self):
+        """
+        Adds a '*' allow to the policy to deny access to all methods of an API
+        """
+        self._add_method('Deny', HttpVerb.ALL, '*', [])
 
-    def allowMethod(self, verb, resource):
-        '''Adds an API Gateway method (Http verb + Resource path) to the list of allowed
-        methods for the policy'''
-        self._addMethod('Allow', verb, resource, [])
+    def allow_method(self, verb, resource):
+        """
+        Adds an API Gateway method (Http verb + Resource path) to the list of allowed
+        methods for the policy
+        """
+        self._add_method('Allow', verb, resource, [])
 
-    def denyMethod(self, verb, resource):
-        '''Adds an API Gateway method (Http verb + Resource path) to the list of denied
-        methods for the policy'''
-        self._addMethod('Deny', verb, resource, [])
+    def deny_method(self, verb, resource):
+        """
+        Adds an API Gateway method (Http verb + Resource path) to the list of denied
+        methods for the policy'
+        """
+        self._add_method('Deny', verb, resource, [])
 
-    def allowMethodWithConditions(self, verb, resource, conditions):
-        '''Adds an API Gateway method (Http verb + Resource path) to the list of allowed
+    def allow_method_with_conditions(self, verb, resource, conditions):
+        """
+        Adds an API Gateway method (Http verb + Resource path) to the list of allowed
         methods and includes a condition for the policy statement. More on AWS policy
-        conditions here: http://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html#Condition'''
-        self._addMethod('Allow', verb, resource, conditions)
+        conditions here: http://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html#Condition
+        """
+        self._add_method('Allow', verb, resource, conditions)
 
-    def denyMethodWithConditions(self, verb, resource, conditions):
-        '''Adds an API Gateway method (Http verb + Resource path) to the list of denied
+    def deny_method_with_conditions(self, verb, resource, conditions):
+        """
+        Adds an API Gateway method (Http verb + Resource path) to the list of denied
         methods and includes a condition for the policy statement. More on AWS policy
-        conditions here: http://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html#Condition'''
-        self._addMethod('Deny', verb, resource, conditions)
+        conditions here: http://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html#Condition
+        """
+        self._add_method('Deny', verb, resource, conditions)
 
     def build(self):
-        '''Generates the policy document based on the internal lists of allowed and denied
+        """
+        Generates the policy document based on the internal lists of allowed and denied
         conditions. This will generate a policy with two main statements for the effect:
         one statement for Allow and one statement for Deny.
-        Methods that includes conditions will have their own statement in the policy.'''
+        Methods that includes conditions will have their own statement in the policy.
+        """
         if ((self.allowMethods is None or len(self.allowMethods) == 0) and
                 (self.denyMethods is None or len(self.denyMethods) == 0)):
             raise NameError('No statements defined for the policy')
@@ -281,7 +333,7 @@ class AuthPolicy(object):
             }
         }
 
-        policy['policyDocument']['Statement'].extend(self._getStatementForEffect('Allow', self.allowMethods))
-        policy['policyDocument']['Statement'].extend(self._getStatementForEffect('Deny', self.denyMethods))
+        policy['policyDocument']['Statement'].extend(self._get_statement_for_effect('Allow', self.allowMethods))
+        policy['policyDocument']['Statement'].extend(self._get_statement_for_effect('Deny', self.denyMethods))
 
         return policy
