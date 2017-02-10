@@ -11,19 +11,14 @@ import json
 import base64
 import urlparse
 import re
+import datetime
 import jwt
 
-import datetime
-
-JWT_SECRET = os.environ['JWT_SECRET']
-SITE_URL = os.environ['SITE_URL']
-SITE_DOMAIN = os.environ['SITE_DOMAIN']
-JWT_ISSUER_3RD_PARTY = os.environ['JWT_ISSUER_3RD_PARTY']
-JWT_ISSUER_SELF = os.environ['JWT_ISSUER_SELF']
-JWT_AUDIENCE = os.environ['JWT_AUDIENCE']
+INSTITUTION_SUBJECT = "RAiD:Institution"
+PROVIDER_SUBJECT = "RAiD:Provider"
 
 
-def jwt_self_encode(jwt_audience, jwt_issuer_self, subject, organisation, months=6):
+def jwt_self_encode(jwt_secret, jwt_audience, jwt_issuer_self, subject, organisation, months=6):
     """
     Generate a JWT token for an organisation that will last a number months of months after the current date.
     """
@@ -36,7 +31,7 @@ def jwt_self_encode(jwt_audience, jwt_issuer_self, subject, organisation, months
         'exp': datetime.datetime.combine(future_date, datetime.time.min),
         'o': organisation
     }
-    token = jwt.encode(payload, JWT_SECRET)
+    token = jwt.encode(payload, jwt_secret)
     return token
     
 
@@ -91,14 +86,15 @@ def jwt_redirection_handler(event, context):
     jwt_token = body_parse["assertion"][0]
 
     # Decode and validate JWT token
-    decoded = jwt_validate(jwt_token, JWT_SECRET, JWT_AUDIENCE, JWT_ISSUER_3RD_PARTY, JWT_ISSUER_SELF)
+    decoded = jwt_validate(jwt_token, os.environ['JWT_SECRET'], os.environ['JWT_AUDIENCE'],
+                           os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
     print(json.dumps(decoded))
-    
+
     # Generate Cookie string
-    cookie_string = 'jwt_token={0}; domain={1}; Path=/;'.format(jwt_token, SITE_DOMAIN)
-    
+    cookie_string = 'jwt_token={0}; domain={1}; Path=/;'.format(jwt_token, os.environ['SITE_DOMAIN'])
+
     return {
-        'location': SITE_URL,
+        'location': os.environ['SITE_URL'],
         'cookie': cookie_string
     }
 
@@ -113,7 +109,7 @@ def jwt_validation_handler(event, context):
 
     # Validate the incoming JWT token from pass Auth header
     jwt_token = event["authorizationToken"]
-    
+
     decoded = jwt_validate(jwt_token)
 
     # User email will be Principal ID to be associated with calls. Ex 'user|j.smith@example.com'
@@ -138,8 +134,8 @@ def jwt_validation_handler(event, context):
     policy.region = tmp[3]
     policy.stage = api_gateway_arn_tmp[1]
 
-    if decoded["iss"] == JWT_ISSUER_3RD_PARTY:
-        # 3rd party users only have permission to view activities
+    if decoded["iss"] == os.environ['JWT_ISSUER_3RD_PARTY']:
+        # Third party users only have permission to view activities
         policy.allow_method(HttpVerb.GET, '/activity/*')
 
         # Insert AAF member information to context
@@ -147,15 +143,25 @@ def jwt_validation_handler(event, context):
             'mail': decoded["https://aaf.edu.au/attributes"]["mail"],
             'auEduPersonSharedToken': decoded["https://aaf.edu.au/attributes"]["auEduPersonSharedToken"],
             'displayname': decoded["https://aaf.edu.au/attributes"]["displayname"],
-            'o': decoded["https://aaf.edu.au/attributes"]["o"]   
+            'o': decoded["https://aaf.edu.au/attributes"]["o"]
         }
 
-    else:
-        # Self signed provider or organisation users can use all HTTP methods
+    elif decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["sub"] == PROVIDER_SUBJECT:
+        # Self signed provider users can use all HTTP methods
         policy.allow_all_methods()
         context = {
             'o': decoded["organisation"]
         }
+
+    elif decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["sub"] == INSTITUTION_SUBJECT:
+        # Self signed institution can only view activities
+        policy.allow_method(HttpVerb.GET, '/activity/*')
+        context = {
+            'o': decoded["organisation"]
+        }
+
+    else:
+        raise Exception('Unauthorized')
 
     # Finally, build the policy
     auth_response = policy.build()
