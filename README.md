@@ -42,11 +42,13 @@ pip install boto3==1.4.4
 Micro-services depend on environment variables to allow for an environment stage agnostic deployment model.
 
 #### auth.py
+- `JWT_AUDIENCE` Name of intended audience. Prevent valid tokens meant for other application to be used with this application.
+- `JWT_ISSUER_3RD_PARTY` Name of 3rd party issuer of JWT provided token.
+- `JWT_ISSUER_SELF` Name for self issued JWT provided token.
 - `JWT_SECRET` Secret used for encryption/decryption of all JWT tokens.
 - `SITE_URL` URL for all JWT authentication calls to be redirected to. This should be the URL endpoint of the static website.
 - `SITE_DOMAIN` Shared domain of API Gateway and S3 static site. Setting and sharing authentication cookies requires a shared root domain. For example: The S3 site would be hosted on 'example.com' and API Gateway on 'api.example.com/v1/' with the shared domain as 'example.com'.
-- `JWT_ISSUER` Name of 3rd party issuer of JWT provided token.
-- `JWT_AUDIENCE` Name of intended audience. Prevent valid tokens meant for other application to be used with this application.
+
 
 TBC
 ...
@@ -55,7 +57,7 @@ Install AWS Lambda functions module requirements using PIP.
 
 ```
 # Install packages listed in requirements
-$ pip install -r Lambda/Function/Path/requirements.txt
+$ pip install -r LambdaFunctions/requirements.txt
 ```
 
 Run AWS Lambda handle locally using [Python Lambda Local](https://pypi.python.org/pypi/python-lambda-local/0.1.2) and a provided event json file.
@@ -96,11 +98,11 @@ Prepare Lambda files by creating [AWS Lambda Python Packages](http://docs.aws.am
 $cp -R LambdaFunctions/. Artifacts/LambdaFunctions/
 
 # Install packages listed in requirements to a directory for package deployment
-$ pip install -r Artifacts/LambdaFunctions/Function/requirements.txt -t Artifacts/LambdaFunctions/Function
+$ pip install -r Artifacts/LambdaFunctions/requirements.txt -t Artifacts/LambdaFunctions/
 
 # Create zip of function at root level and upload to private S3 bucket
-$ zip -r Artifacts/LambdaFunctions/Function/function.zip *
-$ aws s3 cp Artifacts/LambdaFunctions/Function/function.zip s3://myPrivateBucket//function.zip
+$ zip -r Artifacts/LambdaFunctions/function.zip *
+$ aws s3 cp Artifacts/LambdaFunctions/function.zip s3://myPrivateBucket//function.zip
 ```
 ### API Gateway
 API Gateway paths are defined explicitly in the 'swagger.yaml' file in SAM directory. 
