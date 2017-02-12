@@ -48,7 +48,8 @@ def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_
         
         if attributes_obj["iss"] == jwt_issuer_3rd_party:
             # Authorized 3rd party
-            return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_3rd_party, audience=jwt_audience)
+            return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_3rd_party, audience=jwt_audience,
+                              options={'verify_exp': False})
         else:
             # Self Signed
             return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_self, audience=jwt_audience)
@@ -56,22 +57,22 @@ def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_
     except jwt.ExpiredSignatureError:
         # Signature has expired
         print("JWT Signature has expired")
-        raise Exception('Unauthorized')
+        raise Exception('Unauthorized: JWT Signature has expired')
     except jwt.InvalidIssuerError:
         # Invalid Issuer
         print("JWT Invalid Issuer")
-        raise Exception('Unauthorized')
+        raise Exception('Unauthorized: JWT Invalid Issuer')
     except jwt.InvalidAudienceError:
         # Invalid audience
         print("JWT Invalid audience")
-        raise Exception('Unauthorized')
+        raise Exception('Unauthorized: JWT Invalid audience')
     except jwt.InvalidIssuedAtError:
         # Invalid audience
         print("JWT InvalidIssuedAtError")
-        raise Exception('Unauthorized')
+        raise Exception('Unauthorized: JWT InvalidIssuedAtError')
     except:
         print("JWT Unexpected error")
-        raise Exception('Unauthorized')
+        raise Exception('Unauthorized: JWT Unexpected error')
 
 
 def jwt_redirection_handler(event, context):
