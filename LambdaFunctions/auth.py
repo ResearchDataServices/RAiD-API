@@ -111,10 +111,15 @@ def jwt_validation_handler(event, context):
     # Validate the incoming JWT token from pass Auth header
     jwt_token = event["authorizationToken"]
 
-    decoded = jwt_validate(jwt_token)
+    decoded = jwt_validate(jwt_token, os.environ['JWT_SECRET'], os.environ['JWT_AUDIENCE'],
+                           os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
 
-    # User email will be Principal ID to be associated with calls. Ex 'user|j.smith@example.com'
-    principal_id = 'user|' + decoded["mail"]
+    if decoded["iss"] == os.environ['JWT_ISSUER_3RD_PARTY']:
+        # User email will be Principal ID to be associated with calls. Ex 'user|j.smith@example.com'
+        principal_id = 'user|' + decoded["https://aaf.edu.au/attributes"]["mail"]
+    else:
+        # Organisation is the principal ID
+        principal_id = 'user|' + decoded["o"]
 
     '''
     If the token is valid, a policy must be generated which will allow or deny
@@ -143,8 +148,7 @@ def jwt_validation_handler(event, context):
         context = {
             'mail': decoded["https://aaf.edu.au/attributes"]["mail"],
             'auEduPersonSharedToken': decoded["https://aaf.edu.au/attributes"]["auEduPersonSharedToken"],
-            'displayname': decoded["https://aaf.edu.au/attributes"]["displayname"],
-            'o': decoded["https://aaf.edu.au/attributes"]["o"]
+            'displayname': decoded["https://aaf.edu.au/attributes"]["displayname"]
         }
 
     elif decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["sub"] == PROVIDER_SUBJECT:
