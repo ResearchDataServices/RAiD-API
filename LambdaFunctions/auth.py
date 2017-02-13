@@ -43,9 +43,10 @@ def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_
     print("JWT token: " + jwt_token)
     try:
         # Identify token issuer and attributes
-        decoded_base64_attributes = base64.b64decode(jwt_token.split('.')[1])
+        attributes = jwt_token.split('.')[1] + "=="  # Add Base64 padding at end
+        decoded_base64_attributes = base64.b64decode(attributes)
         attributes_obj = json.loads(decoded_base64_attributes)
-        
+
         if attributes_obj["iss"] == jwt_issuer_3rd_party:
             # Authorized 3rd party
             return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_3rd_party, audience=jwt_audience,
@@ -70,8 +71,9 @@ def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_
         # Invalid audience
         print("JWT InvalidIssuedAtError")
         raise Exception('Unauthorized: JWT InvalidIssuedAtError')
-    except:
+    except Exception, e:
         print("JWT Unexpected error")
+        print(str(e))
         raise Exception('Unauthorized: JWT Unexpected error')
 
 
