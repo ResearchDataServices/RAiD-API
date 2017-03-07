@@ -6,7 +6,7 @@ The DLCF is a nationwide effort to connect research resources and activities suc
 
 The DLCF will connect critical elements and points in time of the data journey from grant approval through to project finalisation, results publication and archiving. It will leverage existing eResearch investment to provide a flexible and dynamic national framework supporting research.
 
-The Resource and Activity Persistent identifier (RAiD) is the first of the enabling technologies required for the DLCF. The RAiD API is a [Serverless](https://aws.amazon.com/serverless/) application designed to be hosted on Amazon Web Services (AWS) that will help create and manage RAiDs.
+The Resource and Activity Persistent identifier (RAiD) is the first of the enabling technologies required for the DLCF. The RAiD API is a '**proof of concept**' [Serverless](https://aws.amazon.com/serverless/) implementation designed to be hosted on Amazon Web Services (AWS) that will help create and manage RAiDs.
 
 ## Serverless Components
 AWS serverless applications are able to conform to a [multi-tier architecture]( https://d0.awsstatic.com/whitepapers/AWS_Serverless_Multi-Tier_Architectures.pdf), consisting of three defined tiers:
@@ -16,6 +16,15 @@ AWS serverless applications are able to conform to a [multi-tier architecture]( 
 
 ## Getting Started
 Development and deployment of the framework will require the following:
+### Third-Party Integrations
+Authentication validation and redirection is designed to be integrated with [Rapid AAF](https://rapid.aaf.edu.au/). The service will redirect to the static site via a RESTful *POST* call, providing a JWT token with AAF attributes.
+Read the [Rapid AAF developer guide](https://rapid.aaf.edu.au/developers) and contact the [support desk](support@aaf.edu.au) for service registration. The application will need access to the following AAF attributes:
+- mail
+- auEduPersonSharedToken
+- displayname
+- o
+
+
 ### Prerequisites
 * [Python](https://www.python.org/download/releases/2.7/):  AWS Lambda supported Python language runtime 2.7.
 * [PIP](https://pip.pypa.io/en/stable/) : Install and manage Python Modules
@@ -49,9 +58,6 @@ Micro-services depend on environment variables to allow for an environment stage
 - `SITE_URL` URL for all JWT authentication calls to be redirected to. This should be the URL endpoint of the static website.
 - `SITE_DOMAIN` Shared domain of API Gateway and S3 static site. Setting and sharing authentication cookies requires a shared root domain. For example: The S3 site would be hosted on 'example.com' and API Gateway on 'api.example.com/v1/' with the shared domain as 'example.com'.
 
-
-TBC
-...
 ### Running locally
 Install AWS Lambda functions module requirements using PIP.
 
@@ -72,27 +78,39 @@ python-lambda-local -f lambda_handle -t 5 lambda_file.py event.json
 ```
 
 ## Deployment
-[AWS Serverless Application Model](http://docs.aws.amazon.com/lambda/latest/dg/deploying-lambda-apps.html) (SAM) extends the traditional Cloud Formation temployment deployment model to special in the the deployment of serverless application.
-When the resources defined below are configured, deploy the SAM via AWS CloudFormation with following commands using resources in the SAM directory.
+### S3 Static site
+Some *JavaScript* variables will need to be changed prior to being uploaded to match the application routing:
+- StaticSite/js/global.js
 ```
-# Create Cloudformation package that:
-# Zips the index.js file.
-# Uploads it to an S3 bucket
-# Adds a CodeUri property, specifying the location of the zip file in the bucket for each function in app_spec.yml.
-$ aws cloudformation package --template-file app_spec.yml --output-template-file new_app_spec.yml --s3-bucket <your-bucket-name>
+# Replace wih the hosted API endpoint URL for all RESTful calls.
 
-# Deploy the CloudFormation package which will:
-# Use new SAM file.
-# Call the CloudFormation CreateChangeSet operation with app_spec.yml
-# Call the CloudFormation ExecuteChangeSet operation with the name of the changeset you created in step
-# Provide CloudFormation with the capability to create IAM role
-$aws cloudformation deploy --template-file new_app_spec.yml --stack-name <your-stack-name> --capabilities CAPABILITY_IAM
+https://{API_URL_ENDPOINT}
 ```
 
-TBC
-...
+- StaticSite/api/swagger.yaml
+```
+# Replace wih the hosted API endpoint URL
+host: "https://{API_URL_ENDPOINT}"
+
+# Replace with path of API version
+basePath: "/{API_VERSION}"
+```
+
+- StaticSite/api/index.html
+```
+# Swagger API Sandbox file. The default is the *swagger.yaml* file.
+url = "/api/swagger.yaml"
+```
+
+The structure of the '*StaticSite*' directory will match the public S3 bucket and website structure. Upload it to a publicly accessible bucket that is enabled as a static site.
+
+```
+# Upload all of static site content to the public S3 bucket
+$ aws s3 cp /Local/Path s3://myPublicBucket/ --recursive
+```
+
 ### AWS Lambda
-Prepare Lambda files by creating [AWS Lambda Python Packages](http://docs.aws.amazon.com/lambda/latest/dg/lambda-python-how-to-create-deployment-package.html) and uploading them to a private Amazon S3 Bucket.
+Prepare Lambda files by creating [AWS Lambda Python Packages](http://docs.aws.amazon.com/lambda/latest/dg/lambda-python-how-to-create-deployment-package.html) and uploading them to a private Amazon S3 Bucket. Create a Lambda function for 'jwt_validation_handler' and 'jwt_redirection_handler'.
 ```
 # Copy Lambda functions to artifacts directory
 $cp -R LambdaFunctions/. Artifacts/LambdaFunctions/
@@ -104,16 +122,38 @@ $ pip install -r Artifacts/LambdaFunctions/requirements.txt -t Artifacts/LambdaF
 $ zip -r Artifacts/LambdaFunctions/function.zip *
 $ aws s3 cp Artifacts/LambdaFunctions/function.zip s3://myPrivateBucket//function.zip
 ```
+
 ### API Gateway
-API Gateway paths are defined explicitly in the 'swagger.yaml' file in SAM directory. 
-
-### S3 Static site
-Structure of StaticSite directory will match the public S3 bucket and website structure. Upload it to a publicly accessible bucket.
+API Gateway paths are defined explicitly in the *YAML* files in SAM directory. *'SAM/RAiD-API-2.yaml'* represents a newer version with a custom authoriser for JWT tokens provided by AAF.
+- SAM/RAiD-API.yaml and SAM/RAiD-API-2.yaml
 ```
-# Upload all of static site content to the public S3 bucket
-$ aws s3 cp StaticSite s3://myPublicBucket/ --recursive
+# Replace wih the hosted API endpoint URL
+host: "https://{API_URL_ENDPOINT}"
+
+# Replace with path of API version
+basePath: "/{API_VERSION}"
+
+#Replace uri to AWS Lambda function uses *'jwt_redirection_handler'* from *'auth.py'*
+/auth/jwt:
+    post:
+    ....
+    uri: "arn:aws:apigateway:ap-southeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-southeast-1:{YOUR_AWS_ACCOUNT}:function:{LAMBDA_FUNCTION}/invocations"
+
+# Replace custom authoriser Lambda URL and IAM Role. (NOTE. 'RAiD-API-2.yaml' only)
+# Uses *'jwt_validation_handler'* from *'auth.py'*
+securityDefinitions:
+  CustomAuthorizerJwt:
+  ...
+    x-amazon-apigateway-authorizer:
+        authorizerCredentials: "arn:aws:iam::{YOUR_AWS_ACCOUNT}:role/{LAMBDA_ROLE_NAME}"
+        authorizerUri: "arn:aws:apigateway:ap-southeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-southeast-1:{YOUR_AWS_ACCOUNT}:function:{LAMBDA_FUNCTION}/invocations"
+
 ```
 
+To upload the API Gateway configuration to AWS use the following command:
+```
+aws apigateway import-rest-api --body 'file:///path/to/API_Swagger_template.json' --region ap-southeast-2
+```
 ## License
 
 TBD

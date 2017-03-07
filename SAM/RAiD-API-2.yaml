@@ -3,8 +3,8 @@ swagger: "2.0"
 info:
   version: "1.2.0"
   title: "Data Life-Cycle Framework RAiD API"
-host: "<domain>.com"
-basePath: "/V1"
+host: "https://{API_URL_ENDPOINT}"
+basePath: "/{API_VERSION}"
 schemes:
 - "https"
 paths:
@@ -200,6 +200,8 @@ paths:
               type: "string"
         405:
           description: "405 response"
+      security:
+      - CustomAuthorizerJwt: []
       x-amazon-apigateway-integration:
         responses:
           default:
@@ -384,11 +386,24 @@ paths:
               method.response.header.location: "integration.response.body.location"
         requestTemplates:
           application/x-www-form-urlencoded: "{\n  \"body\" : $input.json('$')\n}"
-        uri: "arn:aws:apigateway:<Region>:lambda:path/2015-03-31/functions/arn:aws:lambda:<Region>:<AccountNumber>:function:Redirection/invocations"
+        uri: "arn:aws:apigateway:ap-southeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-southeast-1:{YOUR_AWS_ACCOUNT}:function:{LAMBDA_FUNCTION}/invocations"
         passthroughBehavior: "when_no_templates"
         httpMethod: "POST"
         contentHandling: "CONVERT_TO_TEXT"
         type: "aws"
+securityDefinitions:
+  CustomAuthorizerJwt:
+    type: "apiKey"
+    name: "Authorization"
+    in: "header"
+    x-amazon-apigateway-authtype: "custom"
+    x-amazon-apigateway-authorizer:
+      authorizerCredentials: "arn:aws:iam::{YOUR_AWS_ACCOUNT}:role/{LAMBDA_ROLE_NAME}"
+      authorizerResultTtlInSeconds: 300
+      identityValidationExpression: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+\\\
+        /=]*$"
+      authorizerUri: "arn:aws:apigateway:ap-southeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-southeast-1:{YOUR_AWS_ACCOUNT}:function:{LAMBDA_FUNCTION}/invocations"
+      type: "token"
 definitions:
   ArrayOfActivity:
     type: "array"
