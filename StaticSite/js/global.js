@@ -26,6 +26,7 @@ $(document).ready(function(){
 		  	type:"POST",
 		  	data:params,
 		  	contentType:"application/json",
+		  	url:"https://{API_URL_ENDPOINT}/activity",
 	  		crossDomain:true
 		}).done(function(data){
 			$("#search_cont_new p").html("Congratulations, you've just created a new RAiD!");
@@ -46,6 +47,7 @@ $(document).ready(function(){
 		  	type:"POST",
 		  	data:params,
 		  	contentType:"application/json",
+		  	url:"https://{API_URL_ENDPOINT}/activity",
 	  		crossDomain:true
 		}).done(function(data){
 			$("#search_cont_update p").html("Congratulations, you've just updated your RAiD!");
@@ -63,6 +65,7 @@ $(document).ready(function(){
 		//json
 		$.ajax({
 		  	type:"GET",
+		  	url:"https://{API_URL_ENDPOINT}/activity",
 	  		crossDomain:true
 		}).done(function(data){
 
