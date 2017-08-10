@@ -1,12 +1,16 @@
 from __future__ import print_function
 
+import os
 import sys
 import logging
 import datetime
 import jwt
+import boto3
 
 INSTITUTION_ROLE = "institution"
 SERVICE_ROLE = "service"
+INSTITUTION_TABLE = os.environ["INSTITUTION_TABLE"]
+
 
 # Set Logging Level
 logger = logging.getLogger()
@@ -45,5 +49,13 @@ def jwt_role_encode(jwt_secret, jwt_audience, jwt_issuer, subject, role, months=
         return token
     except:
         logger.error("JWT encoding error: {}".format(sys.exc_info()[0]))
+        raise
+
+
+def institution_crud_handler(event, context):
+    try:
+        logger.info('Institution CRUD Event={}'.format(event))
+    except:
+        logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
         raise
 

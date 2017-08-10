@@ -1,7 +1,35 @@
+# To deploy for the first time, and for each update,
+# run both of the following commands in order:
+#
+# aws cloudformation package \
+# --template-file template.yaml \
+# --output-template-file template-out.yaml \
+# --s3-bucket <your-s3-bucket-name>
+#
+# aws cloudformation deploy \
+# --template-file <path-to-file>/template-out.yaml \
+# --stack-name <STACK_NAME> \
+# --parameter-overrides Tracing=Active \
+# --capabilities CAPABILITY_IAM
 ---
 AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
 
 Description: RAiD administrative AWS resources
+
+Parameters:
+  Tracing:
+    Type: String
+    Default: Active
+    AllowedValues:
+      - Active
+      - PassThrough
+  JwtIssuer:
+    Type: String
+  JwtAudience:
+    Type: String
+  JwtSecret:
+    Type: String
 
 Resources:
   InstitutionTable:
@@ -85,7 +113,54 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
-
+  InstitutionCrudLambda:
+      Type: 'AWS::Serverless::Function'
+      Properties:
+        Handler: raid_admin.institution_crud_handler
+        Runtime: python2.7
+        CodeUri: ./Deployment
+        Description: ''
+        MemorySize: 128
+        Timeout: 30
+        Role: !GetAtt InstitutionCrudIAMRole.Arn
+        Tracing:
+          Ref: Tracing
+        Environment:
+          Variables:
+            INSTITUTION_TABLE:
+               Ref: InstitutionTable
+  InstitutionCrudIAMRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            Path: "/"
+            AssumeRolePolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                -
+                  Sid: "AllowLambdaServiceToAssumeRole"
+                  Effect: "Allow"
+                  Action:
+                    - "sts:AssumeRole"
+                  Principal:
+                    Service:
+                      - "lambda.amazonaws.com"
+  LogsXrayLambdaPolicy:
+    Type: "AWS::IAM::Policy"
+    DependsOn: InstitutionCrudIAMRole
+    Properties:
+      PolicyName: LogsXrayLambdaPolicy
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action: [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents",
+            "xray:PutTraceSegments",
+            "xray:PutTelemetryRecords"
+          ]
+          Resource: ["*"]
+      Roles: [!Ref InstitutionCrudIAMRole]
 Outputs:
   InstitutionDB:
     Value: !Ref 'InstitutionTable'
