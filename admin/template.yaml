@@ -1,0 +1,93 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: RAiD administrative AWS resources
+
+Resources:
+  InstitutionTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "Name"
+          AttributeType: "S"
+        -
+          AttributeName: "Grid"
+          AttributeType: "S"
+        -
+          AttributeName: "Date"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "Grid"
+          KeyType: "HASH"
+        -
+          AttributeName: "Date"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "GSI"
+          KeySchema:
+            -
+              AttributeName: "Name"
+              KeyType: "HASH"
+            -
+              AttributeName: "Date"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "Token"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  ServiceTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "Name"
+          AttributeType: "S"
+        -
+          AttributeName: "Institution"
+          AttributeType: "S"
+        -
+          AttributeName: "Date"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "Name"
+          KeyType: "HASH"
+        -
+          AttributeName: "Date"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "GSI"
+          KeySchema:
+            -
+              AttributeName: "Institution"
+              KeyType: "HASH"
+            -
+              AttributeName: "Name"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "Token"
+              - "Date"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+Outputs:
+  InstitutionDB:
+    Value: !Ref 'InstitutionTable'
+  ServicDB:
+    Value: !Ref 'ServiceTable'
