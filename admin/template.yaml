@@ -129,6 +129,12 @@ Resources:
           Variables:
             INSTITUTION_TABLE:
                Ref: InstitutionTable
+            JWT_ISSUER:
+              Ref: JwtIssuer
+            JWT_AUDIENCE:
+              Ref: JwtAudience
+            JWT_SECRET:
+              Ref: JwtSecret
   InstitutionCrudIAMRole:
         Type: "AWS::IAM::Role"
         Properties:
@@ -160,6 +166,19 @@ Resources:
             "xray:PutTelemetryRecords"
           ]
           Resource: ["*"]
+      Roles: [!Ref InstitutionCrudIAMRole]
+  InstitutionLambdaPolicy:
+    Type: "AWS::IAM::Policy"
+    DependsOn: [InstitutionCrudIAMRole, InstitutionTable]
+    Properties:
+      PolicyName: InstitutionLambdaPolicy
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action: [
+            "dynamodb:*"
+          ]
+          Resource: [!GetAtt InstitutionTable.Arn]
       Roles: [!Ref InstitutionCrudIAMRole]
 Outputs:
   InstitutionDB:
