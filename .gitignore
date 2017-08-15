@@ -94,3 +94,5 @@ ENV/
 
 # Build Artifacts
 artifacts/
+admin/deployment
+*template-out.yaml
