@@ -7,6 +7,7 @@ import logging
 import datetime
 import jwt
 import boto3
+from boto3.dynamodb.conditions import Key, Attr
 
 # Roles
 INSTITUTION_ROLE = "institution"
@@ -154,6 +155,39 @@ def institution_crud_handler(event, context):
                         'Date': event["parameters"]["date"]
                     }
                 )
+
+        elif event["query"] == "list":
+            if "grid" not in event["parameters"]:
+                raise Exception("Key fields 'grid' must be provided in 'parameters' for this query.")
+
+            list_response = institution_table.query(
+                KeyConditionExpression=Key('Grid').eq(event["parameters"]["grid"])
+            )
+
+            # TODO ExclusiveStartKey
+
+            return list_response
+
+        elif event["query"] == "scan":
+            if "name" in event["parameters"]:  # Filter by name
+                fe = Attr("Name").contains(event["parameters"]["name"])
+                pe = "Grid, #d, #n, #t"
+                ean = {"#d": "Date", "#n": "Name", "#t": "Token"}
+
+                list_response = institution_table.scan(
+                    FilterExpression=fe,
+                    ProjectionExpression=pe,
+                    ExpressionAttributeNames=ean
+                )
+
+                # TODO ExclusiveStartKey
+
+            else:
+                list_response = institution_table.scan()  # Scan without filer
+
+                # TODO ExclusiveStartKey
+
+            return list_response
 
         else:
             raise Exception("Invalid query type '{}'."
