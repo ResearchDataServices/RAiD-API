@@ -9,7 +9,7 @@
 # aws cloudformation deploy \
 # --template-file <path-to-file>/template-out.yaml \
 # --stack-name <STACK_NAME> \
-# --parameter-overrides Tracing=Active \
+# --parameter-overrides Tracing=Active JwtIssuer=<TOKEN_ISSUER> JwtAudience=<TOKEN_AUDIENCE> JwtSecret=<TOKEN_SECRET> \
 # --capabilities CAPABILITY_IAM
 ---
 AWSTemplateFormatVersion: '2010-09-09'
