@@ -93,6 +93,10 @@ ENV/
 .ropeproject
 
 # Build Artifacts
+*.tmp
 artifacts/
 admin/deployment
 *template-out.yaml
+admin/site/node_modules
+admin/site/bower_components
+admin/site/dist
