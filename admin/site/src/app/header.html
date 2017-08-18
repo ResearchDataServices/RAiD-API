@@ -4,8 +4,8 @@
       RAiD
     </a>
   </p>
-  <p class="header-sign-out">
-    <a href="https://www.raid.org.au/" target="_blank" rel="noopener noreferrer">
+  <p ng-show="$ctrl.adminService.session" class="header-sign-out">
+    <a href="#" ng-click="$ctrl.adminService.end()">
       Sign Out
     </a>
   </p>
