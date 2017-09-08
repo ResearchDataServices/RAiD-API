@@ -14,26 +14,6 @@ import re
 import datetime
 import jwt
 
-INSTITUTION_SUBJECT = "RAiD:Institution"
-PROVIDER_SUBJECT = "RAiD:Provider"
-
-
-def jwt_self_encode(jwt_secret, jwt_audience, jwt_issuer_self, subject, organisation, months=6):
-    """
-    Generate a JWT token for an organisation that will last a number months of months after the current date.
-    """
-    future_date = datetime.date.today() + datetime.timedelta(months*365/12)
-    payload = {
-        'sub': subject,
-        'aud': jwt_audience,
-        'iss': jwt_issuer_self,
-        'iat': datetime.datetime.now(),
-        'exp': datetime.datetime.combine(future_date, datetime.time.min),
-        'o': organisation
-    }
-    token = jwt.encode(payload, jwt_secret)
-    return token
-    
 
 def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_issuer_self):
     """
@@ -142,29 +122,12 @@ def jwt_validation_handler(event, context):
     policy.region = tmp[3]
     policy.stage = api_gateway_arn_tmp[1]
 
-    if decoded["iss"] == os.environ['JWT_ISSUER_3RD_PARTY']:
-        # Third party users only have permission to view activities
-        policy.allow_method(HttpVerb.GET, '/activity/*')
-
-        # Insert AAF member information to context
-        context = {
-            'mail': decoded["https://aaf.edu.au/attributes"]["mail"],
-            'auEduPersonSharedToken': decoded["https://aaf.edu.au/attributes"]["auEduPersonSharedToken"],
-            'displayname': decoded["https://aaf.edu.au/attributes"]["displayname"]
-        }
-
-    elif decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["sub"] == PROVIDER_SUBJECT:
+    if decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["role"] == os.environ['PROVIDER_ROLE']:
         # Self signed provider users can use all HTTP methods
         policy.allow_all_methods()
         context = {
-            'o': decoded["organisation"]
-        }
-
-    elif decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["sub"] == INSTITUTION_SUBJECT:
-        # Self signed institution can only view activities
-        policy.allow_method(HttpVerb.GET, '/activity/*')
-        context = {
-            'o': decoded["organisation"]
+            'provider': decoded["sub"],
+            'role': decoded["role"],
         }
 
     else:

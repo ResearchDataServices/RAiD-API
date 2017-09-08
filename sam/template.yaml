@@ -1,3 +1,7 @@
+# NOTE: Before using this template, replace the <<region>> and <<account>> fields
+#       in Lambda integration URI in the swagger file to region and accountId 
+#       you are deploying to
+#
 # To deploy for the first time, and for each update,
 # run both of the following commands in order:
 #
@@ -16,6 +20,57 @@ Transform: 'AWS::Serverless-2016-10-31'
 Description: RAiD AWS resources
 
 Resources:
+  # API
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionUri: swagger.yml
+      StageName: Prod
+      Variables:
+        CustomAuthorizer: !Ref CustomAuthorizer
+        CustomAuthorizerRole: !Ref CustomAuthorizerRole
+
+  # Custom Authorizer
+  CustomAuthorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: auth.jwt_validation_handler
+      Runtime: python2.7
+  CustomAuthorizerRole:
+      Type: "AWS::IAM::Role"
+      Properties:
+          Path: "/"
+          AssumeRolePolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "sts:AssumeRole"
+                Principal:
+                  Service:
+                    - "lambda.amazonaws.com"
+                    - "apigateway.amazonaws.com"
+  CustomAuthorizerPolicy:
+    Type: "AWS::IAM::Policy"
+    DependsOn: [CustomAuthorizerRole]
+    Properties:
+      PolicyDocument:
+        Statement:
+        -
+          Effect: Allow
+          Action: [
+            "lambda:InvokeFunction",
+            "lambda:CreateEventSourceMapping",
+            "s3:GetObject",
+            "s3:GetObjectVersion",
+            "s3:GetBucketVersioning"
+          ]
+          Resource: "*"
+      Roles: [!Ref CustomAuthorizerRole]
+  
+  # Database
   RAiDTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -53,8 +108,7 @@ Resources:
             WriteCapacityUnits: 5
       ProvisionedThroughput:
         ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-        
+        WriteCapacityUnits: 5   
   ProviderIndexTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -111,6 +165,7 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+
 Outputs:
   RaidDB:
     Value: !Ref 'RAiDTable'

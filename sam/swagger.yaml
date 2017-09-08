@@ -1,0 +1,21 @@
+# NOTE: Replace <<region>> and <<account>> fields
+---
+swagger: 2.0
+basePath: /v3
+info:
+  title: RAiD API
+schemes:
+- https
+securityDefinitions:
+  CustomAuthorizerJwt:
+    type: "apiKey"
+    name: "Authorization"
+    in: "header"
+    x-amazon-apigateway-authtype: "custom"
+    x-amazon-apigateway-authorizer:
+      authorizerCredentials: ""arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CustomAuthorizerRole}/invocations""
+      authorizerResultTtlInSeconds: 300
+      identityValidationExpression: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+\\\
+        /=]*$"
+      authorizerUri: "arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CustomAuthorizer}/invocations"
+      type: "token"
