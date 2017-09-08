@@ -12,7 +12,8 @@
 #
 # aws cloudformation deploy \
 # --template-file <path-to-file>/template-out.yaml \
-# --stack-name <STACK_NAME>
+# --stack-name <STACK_NAME>  \
+# --capabilities CAPABILITY_IAM
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
@@ -24,7 +25,7 @@ Resources:
   ApiGatewayApi:
     Type: AWS::Serverless::Api
     Properties:
-      DefinitionUri: swagger.yml
+      DefinitionUri: swagger.yaml
       StageName: Prod
       Variables:
         CustomAuthorizer: !Ref CustomAuthorizer
@@ -37,6 +38,7 @@ Resources:
       CodeUri: ../src
       Handler: auth.jwt_validation_handler
       Runtime: python2.7
+      Role: !GetAtt CustomAuthorizerRole.Arn
   CustomAuthorizerRole:
       Type: "AWS::IAM::Role"
       Properties:
