@@ -13,12 +13,29 @@
 # aws cloudformation deploy \
 # --template-file <path-to-file>/template-out.yaml \
 # --stack-name <STACK_NAME>  \
+# --parameter-overrides JwtSecret=<<jwt-secret>> \
 # --capabilities CAPABILITY_IAM
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 
 Description: RAiD AWS resources
+
+Parameters:
+  JwtIssuerSelf:
+    Type: String
+    Default: https://www.raid.org.au
+  JwtIssuerThirdParty:
+    Type: String
+    Default: https://rapid.aaf.edu.au
+  JwtAudience:
+    Type: String
+    Default: https://api.raid.org.au/
+  JwtSecret:
+    Type: String
+  ProviderRole:
+    Type: String
+    Default: RAiD:Provider
 
 Resources:
   # API
@@ -39,6 +56,18 @@ Resources:
       Handler: auth.jwt_validation_handler
       Runtime: python2.7
       Role: !GetAtt CustomAuthorizerRole.Arn
+      Environment:
+        Variables:
+          JWT_ISSUER_SELF:
+            Ref: JwtIssuerSelf
+          JWT_ISSUER_3RD_PARTY:
+            Ref: JwtIssuerThirdParty
+          JWT_AUDIENCE:
+            Ref: JwtAudience
+          JWT_SECRET:
+            Ref: JwtSecret
+          PROVIDER_ROLE:
+            Ref: ProviderRole
   CustomAuthorizerRole:
       Type: "AWS::IAM::Role"
       Properties:
