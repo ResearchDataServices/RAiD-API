@@ -101,7 +101,7 @@ def jwt_validation_handler(event, context):
         principal_id = 'user|' + decoded["https://aaf.edu.au/attributes"]["mail"]
     else:
         # Organisation is the principal ID
-        principal_id = 'user|' + decoded["o"]
+        principal_id = 'user|' + decoded["sub"]
 
     '''
     If the token is valid, a policy must be generated which will allow or deny
@@ -226,7 +226,7 @@ class AuthPolicy(object):
 
     def _get_statement_for_effect(self, effect, methods):
         """
-        This function loops over an array of objects containing a resourceArn and
+        This function loops over an array of objects containing a resource_arn and
         conditions statement and generates the array of statements for the policy.
         """
         statements = []
@@ -236,10 +236,10 @@ class AuthPolicy(object):
 
             for curMethod in methods:
                 if curMethod['conditions'] is None or len(curMethod['conditions']) == 0:
-                    statement['Resource'].append(curMethod['resourceArn'])
+                    statement['Resource'].append(curMethod['resource_arn'])
                 else:
                     conditional_statement = self._get_empty_statement(effect)
-                    conditional_statement['Resource'].append(curMethod['resourceArn'])
+                    conditional_statement['Resource'].append(curMethod['resource_arn'])
                     conditional_statement['Condition'] = curMethod['conditions']
                     statements.append(conditional_statement)
 

@@ -30,12 +30,12 @@ Parameters:
     Default: https://rapid.aaf.edu.au
   JwtAudience:
     Type: String
-    Default: https://api.raid.org.au/
+    Default: https://api.raid.org.au
   JwtSecret:
     Type: String
   ProviderRole:
     Type: String
-    Default: RAiD:Provider
+    Default: service
 
 Resources:
   # API
@@ -93,6 +93,9 @@ Resources:
         -
           Effect: Allow
           Action: [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents",
             "lambda:InvokeFunction",
             "lambda:CreateEventSourceMapping",
             "s3:GetObject",
