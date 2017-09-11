@@ -10,7 +10,7 @@
 # --output-template-file template-out.yaml \
 # --s3-bucket <your-s3-bucket-name>
 #
-# aws cloudformation deploy \
+# aws cloudformation deploy \=
 # --template-file <path-to-file>/template-out.yaml \
 # --stack-name <STACK_NAME>  \
 # --parameter-overrides JwtSecret=<<jwt-secret>> \
@@ -22,6 +22,12 @@ Transform: 'AWS::Serverless-2016-10-31'
 Description: RAiD AWS resources
 
 Parameters:
+  Tracing:
+    Type: String
+    Default: Active
+    AllowedValues:
+      - Active
+      - PassThrough
   JwtIssuerSelf:
     Type: String
     Default: https://www.raid.org.au
@@ -47,27 +53,67 @@ Resources:
       Variables:
         CustomAuthorizer: !Ref CustomAuthorizer
         CustomAuthorizerRole: !Ref CustomAuthorizerRole
-
-  # Custom Authorizer
-  CustomAuthorizer:
-    Type: AWS::Serverless::Function
+        CreateRaidFunction: !Ref CreateRaid
+  # IAM
+  ## General
+  LogsXrayLambdaPolicy:
+    Type: "AWS::IAM::Policy"
+    DependsOn: [CustomAuthorizerRole, CrudLambdaIAMRole]
     Properties:
-      CodeUri: ../src
-      Handler: auth.jwt_validation_handler
-      Runtime: python2.7
-      Role: !GetAtt CustomAuthorizerRole.Arn
-      Environment:
-        Variables:
-          JWT_ISSUER_SELF:
-            Ref: JwtIssuerSelf
-          JWT_ISSUER_3RD_PARTY:
-            Ref: JwtIssuerThirdParty
-          JWT_AUDIENCE:
-            Ref: JwtAudience
-          JWT_SECRET:
-            Ref: JwtSecret
-          PROVIDER_ROLE:
-            Ref: ProviderRole
+      PolicyName: GeneralLambdaPolicy
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action: [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents",
+            "xray:PutTraceSegments",
+            "xray:PutTelemetryRecords"
+          ]
+          Resource: ["*"]
+      Roles: [!Ref CustomAuthorizerRole, !Ref CrudLambdaIAMRole]
+
+  CrudLambdaIAMRole:
+      Type: "AWS::IAM::Role"
+      Properties:
+          Path: "/"
+          AssumeRolePolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "sts:AssumeRole"
+                Principal:
+                  Service:
+                    - "lambda.amazonaws.com"
+  CrudLambdaPolicy:
+    Type: "AWS::IAM::Policy"
+    DependsOn: [CrudLambdaIAMRole]
+    Properties:
+      PolicyName: CrudLambdaPolicy
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action: [
+            "ec2:DescribeNetworkInterfaces", 
+            "ec2:CreateNetworkInterface", 
+            "ec2:DeleteNetworkInterface",
+            "dynamodb:BatchGetItem",
+            "dynamodb:BatchWriteItem",
+            "dynamodb:DeleteItem",
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+            "dynamodb:Query",
+            "dynamodb:Scan",
+            "dynamodb:UpdateItem"
+
+          ]
+          Resource: ["*"]
+      Roles: [!Ref CrudLambdaIAMRole]
+  
+  ## Custom Authorizer
   CustomAuthorizerRole:
       Type: "AWS::IAM::Role"
       Properties:
@@ -93,9 +139,6 @@ Resources:
         -
           Effect: Allow
           Action: [
-            "logs:CreateLogGroup",
-            "logs:CreateLogStream",
-            "logs:PutLogEvents",
             "lambda:InvokeFunction",
             "lambda:CreateEventSourceMapping",
             "s3:GetObject",
@@ -104,7 +147,49 @@ Resources:
           ]
           Resource: "*"
       Roles: [!Ref CustomAuthorizerRole]
-  
+
+  # Serverless
+  ## Custom Authorizer
+  CustomAuthorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: auth.jwt_validation_handler
+      Runtime: python2.7
+      Role: !GetAtt CustomAuthorizerRole.Arn
+      Environment:
+        Variables:
+          JWT_ISSUER_SELF:
+            Ref: JwtIssuerSelf
+          JWT_ISSUER_3RD_PARTY:
+            Ref: JwtIssuerThirdParty
+          JWT_AUDIENCE:
+            Ref: JwtAudience
+          JWT_SECRET:
+            Ref: JwtSecret
+          PROVIDER_ROLE:
+            Ref: ProviderRole
+  ## RAiD CRUD
+  CreateRaid:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.create_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_TABLE:
+            Ref: RAiDTable
+          PROVIDER_TABLE:
+            Ref: ProviderIndexTable
+      Events:
+        CreateRaidHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /
+            Method: POST
   # Database
   RAiDTable:
     Type: "AWS::DynamoDB::Table"
