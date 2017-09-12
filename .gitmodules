@@ -1,0 +1,3 @@
+[submodule "RAiD-API-Playground"]
+	path = RAiD-API-Playground
+	url = git@github.com:ResearchDataServices/RAiD-API-Playground.git
