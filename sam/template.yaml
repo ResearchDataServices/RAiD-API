@@ -54,6 +54,7 @@ Resources:
         CustomAuthorizer: !Ref CustomAuthorizer
         CustomAuthorizerRole: !Ref CustomAuthorizerRole
         CreateRaidFunction: !Ref CreateRaid
+        GetOwnerRaidsFunction: !Ref GetOwnerRaids
   # IAM
   ## General
   LogsXrayLambdaPolicy:
@@ -190,6 +191,26 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /
             Method: POST
+  GetOwnerRaids:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.get_owner_raids_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_TABLE:
+            Ref: RAiDTable
+          PROVIDER_TABLE:
+            Ref: ProviderIndexTable
+      Events:
+        CreateRaidHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /owner
+            Method: GET
   # Database
   RAiDTable:
     Type: "AWS::DynamoDB::Table"

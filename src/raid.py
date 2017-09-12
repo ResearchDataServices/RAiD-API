@@ -17,7 +17,7 @@ def create_handler(event, context):
     """
     Create and new RAiD by; generating a handle, registering with ANDS and putting to the RAiD DB and Provider Index.
     :param event: 
-    :param context: AWS context object that must at least contain a 'provider' string.
+    :param context:
     :return: RAiD object
     """
     try:
@@ -78,7 +78,8 @@ def create_handler(event, context):
                         {
                             'provider': service_item['provider'],
                             'startDate': service_item['startDate'],
-                            'endDate': ''}
+                            'endDate': ''
+                        }
                     ]
                 }
             )
@@ -89,5 +90,65 @@ def create_handler(event, context):
             'statusCode': '500',
             'body': json.dumps(
                 {'message': "Unable to perform request due to error. Please check structure of the body."}
+            )
+        }
+
+
+def get_owner_raids_handler(event, context):
+    """
+    Return RAiDs associated to the authenticated owner with optional parameters for filter and search options
+    :param event: 
+    :param context: 
+    :return: 
+    """
+    try:
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+
+        query_parameters = {
+            'IndexName': 'OwnerIndex',
+            'KeyConditionExpression': Key('owner').eq(event['requestContext']['authorizer']['provider'])
+        }
+
+        # Interpret and validate request body for optional parameters
+        if event["queryStringParameters"]:
+            try:
+                parameters = event["queryStringParameters"]
+                if "limit" in parameters:
+                    query_parameters["Limit"] = int(parameters["limit"])
+                if "ascending" in parameters and \
+                        (parameters["ascending"] == 'False' or parameters["ascending"] == 'false'):
+                    query_parameters["ScanIndexForward"] = False
+                if "exclusiveStartKey" in parameters:
+                    query_parameters["ExclusiveStartKey"] = parameters["lastEvaluatedKey"]
+            except ValueError:
+                return {
+                    'statusCode': '400',
+                    'body': json.dumps({'message': "Incorrect parameter type formatting."})
+                }
+
+        # Query table using secondary index to return a list of RAiDs the owner is attached too
+        query_response = raid_table.query(**query_parameters)
+
+        # Build response body
+        return_body = {
+            'items': query_response["Items"],
+            'count': query_response["Count"],
+            'scannedCount': query_response["ScannedCount"]
+        }
+
+        if 'LastEvaluatedKey' in query_response:
+            return_body['lastEvaluatedKey'] = query_response["LastEvaluatedKey"]
+
+        return {
+            'statusCode': '200',
+            'body': json.dumps(return_body)
+        }
+    except:
+        return {
+            'statusCode': '500',
+            'body': json.dumps(
+                {'message': "Unable to perform request due to error. Please check structure of the parameters."}
             )
         }
