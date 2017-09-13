@@ -4,6 +4,7 @@ import os
 import datetime
 import boto3
 import json
+import urllib
 from boto3.dynamodb.conditions import Key, Attr
 from random import randint
 
@@ -119,6 +120,35 @@ def get_provider_raids_handler(event, context):
     query_parameters = {
         'IndexName': 'StartDateIndex',
         'KeyConditionExpression': Key('provider').eq(event["pathParameters"]["providerId"])
+    }
+
+    return generate_table_list_response(event, query_parameters, os.environ["PROVIDER_TABLE"])
+
+
+def get_raid_providers_handler(event, context):
+    """
+    Return providers associated to the raid in the path with optional parameters for filter and search options
+    :param event:
+    :param context:
+    :return:
+    """
+    try:
+        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+
+    except:
+        return {
+            'statusCode': '400',
+            'body': json.dumps(
+                {
+                    'message': "Incorrect path parameter type formatting for RAiD handle."
+                               " Ensure it is a URL encoded string"
+                }
+            )
+        }
+
+    query_parameters = {
+        'IndexName': 'HandleProviderIndex',
+        'KeyConditionExpression': Key('handle').eq(raid_handle)
     }
 
     return generate_table_list_response(event, query_parameters, os.environ["PROVIDER_TABLE"])
