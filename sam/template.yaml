@@ -231,7 +231,7 @@ Resources:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGatewayApi
-            Path: /provider
+            Path: /provider/{providerId+}
             Method: GET
   # Database
   RAiDTable:

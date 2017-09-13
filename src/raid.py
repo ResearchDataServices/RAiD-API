@@ -111,20 +111,15 @@ def get_owner_raids_handler(event, context):
 
 def get_provider_raids_handler(event, context):
     """
-    Return RAiDs associated to the provider with optional parameters for filter and search options
+    Return RAiDs associated to the provider in the path with optional parameters for filter and search options
     :param event:
     :param context:
     :return:
     """
     query_parameters = {
-        'IndexName': 'StartDateIndex'
+        'IndexName': 'StartDateIndex',
+        'KeyConditionExpression': Key('provider').eq(event["pathParameters"]["providerId"])
     }
-
-    if event["queryStringParameters"] and "provider" in event["queryStringParameters"]:
-        query_parameters["KeyConditionExpression"] = Key('provider').eq(event["queryStringParameters"]["provider"])
-    else:
-        query_parameters["KeyConditionExpression"] = \
-            Key('provider').eq(event['requestContext']['authorizer']['provider'])
 
     return generate_table_list_response(event, query_parameters, os.environ["PROVIDER_TABLE"])
 

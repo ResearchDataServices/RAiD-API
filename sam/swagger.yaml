@@ -149,7 +149,24 @@ paths:
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
-  /provider:
+  /provider/{providerId+}:
+    get:
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      produces:
+      - application/json
+      parameters:
+      - name: providerId
+        in: path
+        required: true
+        type: string
+      responses: {}
+      security:
+      - CustomAuthorizerJwt: []
+      x-amazon-apigateway-integration:
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetProviderRaidsFunction}/invocations
+        httpMethod: POST
+        type: aws_proxy
     options:
       consumes:
       - application/json
@@ -179,36 +196,6 @@ paths:
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         type: mock
-    get:
-      consumes:
-      - "application/json"
-      produces:
-      - "application/json"
-      parameters:
-      - name: "exclusiveStartKey"
-        in: "query"
-        required: false
-        type: "string"
-      responses:
-        200:
-          description: "200 response"
-          schema:
-            $ref: "#/definitions/APIVersionModel"
-          headers:
-            Access-Control-Allow-Origin:
-              type: "string"
-      security:
-      - CustomAuthorizerJwt: []
-      x-amazon-apigateway-integration:
-        responses:
-          default:
-            statusCode: "200"
-            responseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetProviderRaidsFunction}/invocations
-        passthroughBehavior: when_no_match
-        httpMethod: POST
-        type: aws_proxy
 securityDefinitions:
   CustomAuthorizerJwt:
     type: "apiKey"
