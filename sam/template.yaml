@@ -55,6 +55,7 @@ Resources:
         CustomAuthorizerRole: !Ref CustomAuthorizerRole
         CreateRaidFunction: !Ref CreateRaid
         GetOwnerRaidsFunction: !Ref GetOwnerRaids
+        GetProviderRaidsFunction: !Ref GetProviderRaids
   # IAM
   ## General
   LogsXrayLambdaPolicy:
@@ -89,6 +90,7 @@ Resources:
                 Principal:
                   Service:
                     - "lambda.amazonaws.com"
+                    - "apigateway.amazonaws.com"
   CrudLambdaPolicy:
     Type: "AWS::IAM::Policy"
     DependsOn: [CrudLambdaIAMRole]
@@ -205,11 +207,31 @@ Resources:
           PROVIDER_TABLE:
             Ref: ProviderIndexTable
       Events:
-        CreateRaidHandle:
+        GetOwnerRaidsHandle:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGatewayApi
             Path: /owner
+            Method: GET
+  GetProviderRaids:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.get_provider_raids_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_TABLE:
+            Ref: RAiDTable
+          PROVIDER_TABLE:
+            Ref: ProviderIndexTable
+      Events:
+        GetProviderRaidsHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /provider
             Method: GET
   # Database
   RAiDTable:

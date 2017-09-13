@@ -101,15 +101,46 @@ def get_owner_raids_handler(event, context):
     :param context: 
     :return: 
     """
+    query_parameters = {
+        'IndexName': 'OwnerIndex',
+        'KeyConditionExpression': Key('owner').eq(event['requestContext']['authorizer']['provider'])
+    }
+
+    return generate_table_list_response(event, query_parameters, os.environ["RAID_TABLE"])
+
+
+def get_provider_raids_handler(event, context):
+    """
+    Return RAiDs associated to the provider with optional parameters for filter and search options
+    :param event:
+    :param context:
+    :return:
+    """
+    query_parameters = {
+        'IndexName': 'StartDateIndex'
+    }
+
+    if event["queryStringParameters"] and "provider" in event["queryStringParameters"]:
+        query_parameters["KeyConditionExpression"] = Key('provider').eq(event["queryStringParameters"]["provider"])
+    else:
+        query_parameters["KeyConditionExpression"] = \
+            Key('provider').eq(event['requestContext']['authorizer']['provider'])
+
+    return generate_table_list_response(event, query_parameters, os.environ["PROVIDER_TABLE"])
+
+
+def generate_table_list_response(event, query_parameters, table):
+    """
+    A generic method for Dynamo DB queries that return a list of items.
+    :param event: Dictionary of values provided from the invoking API Gateway
+    :param query_parameters: Dictionary of DynamoDB parameters unique to the calling method
+    :param table: String representing the name of the DynamoDB table
+    :return:
+    """
     try:
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
-
-        query_parameters = {
-            'IndexName': 'OwnerIndex',
-            'KeyConditionExpression': Key('owner').eq(event['requestContext']['authorizer']['provider'])
-        }
+        dynamo_db__table = dynamo_db.Table(table)
 
         # Interpret and validate request body for optional parameters
         if event["queryStringParameters"]:
@@ -129,7 +160,7 @@ def get_owner_raids_handler(event, context):
                 }
 
         # Query table using secondary index to return a list of RAiDs the owner is attached too
-        query_response = raid_table.query(**query_parameters)
+        query_response = dynamo_db__table.query(**query_parameters)
 
         # Build response body
         return_body = {
@@ -145,6 +176,7 @@ def get_owner_raids_handler(event, context):
             'statusCode': '200',
             'body': json.dumps(return_body)
         }
+
     except:
         return {
             'statusCode': '500',
@@ -152,3 +184,4 @@ def get_owner_raids_handler(event, context):
                 {'message': "Unable to perform request due to error. Please check structure of the parameters."}
             )
         }
+
