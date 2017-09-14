@@ -195,7 +195,7 @@ Resources:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGatewayApi
-            Path: /
+            Path: /RAiD
             Method: POST
   GetRaid:
     Type: AWS::Serverless::Function

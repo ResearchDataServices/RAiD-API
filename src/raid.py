@@ -54,6 +54,11 @@ def create_handler(event, context):
                 except ValueError:
                     return {
                         'statusCode': '400',
+                        "headers": {
+                            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                            "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                            "Access-Control-Allow-Origin": "*"
+                        },
                         'body': json.dumps({'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
                     }
 
@@ -72,6 +77,11 @@ def create_handler(event, context):
 
         return {
             'statusCode': '200',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(
                 {
                     'raid': raid_item,
@@ -89,6 +99,11 @@ def create_handler(event, context):
     except:
         return {
             'statusCode': '500',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(
                 {'message': "Unable to perform request due to error. Please check structure of the body."}
             )
@@ -108,6 +123,11 @@ def get_raid_handler(event, context):
     except:
         return {
             'statusCode': '400',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(
                 {
                     'message': "Incorrect path parameter type formatting for RAiD handle."
@@ -126,6 +146,11 @@ def get_raid_handler(event, context):
         if query_response["Count"] != 1:
             return {
                 'statusCode': '400',
+                "headers": {
+                    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                    "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                    "Access-Control-Allow-Origin": "*"
+                },
                 'body': json.dumps(
                     {
                         'message': "Invalid RAiD handle provided in parameter path."
@@ -156,12 +181,22 @@ def get_raid_handler(event, context):
 
         return {
             'statusCode': '200',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(raid_item)
         }
 
     except:
         return {
             'statusCode': '500',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(
                 {'message': "Unable to fetch RAiD due to error. Please check structure of the parameters."}
             )
@@ -211,6 +246,11 @@ def get_raid_providers_handler(event, context):
     except:
         return {
             'statusCode': '400',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(
                 {
                     'message': "Incorrect path parameter type formatting for RAiD handle."
@@ -240,6 +280,11 @@ def create_raid_provider_association_handler(event, context):
     except:
         return {
             'statusCode': '400',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(
                 {
                     'message': "Incorrect path parameter type formatting for RAiD handle."
@@ -258,6 +303,11 @@ def create_raid_provider_association_handler(event, context):
         if query_response["Count"] != 1:
             return {
                 'statusCode': '400',
+                "headers": {
+                    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                    "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                    "Access-Control-Allow-Origin": "*"
+                },
                 'body': json.dumps(
                     {
                         'message': "Invalid RAiD handle provided in parameter path."
@@ -278,6 +328,11 @@ def create_raid_provider_association_handler(event, context):
             except ValueError:
                 return {
                     'statusCode': '400',
+                    "headers": {
+                        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                        "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                        "Access-Control-Allow-Origin": "*"
+                    },
                     'body': json.dumps({'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
                 }
         else:
@@ -287,6 +342,11 @@ def create_raid_provider_association_handler(event, context):
         if "provider" not in body:
             return {
                 'statusCode': '400',
+                "headers": {
+                    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                    "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                    "Access-Control-Allow-Origin": "*"
+                },
                 'body': json.dumps(
                     {'message': "'provider' must be provided in your request body to create an association"}
                 )
@@ -304,12 +364,22 @@ def create_raid_provider_association_handler(event, context):
 
         return {
             'statusCode': '200',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(service_item)
         }
 
     except:
         return {
             'statusCode': '500',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(
                 {'message': "Unable to perform request due to error. Please check structure of the body."}
             )
@@ -329,6 +399,11 @@ def end_raid_provider_association_handler(event, context):
     except:
         return {
             'statusCode': '400',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(
                 {
                     'message': "Incorrect path parameter type formatting for RAiD handle."
@@ -346,6 +421,11 @@ def end_raid_provider_association_handler(event, context):
     if query_response["Count"] != 1:
         return {
             'statusCode': '400',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(
                 {
                     'message': "Invalid RAiD handle provided in parameter path."
@@ -366,6 +446,11 @@ def end_raid_provider_association_handler(event, context):
         except ValueError:
             return {
                 'statusCode': '400',
+                "headers": {
+                    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                    "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                    "Access-Control-Allow-Origin": "*"
+                },
                 'body': json.dumps({'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
             }
     else:
@@ -375,6 +460,11 @@ def end_raid_provider_association_handler(event, context):
     if "provider" not in body:
         return {
             'statusCode': '400',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(
                 {'message': "'provider' must be provided in your request body to create an association"}
             )
@@ -395,6 +485,11 @@ def end_raid_provider_association_handler(event, context):
 
     return {
         'statusCode': '200',
+        "headers": {
+            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+            "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+            "Access-Control-Allow-Origin": "*"
+        },
         'body': json.dumps(update_response["Attributes"])
     }
 
@@ -426,6 +521,11 @@ def generate_table_list_response(event, query_parameters, table):
             except ValueError:
                 return {
                     'statusCode': '400',
+                    "headers": {
+                        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                        "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                        "Access-Control-Allow-Origin": "*"
+                    },
                     'body': json.dumps({'message': "Incorrect parameter type formatting."})
                 }
 
@@ -444,12 +544,22 @@ def generate_table_list_response(event, query_parameters, table):
 
         return {
             'statusCode': '200',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(return_body)
         }
 
     except:
         return {
             'statusCode': '500',
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+                "Access-Control-Allow-Origin": "*"
+            },
             'body': json.dumps(
                 {'message': "Unable to perform request due to error. Please check structure of the parameters."}
             )
