@@ -95,6 +95,79 @@ def create_handler(event, context):
         }
 
 
+def get_raid_handler(event, context):
+    """
+    
+    :param event: 
+    :param context: 
+    :return: 
+    """
+    try:
+        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+
+    except:
+        return {
+            'statusCode': '400',
+            'body': json.dumps(
+                {
+                    'message': "Incorrect path parameter type formatting for RAiD handle."
+                               " Ensure it is a valid RAiD handle URL encoded string"
+                }
+            )
+        }
+    try:
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+
+        # Check if RAiD exists
+        query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
+
+        if query_response["Count"] != 1:
+            return {
+                'statusCode': '400',
+                'body': json.dumps(
+                    {
+                        'message': "Invalid RAiD handle provided in parameter path."
+                                   " Ensure it is a valid RAiD handle URL encoded string"
+                    }
+                )
+            }
+
+        # Assign raid item to single item, since the resultwill be an array of one item
+        raid_item = query_response['Items'][0]
+
+        # Interpret and validate query string parameters
+        if event["queryStringParameters"]:
+            parameters = event["queryStringParameters"]
+
+            # Load listed providers and insert into RAiD object if lazy load is off
+            if "lazy_load" in parameters and (parameters["lazy_load"] == 'False' or parameters["lazy_load"] == 'false'):
+                provider_index_table = dynamo_db.Table(os.environ["PROVIDER_TABLE"])
+
+                provider_query_parameters = {
+                    'IndexName': 'HandleProviderIndex',
+                    'KeyConditionExpression': Key('handle').eq(raid_handle)
+                }
+
+                # Query table using parameters given and built to return a list of RAiDs the owner is attached too
+                provider_query_response = provider_index_table.query(**provider_query_parameters)
+                raid_item["providers"] = provider_query_response["Items"]
+
+        return {
+            'statusCode': '200',
+            'body': json.dumps(raid_item)
+        }
+
+    except:
+        return {
+            'statusCode': '500',
+            'body': json.dumps(
+                {'message': "Unable to fetch RAiD due to error. Please check structure of the parameters."}
+            )
+        }
+
+
 def get_owner_raids_handler(event, context):
     """
     Return RAiDs associated to the authenticated owner with optional parameters for filter and search options
@@ -356,7 +429,7 @@ def generate_table_list_response(event, query_parameters, table):
                     'body': json.dumps({'message': "Incorrect parameter type formatting."})
                 }
 
-        # Query table using secondary index to return a list of RAiDs the owner is attached too
+        # Query table using parameters given and built to return a list of RAiDs the owner is attached too
         query_response = dynamo_db_table.query(**query_parameters)
 
         # Build response body
@@ -381,4 +454,3 @@ def generate_table_list_response(event, query_parameters, table):
                 {'message': "Unable to perform request due to error. Please check structure of the parameters."}
             )
         }
-

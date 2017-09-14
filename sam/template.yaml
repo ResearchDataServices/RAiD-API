@@ -59,6 +59,7 @@ Resources:
         GetRaidProvidersFunction: !Ref GetRaidProviders
         CreateRaidProviderAssociationFunction: !Ref CreateRaidProviderAssociation
         EndRaidProviderAssociationFunction: !Ref EndRaidProviderAssociation
+        GetRaidFunction: !Ref GetRaid
   # IAM
   ## General
   LogsXrayLambdaPolicy:
@@ -196,6 +197,26 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /
             Method: POST
+  GetRaid:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.get_raid_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_TABLE:
+            Ref: RAiDTable
+          PROVIDER_TABLE:
+            Ref: ProviderIndexTable
+      Events:
+        GetRaidHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}
+            Method: GET
   GetOwnerRaids:
     Type: AWS::Serverless::Function
     Properties:
