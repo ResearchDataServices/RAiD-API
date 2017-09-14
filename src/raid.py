@@ -154,6 +154,95 @@ def get_raid_providers_handler(event, context):
     return generate_table_list_response(event, query_parameters, os.environ["PROVIDER_TABLE"])
 
 
+def create_raid_provider_association_handler(event, context):
+    """
+    Create a new provider association to a RAiD
+    :param event: 
+    :param context: 
+    :return: 
+    """
+    try:
+        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+
+    except:
+        return {
+            'statusCode': '400',
+            'body': json.dumps(
+                {
+                    'message': "Incorrect path parameter type formatting for RAiD handle."
+                               " Ensure it is a valid RAiD handle URL encoded string"
+                }
+            )
+        }
+    try:
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+
+        # Check if RAiD exists
+        query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
+
+        if query_response["Count"] != 1:
+            return {
+                'statusCode': '400',
+                'body': json.dumps(
+                    {
+                        'message': "Invalid RAiD handle provided in parameter path."
+                                   " Ensure it is a valid RAiD handle URL encoded string"
+                    }
+                )
+            }
+
+        # Insert association to provider index table
+        provider_index_table = dynamo_db.Table(os.environ["PROVIDER_TABLE"])
+
+        # Interpret and validate request body
+        body = json.loads(event["body"])
+
+        if "startDate" in body:
+            try:
+                start_date = datetime.datetime.strptime(body["startDate"], "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                return {
+                    'statusCode': '400',
+                    'body': json.dumps({'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
+                }
+        else:
+            # Get current datetime
+            start_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if "provider" not in body:
+            return {
+                'statusCode': '400',
+                'body': json.dumps(
+                    {'message': "'provider' must be provided in your request body to create an association"}
+                )
+            }
+
+        # Define RAiD item
+        service_item = {
+            'provider': body['provider'],
+            'handle': raid_handle,
+            'startDate': start_date
+        }
+
+        # Send Dynamo DB put for new RAiD
+        provider_index_table.put_item(Item=service_item)
+
+        return {
+            'statusCode': '200',
+            'body': json.dumps({'provider': service_item})
+        }
+
+    except:
+        return {
+            'statusCode': '500',
+            'body': json.dumps(
+                {'message': "Unable to perform request due to error. Please check structure of the body."}
+            )
+        }
+
+
 def generate_table_list_response(event, query_parameters, table):
     """
     A generic method for Dynamo DB queries that return a list of items.
@@ -165,7 +254,7 @@ def generate_table_list_response(event, query_parameters, table):
     try:
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        dynamo_db__table = dynamo_db.Table(table)
+        dynamo_db_table = dynamo_db.Table(table)
 
         # Interpret and validate request body for optional parameters
         if event["queryStringParameters"]:
@@ -185,7 +274,7 @@ def generate_table_list_response(event, query_parameters, table):
                 }
 
         # Query table using secondary index to return a list of RAiDs the owner is attached too
-        query_response = dynamo_db__table.query(**query_parameters)
+        query_response = dynamo_db_table.query(**query_parameters)
 
         # Build response body
         return_body = {
