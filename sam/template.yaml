@@ -255,7 +255,7 @@ Resources:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGatewayApi
-            Path: /provider/{providerId+}
+            Path: /provider/{providerId}
             Method: GET
   GetRaidProviders:
     Type: AWS::Serverless::Function

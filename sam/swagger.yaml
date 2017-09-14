@@ -79,6 +79,12 @@ paths:
       - "application/json"
       produces:
       - application/json
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Optional parameters that are added to the RAiD"
+        schema:
+          $ref: "#/definitions/RAiDCreateModel"
       responses:
         200:
           description: 200 response
@@ -143,6 +149,10 @@ paths:
         in: path
         required: true
         type: string
+      - name: "lazy_load"
+        in: "query"
+        description: "(Default True) Do not include attached RAiD providers unless value is set to false"
+        type: "string"
       responses:
         200:
           description: "200 response"
@@ -193,15 +203,27 @@ paths:
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         type: mock
-  /owner:
+  /RAiD/{raidId}/providers:
     get:
       tags:
       - "RAiD"
-      consumes:
-      - "application/json"
+      x-amazon-apigateway-auth:
+        type: aws_iam
       produces:
-      - "application/json"
+      - application/json
       parameters:
+      - name: raidId
+        in: path
+        required: true
+        type: string
+      - name: "limit"
+        in: "query"
+        required: false
+        type: "string"
+      - name: "ascending"
+        in: "query"
+        required: false
+        type: "string"
       - name: "exclusiveStartKey"
         in: "query"
         required: false
@@ -210,7 +232,7 @@ paths:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/OwnerRAiDsModel"
+            $ref: "#/definitions/ProviderRAiDsModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -222,7 +244,84 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetOwnerRaidsFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidProvidersFunction}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    post:
+      tags:
+      - "RAiD"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      consumes:
+      - "application/json"
+      produces:
+      - application/json
+      parameters:
+      - name: raidId
+        in: path
+        required: true
+        type: string
+      - in: "body"
+        name: "body"
+        description: "Optional parameters that are added when a provider joins a RAiD"
+        schema:
+          $ref: "#/definitions/CreateProviderAssociationModel"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/ProviderRAiDsModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - CustomAuthorizerJwt: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CreateRaidProviderAssociationFunction}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+    delete:
+      tags:
+      - "RAiD"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      consumes:
+      - "application/json"
+      produces:
+      - application/json
+      parameters:
+      - name: raidId
+        in: path
+        required: true
+        type: string
+      - in: "body"
+        name: "body"
+        description: "Optional parameters that are used when removing a provider"
+        schema:
+          $ref: "#/definitions/EndProviderAssociationModel"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/ProviderRAiDsModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - CustomAuthorizerJwt: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.EndRaidProviderAssociationFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -257,7 +356,7 @@ paths:
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         type: mock
-  /provider/{providerId+}:
+  /provider/{providerId}:
     get:
       tags:
       - "RAiD"
@@ -270,6 +369,18 @@ paths:
         in: path
         required: true
         type: string
+      - name: "limit"
+        in: "query"
+        required: false
+        type: "string"
+      - name: "ascending"
+        in: "query"
+        required: false
+        type: "string"
+      - name: "exclusiveStartKey"
+        in: "query"
+        required: false
+        type: "string"
       responses:
         200:
           description: "200 response"
@@ -320,91 +431,32 @@ paths:
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         type: mock
-  /RAiD/{raidId}/providers:
+  /owner:
     get:
       tags:
       - "RAiD"
-      x-amazon-apigateway-auth:
-        type: aws_iam
-      produces:
-      - application/json
-      parameters:
-      - name: raidId
-        in: path
-        required: true
-        type: string
-      responses:
-        200:
-          description: "200 response"
-          schema:
-            $ref: "#/definitions/ProviderRAiDsModel"
-          headers:
-            Access-Control-Allow-Origin:
-              type: "string"
-      security:
-      - CustomAuthorizerJwt: []
-      x-amazon-apigateway-integration:
-        responses:
-          default:
-            statusCode: 200
-            responseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidProvidersFunction}/invocations
-        httpMethod: POST
-        type: aws_proxy
-    post:
-      tags:
-      - "RAiD"
-      x-amazon-apigateway-auth:
-        type: aws_iam
       consumes:
       - "application/json"
       produces:
-      - application/json
-      parameters:
-      - name: raidId
-        in: path
-        required: true
-        type: string
-      responses:
-        200:
-          description: "200 response"
-          schema:
-            $ref: "#/definitions/ProviderRAiDsModel"
-          headers:
-            Access-Control-Allow-Origin:
-              type: "string"
-      security:
-      - CustomAuthorizerJwt: []
-      x-amazon-apigateway-integration:
-        responses:
-          default:
-            statusCode: 200
-            responseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CreateRaidProviderAssociationFunction}/invocations
-        passthroughBehavior: when_no_match
-        httpMethod: POST
-        type: aws_proxy
-    delete:
-      tags:
-      - "RAiD"
-      x-amazon-apigateway-auth:
-        type: aws_iam
-      consumes:
       - "application/json"
-      produces:
-      - application/json
       parameters:
-      - name: raidId
-        in: path
-        required: true
-        type: string
+      - name: "limit"
+        in: "query"
+        required: false
+        type: "string"
+      - name: "ascending"
+        in: "query"
+        required: false
+        type: "string"
+      - name: "exclusiveStartKey"
+        in: "query"
+        required: false
+        type: "string"
       responses:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/ProviderRAiDsModel"
+            $ref: "#/definitions/OwnerRAiDsModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -416,7 +468,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.EndRaidProviderAssociationFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetOwnerRaidsFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -500,10 +552,10 @@ definitions:
           properties:
             startDate:
               type: "string"
-              description: "Datetime the provided associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+              description: "Datetime the provider associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
             endDate:
               type: "string"
-              description: "(optional) Datetime the provided dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+              description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
             provider:
               type: "string"
               description: "Name of provider"
@@ -527,7 +579,7 @@ definitions:
               description: "Provider that created the RAiD handle"
             startDate:
               type: "string"
-              description: "Datetime the provided associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+              description: "Datetime the provider associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
             creationDate:
               type: "string"
               description: "RAiD created datetime (yyyy-MM-dd hh:mm:ss)"
@@ -551,10 +603,10 @@ definitions:
           properties:
             startDate:
               type: "string"
-              description: "Datetime the provided associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+              description: "Datetime the provider should be classified as joining the RAiD (yyyy-MM-dd hh:mm:ss)"
             endDate:
               type: "string"
-              description: "(optional) Datetime the provided dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+              description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
             handle:
               type: "string"
               description: "Unique URL hanlde, Example: http://hdl.handle.net/10.1000/860"
@@ -564,3 +616,26 @@ definitions:
       scannedCount:
         type: "string"
         description: "Total number of items that were scanned in the query"
+  RAiDCreateModel:
+    type: "object"
+    properties:
+      startDate:
+        type: "string"
+        description: "Datetime the RAiD should be classified as started (yyyy-MM-dd hh:mm:ss)"
+      meta:
+        type: "string"
+  CreateProviderAssociationModel:
+    type: "object"
+    properties:
+      startDate:
+        type: "string"
+        description: "Datetime the provider should be classified as joining the RAiD (yyyy-MM-dd hh:mm:ss)"
+      provider:
+        type: "string"
+        description: "Name of the provider"
+  EndProviderAssociationModel:
+    type: "object"
+    properties:
+      endDate:
+        type: "string"
+        description: "Datetime the provider should be classified as dissociating from the RAiD (yyyy-MM-dd hh:mm:ss)"
