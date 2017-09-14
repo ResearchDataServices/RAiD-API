@@ -231,7 +231,7 @@ def create_raid_provider_association_handler(event, context):
 
         return {
             'statusCode': '200',
-            'body': json.dumps({'provider': service_item})
+            'body': json.dumps(service_item)
         }
 
     except:
@@ -241,6 +241,89 @@ def create_raid_provider_association_handler(event, context):
                 {'message': "Unable to perform request due to error. Please check structure of the body."}
             )
         }
+
+
+def end_raid_provider_association_handler(event, context):
+    """
+    End a provider association to a RAiD
+    :param event: 
+    :param context: 
+    :return: 
+    """
+    try:
+        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+
+    except:
+        return {
+            'statusCode': '400',
+            'body': json.dumps(
+                {
+                    'message': "Incorrect path parameter type formatting for RAiD handle."
+                               " Ensure it is a valid RAiD handle URL encoded string"
+                }
+            )
+        }
+    # Initialise DynamoDB
+    dynamo_db = boto3.resource('dynamodb')
+    raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+
+    # Check if RAiD exists
+    query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
+
+    if query_response["Count"] != 1:
+        return {
+            'statusCode': '400',
+            'body': json.dumps(
+                {
+                    'message': "Invalid RAiD handle provided in parameter path."
+                               " Ensure it is a valid RAiD handle URL encoded string"
+                }
+            )
+        }
+
+    # Insert association to provider index table
+    provider_index_table = dynamo_db.Table(os.environ["PROVIDER_TABLE"])
+
+    # Interpret and validate request body
+    body = json.loads(event["body"])
+
+    if "endDate" in body:
+        try:
+            end_date = datetime.datetime.strptime(body["endDate"], "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return {
+                'statusCode': '400',
+                'body': json.dumps({'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
+            }
+    else:
+        # Get current datetime
+        end_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if "provider" not in body:
+        return {
+            'statusCode': '400',
+            'body': json.dumps(
+                {'message': "'provider' must be provided in your request body to create an association"}
+            )
+        }
+
+    # Update provider association
+    update_response = provider_index_table.update_item(
+        Key={
+            'provider': body['provider'],
+            'handle': raid_handle
+        },
+        UpdateExpression="set endDate = :e",
+        ExpressionAttributeValues={
+            ':e': end_date
+        },
+        ReturnValues="ALL_NEW"
+    )
+
+    return {
+        'statusCode': '200',
+        'body': json.dumps(update_response["Attributes"])
+    }
 
 
 def generate_table_list_response(event, query_parameters, table):

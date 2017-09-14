@@ -58,6 +58,7 @@ Resources:
         GetProviderRaidsFunction: !Ref GetProviderRaids
         GetRaidProvidersFunction: !Ref GetRaidProviders
         CreateRaidProviderAssociationFunction: !Ref CreateRaidProviderAssociation
+        EndRaidProviderAssociationFunction: !Ref EndRaidProviderAssociation
   # IAM
   ## General
   LogsXrayLambdaPolicy:
@@ -275,6 +276,26 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD/{raidId}/providers
             Method: POST
+  EndRaidProviderAssociation:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.end_raid_provider_association_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_TABLE:
+            Ref: RAiDTable
+          PROVIDER_TABLE:
+            Ref: ProviderIndexTable
+      Events:
+        EndRaidProviderAssociationHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/providers
+            Method: DELETE
   # Database
   RAiDTable:
     Type: "AWS::DynamoDB::Table"
