@@ -556,7 +556,10 @@ definitions:
         description: "RAiD created datetime (yyyy-MM-dd hh:mm:ss)"
       handle:
         type: "string"
-        description: "Unique URL hanlde, Example: http://hdl.handle.net/10.1000/860"
+        description: "Unique minted ANDS handle. Example: 10378.1/1590349"
+      contentPath:
+        type: "string"
+        description: "URL path minted with ANDS"
       providers:
         type: "array"
         description: "(optional) Providers associated to the RAiD"
@@ -604,7 +607,7 @@ definitions:
               description: "RAiD created datetime (yyyy-MM-dd hh:mm:ss)"
             handle:
               type: "string"
-              description: "Unique URL hanlde, Example: http://hdl.handle.net/10.1000/860"
+              description: "Unique minted ANDS handle. Example: 10378.1/1590349"
       scannedCount:
         type: "string"
         description: "Total number of items that were scanned in the query"
@@ -625,6 +628,9 @@ definitions:
   RAiDCreateModel:
     type: "object"
     properties:
+      contentPath:
+        type: "string"
+        description: "URL path to mint with ANDS"
       startDate:
         type: "string"
         description: "Datetime the RAiD should be classified as started (yyyy-MM-dd hh:mm:ss)"
@@ -648,7 +654,7 @@ definitions:
         description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
       handle:
         type: "string"
-        description: "Unique URL hanlde, Example: http://hdl.handle.net/10.1000/860"
+        description: "Unique minted ANDS handle. Example: 10378.1/1590349"
       provider:
         type: "string"
   CreateProviderAssociationModel:

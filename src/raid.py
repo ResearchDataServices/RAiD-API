@@ -6,10 +6,60 @@ import boto3
 import json
 import urllib
 from boto3.dynamodb.conditions import Key, Attr
+import requests
 from random import randint
+from xml.etree import ElementTree
 
 
-def generate_handle():
+def generate_ands_handle(ands_service, app_id, content_location):
+    """
+    Build mint query for ANDS and parse XML response
+    :param ands_service:
+    :param app_id:
+    :param content_location:
+    :return:
+    """
+    url_path = "{}mint?type=URL&value={}".format(ands_service, content_location)
+    xml_data = """
+        <request name="mint">
+            <properties>
+                <property name="appId" value="{}"/>
+                <property name="identifier" value="raid"/>
+                <property name="authDomain" value="raid.org.au"/>
+            </properties>
+        </request>
+        """.format(app_id)
+    headers = {'Content-Type': 'application/xml'}
+    response = requests.post(url_path, data=xml_data, headers=headers)
+    xml_tree = ElementTree.fromstring(response.content)
+
+    # Get result of root XML tag response
+    if xml_tree.attrib["type"] == "success":
+        response_data = {}
+        # Read and process all child tags
+        for child in xml_tree:
+            # Example <identifier handle="10378.1/1590349">
+            if child.tag == "identifier":
+                response_data["handle"] = child.attrib["handle"]
+
+            # Example <timestamp>2017-09-15T03:55:13Z</timestamp>
+            if child.tag == "timestamp":
+                response_data["timestamp"] = child.text
+
+            # Example <message type="user">Successfully authenticated and created handle</message>
+            if child.tag == "message":
+                response_data["message"] = child.text
+
+        return response_data
+    else:
+        raise Exception("Unable to register ANDS handle")
+
+
+def generate_random_handle():
+    """
+    Generate a random URL handle for testing
+    :return:
+    """
     hdl = 'http://hdl.handle.net/10.1000/' + str(randint(0,999))
     return hdl
 
@@ -30,12 +80,8 @@ def create_handler(event, context):
         # Get current datetime
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Generate handle
-        handle = generate_handle()
-
         # Define Initial RAiD item
         raid_item = {
-            'handle': handle,
             'creationDate': now,
             'owner': event['requestContext']['authorizer']['provider']
         }
@@ -43,6 +89,12 @@ def create_handler(event, context):
         # Interpret and validate request body
         if event["body"]:
             body = json.loads(event["body"])
+            # Check for provided content path to mint
+            if "contentPath" in body:
+                raid_item['contentPath'] = body["contentPath"]
+            else:
+                raid_item['contentPath'] = generate_random_handle()
+
             if "meta" in body:
                 raid_item['meta'] = body["meta"]
 
@@ -61,6 +113,16 @@ def create_handler(event, context):
                         },
                         'body': json.dumps({'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
                     }
+        else:
+            raid_item['contentPath'] = generate_random_handle()
+
+        # Mints ANDS handle
+        ands_mint = generate_ands_handle(os.environ["ANDS_SERVICE"], os.environ["ANDS_APP_ID"],
+                                         raid_item['contentPath'])
+        ands_handle = ands_mint["handle"]
+
+        # Insert minted handle into raid item
+        raid_item['handle'] = ands_handle
 
         # Send Dynamo DB put for new RAiD
         raid_table.put_item(Item=raid_item)
@@ -68,7 +130,7 @@ def create_handler(event, context):
         # Define RAiD item
         service_item = {
             'provider': event['requestContext']['authorizer']['provider'],
-            'handle': handle,
+            'handle': ands_handle,
             'startDate': now
         }
 

@@ -13,7 +13,7 @@
 # aws cloudformation deploy \=
 # --template-file <path-to-file>/template-out.yaml \
 # --stack-name <STACK_NAME>  \
-# --parameter-overrides JwtSecret=<<jwt-secret>> \
+# --parameter-overrides JwtSecret=<<jwt-secret>> AndsService=<<ands_service>> AndsAppId=<<app_id>> AndsSubnets=<<subnet1,subnet2>> AndsSecurityGroups=<<sg1,sg1>>\
 # --capabilities CAPABILITY_IAM
 ---
 AWSTemplateFormatVersion: '2010-09-09'
@@ -42,6 +42,16 @@ Parameters:
   ProviderRole:
     Type: String
     Default: service
+  AndsService:
+    Type: String
+  AndsAppId:
+    Type: String
+  AndsSubnets:
+    Type: CommaDelimitedList
+    Description: "Comma seperated subnet ids that have access to ANDS handle minting service"
+  AndsSecurityGroups:
+    Type: CommaDelimitedList
+    Description: "Comma seperated security group ids that have inbound/outbound access to ANDS handle minting service"
 
 Resources:
   # API
@@ -184,12 +194,21 @@ Resources:
       Handler: raid.create_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
+      VpcConfig:
+        SecurityGroupIds:
+          Ref: AndsSecurityGroups
+        SubnetIds:
+          Ref: AndsSubnets
       Environment:
         Variables:
           RAID_TABLE:
             Ref: RAiDTable
           PROVIDER_TABLE:
             Ref: ProviderIndexTable
+          ANDS_SERVICE:
+            Ref: AndsService
+          ANDS_APP_ID:
+            Ref: AndsAppId          
       Events:
         CreateRaidHandle:
           Type: Api
