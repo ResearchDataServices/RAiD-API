@@ -4,6 +4,7 @@ swagger: "2.0"
 info:
   title: RAiD API
   version: "3.0-Alpha"
+  description: "The Data LifeCycle Framework (DLCF – www.dlc.edu.au ) has been initiated by five primary  organisations; Australian Access Federation (AAF), Australia’s Academic and Research Network (AARNet), Australian National Data Service (ANDS), National eResearch Collaboration Tools and Resources (NeCTAR) and Research Data Services (RDS).\n\n The DLCF is a nationwide effort to connect research resources and activities such that researchers can make the best use of existing national, state-based, local, and commercial eResearch tools. It aims to provide a simple path to reliable provenance, more effective collaboration across organisations and assist researchers to position themselves to address the growing potential of increasingly open data.\n\n The DLCF will connect critical elements and points in time of the data journey from grant approval through to project finalisation, results publication and archiving. It will leverage existing eResearch investment to provide a flexible and dynamic national framework supporting research.\n\n The Resource and Activity Persistent identifier(RAiD) is the first of the enabling technologies required for the DLCF. This specification document is for the development of the RAiD service and supporting features. Learn more about the RAiD project by visiting the website (https://www.raid.org.au/)."
 tags:
 - name: "RAiD"
 - name: "CORS"
@@ -12,6 +13,7 @@ schemes:
 paths:
   /:
     get:
+      summary: "Get API version metadata"
       tags:
       - "RAiD"
       consumes:
@@ -73,6 +75,7 @@ paths:
         type: mock
   /RAiD:
     post:
+      summary: "Generate a RAiD with a unique URL handle"
       tags:
       - "RAiD"
       consumes:
@@ -81,6 +84,7 @@ paths:
       - application/json
       parameters:
       - in: "body"
+        required: false
         name: "body"
         description: "Optional parameters that are added to the RAiD"
         schema:
@@ -138,6 +142,7 @@ paths:
         type: mock
   /RAiD/{raidId}:
     get:
+      summary: "Return an entire RAiD with attached metadata and associated providers (optional)"
       tags:
       - "RAiD"
       x-amazon-apigateway-auth:
@@ -151,6 +156,7 @@ paths:
         type: string
       - name: "lazy_load"
         in: "query"
+        required: false
         description: "(Default True) Do not include attached RAiD providers unless value is set to false"
         type: "string"
       responses:
@@ -205,6 +211,7 @@ paths:
         type: mock
   /RAiD/{raidId}/providers:
     get:
+      summary: "Return a list of providers associated with a RAiD"
       tags:
       - "RAiD"
       x-amazon-apigateway-auth:
@@ -248,6 +255,7 @@ paths:
         httpMethod: POST
         type: aws_proxy
     post:
+      summary: "Associate a provider to a RAiD and set a start date"
       tags:
       - "RAiD"
       x-amazon-apigateway-auth:
@@ -262,6 +270,7 @@ paths:
         required: true
         type: string
       - in: "body"
+        required: false
         name: "body"
         description: "Optional parameters that are added when a provider joins a RAiD"
         schema:
@@ -270,7 +279,7 @@ paths:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/ProviderRAiDsModel"
+            $ref: "#/definitions/ProviderAssociationModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -287,6 +296,7 @@ paths:
         httpMethod: POST
         type: aws_proxy
     delete:
+      summary: "Remove an associated provider from a RAiD by setting an end date to the relationship"
       tags:
       - "RAiD"
       x-amazon-apigateway-auth:
@@ -301,6 +311,7 @@ paths:
         required: true
         type: string
       - in: "body"
+        required: false
         name: "body"
         description: "Optional parameters that are used when removing a provider"
         schema:
@@ -309,7 +320,7 @@ paths:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/ProviderRAiDsModel"
+            $ref: "#/definitions/ProviderAssociationModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -358,6 +369,7 @@ paths:
         type: mock
   /provider/{providerId}:
     get:
+      summary: "Return a list of RAiDs belonging to the provider in the path"
       tags:
       - "RAiD"
       x-amazon-apigateway-auth:
@@ -433,6 +445,7 @@ paths:
         type: mock
   /owner:
     get:
+      summary: "Return a list of RAiDs that are currently owned to the authenticated key"
       tags:
       - "RAiD"
       consumes:
@@ -562,6 +575,12 @@ definitions:
       meta:
         type: "object"
         description: "Object that acts as a document for optional metadata KeyValues"
+        properties:
+          RelatedRaids:
+            type: "array"
+            description: "List of related RAiD handles"
+            items:
+              type: "string"
   OwnerRAiDsModel:
     type: "object"
     properties:
@@ -599,20 +618,7 @@ definitions:
         type: "array"
         description: "(optional) Providers associated to the RAiD"
         items:
-          type: "object"
-          properties:
-            startDate:
-              type: "string"
-              description: "Datetime the provider should be classified as joining the RAiD (yyyy-MM-dd hh:mm:ss)"
-            endDate:
-              type: "string"
-              description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-            handle:
-              type: "string"
-              description: "Unique URL hanlde, Example: http://hdl.handle.net/10.1000/860"
-            provider:
-              type: "string"
-              description: "Name of provider"
+          $ref: "#/definitions/ProviderAssociationModel"
       scannedCount:
         type: "string"
         description: "Total number of items that were scanned in the query"
@@ -623,6 +629,27 @@ definitions:
         type: "string"
         description: "Datetime the RAiD should be classified as started (yyyy-MM-dd hh:mm:ss)"
       meta:
+        type: "object"
+        description: "Object that acts as a document for optional metadata KeyValues"
+        properties:
+          RelatedRaids:
+            type: "array"
+            description: "List of related RAiD handles"
+            items:
+              type: "string"
+  ProviderAssociationModel:
+    type: "object"
+    properties:
+      startDate:
+        type: "string"
+        description: "Datetime the provider should be classified as joining the RAiD (yyyy-MM-dd hh:mm:ss)"
+      endDate:
+        type: "string"
+        description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+      handle:
+        type: "string"
+        description: "Unique URL hanlde, Example: http://hdl.handle.net/10.1000/860"
+      provider:
         type: "string"
   CreateProviderAssociationModel:
     type: "object"
