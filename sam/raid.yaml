@@ -1,6 +1,8 @@
-# NOTE: Replace <<region>> and <<account>> fields
+# NOTE: Replace <<region>>, <<account>> and <<api_url>> fields
 ---
 swagger: "2.0"
+host: <<api_url>>
+basePath: /Prod
 info:
   title: RAiD API
   version: "3.0-Alpha"
@@ -553,6 +555,7 @@ definitions:
     properties:
       version:
         type: "string"
+        example: "3.0-Alpha"
     description: "API Version Summary"
   RAiDModel:
     type: "object"
@@ -560,24 +563,30 @@ definitions:
       owner:
         type: "string"
         description: "Provider that created the RAiD handle"
+        example: "RDS"
       startDate:
         type: "string"
         description: "RAiD start datetime (yyyy-MM-dd hh:mm:ss), which will default to the current datetime if none is supplied"
+        example: "2017-09-11 06:07:39"
       endDate:
         type: "string"
         description: "(optional) RAiD end Datetime (yyyy-MM-dd hh:mm:ss)"
+        example: "2020-12-20 00:00:00"
       creationDate:
         type: "string"
         description: "RAiD created datetime (yyyy-MM-dd hh:mm:ss)"
+        example: "2017-09-11 06:07:39"
       handle:
         type: "string"
         description: "Unique minted ANDS handle"
+        example: "10378.1/1590349"
       description:
         type: "string"
         description: "Summary of the RAiD"
       contentPath:
         type: "string"
         description: "URL path minted with ANDS"
+        example: "http://myorganisation.org.au/contentlocation"
       providers:
         type: "array"
         description: "(optional) Providers associated to the RAiD"
@@ -587,12 +596,15 @@ definitions:
             startDate:
               type: "string"
               description: "Datetime the provider associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+              example: "2017-09-20 12:00:00"
             endDate:
               type: "string"
               description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+              example: "2018-12-20 00:00:00"
             provider:
               type: "string"
               description: "Name of provider"
+              example: "RDS"
       meta:
         type: "object"
         description: "Object that acts as a document for optional metadata KeyValues"
@@ -601,6 +613,7 @@ definitions:
             type: "array"
             description: "List of related RAiD handles"
             items:
+              example: "10378.1/1590363"
               type: "string"
   OwnerRAiDsModel:
     type: "object"
@@ -608,6 +621,7 @@ definitions:
       count:
         type: "string"
         description: "Number of items returned"
+        example: "30"
       items:
         type: "array"
         description: "(optional) Providers associated to the RAiD"
@@ -617,24 +631,30 @@ definitions:
             owner:
               type: "string"
               description: "Provider that created the RAiD handle"
+              example: "RDS"
             startDate:
               type: "string"
               description: "RAiD start datetime (yyyy-MM-dd hh:mm:ss), which will default to the current datetime if none is supplied"
+              example: "2017-09-11 06:07:39"
             creationDate:
               type: "string"
               description: "RAiD created datetime (yyyy-MM-dd hh:mm:ss)"
+              example: "2017-09-11 06:07:39"
             handle:
               type: "string"
               description: "Unique minted ANDS handle"
+              example: "10378.1/1590349"
       scannedCount:
         type: "string"
         description: "Total number of items that were scanned in the query"
+        example: "30"
   ProviderRAiDsModel:
     type: "object"
     properties:
       count:
         type: "string"
         description: "Number of items returned"
+        example: "30"
       items:
         type: "array"
         description: "(optional) Providers associated to the RAiD"
@@ -643,18 +663,21 @@ definitions:
       scannedCount:
         type: "string"
         description: "Total number of items that were scanned in the query"
+        example: "30"
   RAiDCreateModel:
     type: "object"
     properties:
       contentPath:
         type: "string"
         description: "URL path minted with ANDS"
+        example: "http://myorganisation.org.au/contentlocation"
       description:
         type: "string"
         description: "Summary of the RAiD"
       startDate:
         type: "string"
         description: "RAiD start datetime (yyyy-MM-dd hh:mm:ss), which will default to the current datetime if none is supplied"
+        example: "2017-09-11 06:07:39"
       meta:
         type: "object"
         description: "Object that acts as a document for optional metadata KeyValues"
@@ -663,6 +686,7 @@ definitions:
             type: "array"
             description: "List of related RAiD handles"
             items:
+              example: "10378.1/1590363"
               type: "string"
   ProviderAssociationModel:
     type: "object"
@@ -670,30 +694,38 @@ definitions:
       startDate:
         type: "string"
         description: "Datetime the provider associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+        example: "2017-09-20 12:00:00"
       endDate:
         type: "string"
         description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+        example: "2018-12-20 00:00:00"
       provider:
         type: "string"
         description: "Name of provider"
+        example: "RDS"
       handle:
         type: "string"
         description: "Unique minted ANDS handle"
+        example: "10378.1/1590349"
   CreateProviderAssociationModel:
     type: "object"
     properties:
       startDate:
         type: "string"
         description: "Datetime the provider associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+        example: "2017-09-20 12:00:00"
       provider:
         type: "string"
         description: "Name of provider"
+        example: "AAF"
   EndProviderAssociationModel:
     type: "object"
     properties:
       endDate:
         type: "string"
         description: "Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+        example: "2018-12-20 00:00:00"
       provider:
         type: "string"
         description: "Name of provider"
+        example: "AAF"

@@ -95,6 +95,9 @@ def create_handler(event, context):
             else:
                 raid_item['contentPath'] = generate_random_handle()
 
+            if "description" in body:
+                raid_item['description'] = body["description"]
+
             if "meta" in body:
                 raid_item['meta'] = body["meta"]
 
