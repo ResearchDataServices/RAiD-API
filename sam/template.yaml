@@ -70,6 +70,7 @@ Resources:
         CreateRaidProviderAssociationFunction: !Ref CreateRaidProviderAssociation
         EndRaidProviderAssociationFunction: !Ref EndRaidProviderAssociation
         GetRaidFunction: !Ref GetRaid
+        UpdateRaidContentPathFunction: !Ref UpdateRaidContentPath
   # IAM
   ## General
   LogsXrayLambdaPolicy:
@@ -216,6 +217,30 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD
             Method: POST
+  UpdateRaidContentPath:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.update_content_path_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_TABLE:
+            Ref: RAiDTable
+          PROVIDER_TABLE:
+            Ref: ProviderIndexTable
+          ANDS_SERVICE:
+            Ref: AndsService
+          ANDS_APP_ID:
+            Ref: AndsAppId    
+      Events:
+        UpdateRaidContentPathHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/handle
+            Method: PUT
   GetRaid:
     Type: AWS::Serverless::Function
     Properties:

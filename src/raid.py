@@ -3,56 +3,74 @@ from __future__ import print_function
 import os
 import datetime
 import boto3
+from boto3.dynamodb.conditions import Key, Attr
+from botocore.exceptions import ClientError
 import json
 import urllib
-from boto3.dynamodb.conditions import Key, Attr
 import requests
 from random import randint
 from xml.etree import ElementTree
 
 
-def generate_ands_handle(ands_service, app_id, content_location):
+class AndsMintingError(Exception):
     """
-    Build mint query for ANDS and parse XML response
-    :param ands_service:
-    :param app_id:
-    :param content_location:
+    Exception used for an unsuccessful content path and handle minting
+    """
+    pass
+
+
+def generate_web_body_response(status_code, body):
+    """
+    Generate a valid API Gateway CORS enabled JSON body response
+    :param status_code: string of a HTTP status code
+    :param body: Dictionary object, converted to JSON
     :return:
     """
-    url_path = "{}mint?type=URL&value={}".format(ands_service, content_location)
+    return {
+        'statusCode': status_code,
+        "headers": {
+            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+            "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+            "Access-Control-Allow-Origin": "*"
+        },
+        'body': json.dumps(body)
+    }
+
+
+def ands_handle_request(url_path, app_id, identifier, auth_domain):
+    """
+    Build a minting (create/update) query for ANDS and parse XML response
+    :param url_path:
+    :param app_id:
+    :param identifier:
+    :param auth_domain:
+    :return:
+    """
     xml_data = """
-        <request name="mint">
-            <properties>
-                <property name="appId" value="{}"/>
-                <property name="identifier" value="raid"/>
-                <property name="authDomain" value="raid.org.au"/>
-            </properties>
-        </request>
-        """.format(app_id)
+                <request name="mint">
+                    <properties>
+                        <property name="appId" value="{}"/>
+                        <property name="identifier" value="{}"/>
+                        <property name="authDomain" value="{}"/>
+                    </properties>
+                </request>
+                """.format(app_id, identifier, auth_domain)
     headers = {'Content-Type': 'application/xml'}
     response = requests.post(url_path, data=xml_data, headers=headers)
+
     xml_tree = ElementTree.fromstring(response.content)
 
-    # Get result of root XML tag response
+    # Get result of root XML tag response and read all child tags into a to dictionary
     if xml_tree.attrib["type"] == "success":
-        response_data = {}
-        # Read and process all child tags
-        for child in xml_tree:
-            # Example <identifier handle="10378.1/1590349">
-            if child.tag == "identifier":
-                response_data["handle"] = child.attrib["handle"]
-
-            # Example <timestamp>2017-09-15T03:55:13Z</timestamp>
-            if child.tag == "timestamp":
-                response_data["timestamp"] = child.text
-
-            # Example <message type="user">Successfully authenticated and created handle</message>
-            if child.tag == "message":
-                response_data["message"] = child.text
-
+        response_data = {
+            "handle": xml_tree.find("identifier").attrib["handle"],
+            "contentIndex": xml_tree.find("identifier/property").attrib["index"],
+            "timestamp": xml_tree.find("timestamp").text,
+            "message": xml_tree.find("message").text
+        }
         return response_data
     else:
-        raise Exception("Unable to register ANDS handle")
+        raise AndsMintingError("Unable to mint content path for ANDS handle.")
 
 
 def generate_random_handle():
@@ -107,72 +125,125 @@ def create_handler(event, context):
                     datetime.datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
                     raid_item['startDate'] = start_date
                 except ValueError:
-                    return {
-                        'statusCode': '400',
-                        "headers": {
-                            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                            "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                            "Access-Control-Allow-Origin": "*"
-                        },
-                        'body': json.dumps({'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
-                    }
+                    return generate_web_body_response(
+                        '400', {'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
         else:
             raid_item['contentPath'] = generate_random_handle()
 
         # Mints ANDS handle
-        ands_mint = generate_ands_handle(os.environ["ANDS_SERVICE"], os.environ["ANDS_APP_ID"],
-                                         raid_item['contentPath'])
+        ands_url_path = "{}mint?type=URL&value={}".format(os.environ["ANDS_SERVICE"], raid_item['contentPath'])
+        ands_mint = ands_handle_request(ands_url_path, os.environ["ANDS_APP_ID"], "raid", "raid.org.au")
+
         ands_handle = ands_mint["handle"]
 
         # Insert minted handle into raid item
         raid_item['handle'] = ands_handle
+        raid_item['contentIndex'] = ands_mint["contentIndex"]
 
         # Send Dynamo DB put for new RAiD
         raid_table.put_item(Item=raid_item)
 
-        # Define RAiD item
+        # Define provider association item
         service_item = {
             'provider': event['requestContext']['authorizer']['provider'],
             'handle': ands_handle,
             'startDate': now
         }
 
-        # Send Dynamo DB put for new RAiD
+        # Send Dynamo DB put for new association
         provider_index_table.put_item(Item=service_item)
 
-        return {
-            'statusCode': '200',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
-            },
-            'body': json.dumps(
+        return generate_web_body_response('200', {
+            'raid': raid_item,
+            'providers': [
                 {
-                    'raid': raid_item,
-                    'providers': [
-                        {
-                            'provider': service_item['provider'],
-                            'startDate': service_item['startDate'],
-                            'endDate': ''
-                        }
-                    ]
+                    'provider': service_item['provider'],
+                    'startDate': service_item['startDate'],
+                    'endDate': ''
                 }
-            )
-        }
+            ]
+        })
+    except AndsMintingError:
+        return generate_web_body_response('500', {
+            'message': "Unable to create a RAiD as ANDS was unable to mint the content path."})
 
     except:
-        return {
-            'statusCode': '500',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
+        return generate_web_body_response('400', {
+            'message': "Unable to perform request due to error. Please check structure of the body."})
+
+
+def update_content_path_handler(event, context):
+    """
+    Update the content path of a RAiD and mint the new path with the ANDS Service
+    :param event:
+    :param context:
+    :return: RAiD object
+    """
+    # Check for provided RAiD and content path to mint
+    try:
+        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+        body = json.loads(event["body"])
+        new_content_path = body['contentPath']
+    except ValueError:
+        return generate_web_body_response('400', {'message': "Your request body must be valid JSON."})
+    except KeyError:
+        return generate_web_body_response('400', {
+            'message': "A 'contentPath' URL string must be provided in the body of the request."})
+
+    try:
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+
+        # Check if RAiD exists
+        query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
+
+        if query_response["Count"] != 1:
+            return generate_web_body_response('400', {
+                'message': "Invalid RAiD handle provided in parameter path. "
+                           "Ensure it is a valid RAiD handle URL encoded string"})
+
+        # Assign raid item to single item, since the result will be an array of one item
+        raid_item = query_response['Items'][0]
+
+        # Assign default value if none exists
+        if "contentIndex" not in raid_item:
+            raid_item["contentIndex"] = "1"
+
+        # Mints ANDS handle
+        ands_url_path = "{}modifyValueByIndex?handle={}&value={}index={}".format(os.environ["ANDS_SERVICE"],
+                                                                                 raid_item['handle'],
+                                                                                 new_content_path,
+                                                                                 raid_item['contentIndex'])
+
+        ands_mint = ands_handle_request(ands_url_path, os.environ["ANDS_APP_ID"], "raid", "raid.org.au")
+
+        # Update content path and index
+        update_response = raid_table.update_item(
+            Key={
+                'handle': raid_handle
             },
-            'body': json.dumps(
-                {'message': "Unable to perform request due to error. Please check structure of the body."}
-            )
-        }
+            UpdateExpression="set contentPath = :c, contentIndex = :c",
+            ExpressionAttributeValues={
+                ':c': new_content_path,
+                ':i': ands_mint["contentIndex"]
+            },
+            ReturnValues="ALL_NEW"
+        )
+
+        return generate_web_body_response('200', {update_response["Attributes"]})
+
+    except ClientError as e:
+        # if e.response['Error']['Code'] == 'EntityAlreadyExists':
+        return generate_web_body_response('500', {'message': "Unable to update value."})
+
+    except AndsMintingError:
+        return generate_web_body_response('500', {
+            'message': "Unable to modify the RAiD as ANDS was unable to mint the content path."})
+
+    except:
+        return generate_web_body_response('400', {'message': "Unable to perform request due to an error. "
+                                                             "Please check structure of the body."})
 
 
 def get_raid_handler(event, context):
@@ -224,7 +295,7 @@ def get_raid_handler(event, context):
                 )
             }
 
-        # Assign raid item to single item, since the resultwill be an array of one item
+        # Assign raid item to single item, since the result will be an array of one item
         raid_item = query_response['Items'][0]
 
         # Interpret and validate query string parameters

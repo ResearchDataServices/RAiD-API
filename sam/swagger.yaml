@@ -211,6 +211,49 @@ paths:
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         type: mock
+  /RAiD/{raidId}/handle:
+    put:
+      summary: "Update the content path of a RAiD and mint the new path with the ANDS Service"
+      tags:
+      - "RAiD"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      consumes:
+      - "application/json"
+      produces:
+      - application/json
+      parameters:
+      - name: raidId
+        in: path
+        required: true
+        type: string
+        description: "RAiD handle created by minting service. Example: 10378.1/1590366"
+      - in: "body"
+        required: true
+        name: "body"
+        description: "New content url path to mint with ANDS"
+        schema:
+            $ref: "#/definitions/MintRAiDModel"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+           $ref: "#/definitions/RAiDModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - CustomAuthorizerJwt: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.UpdateRaidContentPathFunction}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
   /RAiD/{raidId}/providers:
     get:
       summary: "Return a list of providers associated with a RAiD"
@@ -664,6 +707,12 @@ definitions:
             description: "List of related RAiD handles"
             items:
               type: "string"
+  MintRAiDModel:
+    type: "object"
+    properties:
+      contentPath:
+        type: "string"
+        description: "URL path minted with ANDS"
   ProviderAssociationModel:
     type: "object"
     properties:
