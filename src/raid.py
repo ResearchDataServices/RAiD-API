@@ -354,6 +354,68 @@ def get_owner_raids_handler(event, context):
     return generate_table_list_response(event, query_parameters, os.environ["RAID_TABLE"])
 
 
+def update_raid_owner_handler(event, context):
+    """
+    Change the ownership of a RAiD to another provider
+    :param event: 
+    :param context: 
+    :return: 
+    """
+    try:
+        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+        body = json.loads(event["body"])
+        new_owner = body['provider']
+    except ValueError:
+        return generate_web_body_response('400', {'message': "Your request body must be valid JSON with a valid path"
+                                                             " parameter RAiD handle URL encoded string."})
+    except KeyError:
+        return generate_web_body_response('400', {
+            'message': "An 'owner' must be provided in the body of the request."})
+
+    try:
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+
+        # Check if RAiD exists
+        query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
+
+        if query_response["Count"] != 1:
+            return generate_web_body_response('400', {'message': "Invalid RAiD handle provided in parameter path. "
+                                                                 "Ensure it is a valid RAiD handle URL encoded string"})
+
+        # Assign raid item to single item, since the result will be an array of one item
+        raid_item = query_response['Items'][0]
+
+        # Check Owner
+        authorised_provider = event['requestContext']['authorizer']['provider']
+
+        if raid_item["owner"] != authorised_provider:
+            return generate_web_body_response('403', {'message': "Only the current RAiD owner can modify ownership"})
+
+        # Check if new owner exists # TODO
+
+        # Update the RAiD in the Database
+        update_response = raid_table.update_item(
+            Key={
+                'handle': raid_handle
+            },
+            UpdateExpression="set owner = :o",
+            ExpressionAttributeValues={
+                ':o': new_owner
+            },
+            ReturnValues="ALL_NEW"
+        )
+
+        return generate_web_body_response('200', {update_response["Attributes"]})
+
+    except ClientError:
+        return generate_web_body_response('500', {'message': "Unable to update value."})
+    except:
+        return generate_web_body_response('400', {'message': "Unable to perform request due to an error. "
+                                                             "Please check structure of the body."})
+
+
 def get_provider_raids_handler(event, context):
     """
     Return RAiDs associated to the provider in the path with optional parameters for filter and search options

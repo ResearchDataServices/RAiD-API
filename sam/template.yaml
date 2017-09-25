@@ -71,6 +71,7 @@ Resources:
         EndRaidProviderAssociationFunction: !Ref EndRaidProviderAssociation
         GetRaidFunction: !Ref GetRaid
         UpdateRaidContentPathFunction: !Ref UpdateRaidContentPath
+        UpdateRaidOwnerFunction: !Ref UpdateRaidOwner
   # IAM
   ## General
   LogsXrayLambdaPolicy:
@@ -281,6 +282,26 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /owner
             Method: GET
+  UpdateRaidOwner:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.update_raid_owner_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_TABLE:
+            Ref: RAiDTable
+          PROVIDER_TABLE:
+            Ref: ProviderIndexTable  
+      Events:
+        UpdateRaidOwnerHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /owner/{raidId}
+            Method: PUT
   GetProviderRaids:
     Type: AWS::Serverless::Function
     Properties:

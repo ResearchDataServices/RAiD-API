@@ -256,6 +256,37 @@ paths:
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
   /RAiD/{raidId}/providers:
     get:
       summary: "Return a list of providers associated with a RAiD"
@@ -576,6 +607,80 @@ paths:
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         type: mock
+  /owner/{raidId}:
+    put:
+      summary: "Change the ownership of a RAiD to another provider"
+      tags:
+      - "RAiD"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      consumes:
+      - "application/json"
+      produces:
+      - application/json
+      parameters:
+      - name: raidId
+        in: path
+        required: true
+        type: string
+        description: "RAiD handle created by minting service. Example: 10378.1/1590366"
+      - in: "body"
+        required: true
+        name: "body"
+        description: "Provider name to transfer ownership too"
+        schema:
+            $ref: "#/definitions/OwnerAssociationModel"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+           $ref: "#/definitions/RAiDModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - CustomAuthorizerJwt: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.UpdateRaidOwnerFunction}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
 securityDefinitions:
   CustomAuthorizerJwt:
     type: "apiKey"
@@ -775,6 +880,13 @@ definitions:
         type: "string"
         description: "Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
         example: "2018-12-20 00:00:00"
+      provider:
+        type: "string"
+        description: "Name of provider"
+        example: "AAF"
+  OwnerAssociationModel:
+    type: "object"
+    properties:
       provider:
         type: "string"
         description: "Name of provider"
