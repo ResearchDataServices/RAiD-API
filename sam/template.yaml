@@ -42,6 +42,9 @@ Parameters:
   ProviderRole:
     Type: String
     Default: service
+  InstitutionRole:
+    Type: String
+    Default: institution
   AndsService:
     Type: String
   AndsAppId:
@@ -197,6 +200,8 @@ Resources:
             Ref: JwtSecret
           PROVIDER_ROLE:
             Ref: ProviderRole
+          INSTITUTION_ROLE:
+            Ref: InstitutionRole
   ## RAiD CRUD
   CreateRaid:
     Type: AWS::Serverless::Function

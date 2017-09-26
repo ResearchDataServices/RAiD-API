@@ -129,6 +129,15 @@ def jwt_validation_handler(event, context):
             'provider': decoded["sub"],
             'role': decoded["role"],
         }
+    elif decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["role"] == os.environ['INSTITUTION_ROLE']:
+        policy.allow_method(HttpVerb.GET, '/*')
+        policy.allow_method(HttpVerb.GET, '/RAiD/*')
+        policy.allow_method(HttpVerb.GET, '/provider/*')
+        policy.allow_method(HttpVerb.ALL, '/institution/*')
+        context = {
+            'provider': decoded["sub"],
+            'role': decoded["role"],
+        }
 
     else:
         raise Exception('Unauthorized')
