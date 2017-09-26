@@ -442,20 +442,8 @@ def get_raid_providers_handler(event, context):
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
 
     except:
-        return {
-            'statusCode': '400',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
-            },
-            'body': json.dumps(
-                {
-                    'message': "Incorrect path parameter type formatting for RAiD handle."
-                               " Ensure it is a URL encoded string"
-                }
-            )
-        }
+        return generate_web_body_response('400', {
+            'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
 
     query_parameters = {
         'IndexName': 'HandleProviderIndex',
@@ -476,20 +464,9 @@ def create_raid_provider_association_handler(event, context):
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
 
     except:
-        return {
-            'statusCode': '400',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
-            },
-            'body': json.dumps(
-                {
-                    'message': "Incorrect path parameter type formatting for RAiD handle."
-                               " Ensure it is a valid RAiD handle URL encoded string"
-                }
-            )
-        }
+        return generate_web_body_response('400', {
+            'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
+
     try:
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
@@ -499,20 +476,9 @@ def create_raid_provider_association_handler(event, context):
         query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
 
         if query_response["Count"] != 1:
-            return {
-                'statusCode': '400',
-                "headers": {
-                    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                    "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                    "Access-Control-Allow-Origin": "*"
-                },
-                'body': json.dumps(
-                    {
-                        'message': "Invalid RAiD handle provided in parameter path."
-                                   " Ensure it is a valid RAiD handle URL encoded string"
-                    }
-                )
-            }
+            return generate_web_body_response('400', {
+                'message': "Invalid RAiD handle provided in parameter path. "
+                           "Ensure it is a valid RAiD handle URL encoded string"})
 
         # Insert association to provider index table
         provider_index_table = dynamo_db.Table(os.environ["PROVIDER_TABLE"])
@@ -524,31 +490,16 @@ def create_raid_provider_association_handler(event, context):
             try:
                 start_date = datetime.datetime.strptime(body["startDate"], "%Y-%m-%d %H:%M:%S")
             except ValueError:
-                return {
-                    'statusCode': '400',
-                    "headers": {
-                        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                        "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                        "Access-Control-Allow-Origin": "*"
-                    },
-                    'body': json.dumps({'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
-                }
+                return generate_web_body_response('400', {
+                    'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
+
         else:
             # Get current datetime
             start_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         if "provider" not in body:
-            return {
-                'statusCode': '400',
-                "headers": {
-                    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                    "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                    "Access-Control-Allow-Origin": "*"
-                },
-                'body': json.dumps(
-                    {'message': "'provider' must be provided in your request body to create an association"}
-                )
-            }
+            return generate_web_body_response('400', {
+                'message': "'provider' must be provided in your request body to create an association"})
 
         # Define RAiD item
         service_item = {
@@ -560,28 +511,11 @@ def create_raid_provider_association_handler(event, context):
         # Send Dynamo DB put for new RAiD
         provider_index_table.put_item(Item=service_item)
 
-        return {
-            'statusCode': '200',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
-            },
-            'body': json.dumps(service_item)
-        }
+        return generate_web_body_response('200', {'body': json.dumps(service_item)})
 
     except:
-        return {
-            'statusCode': '500',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
-            },
-            'body': json.dumps(
-                {'message': "Unable to perform request due to error. Please check structure of the body."}
-            )
-        }
+        return generate_web_body_response('500', {
+            'message': "Unable to perform request due to error. Please check structure of the body."})
 
 
 def end_raid_provider_association_handler(event, context):
@@ -595,101 +529,227 @@ def end_raid_provider_association_handler(event, context):
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
 
     except:
-        return {
-            'statusCode': '400',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
+        return generate_web_body_response('400', {
+            'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
+
+    try:
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+
+        # Check if RAiD exists
+        query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
+
+        if query_response["Count"] != 1:
+            return generate_web_body_response('400', {
+                'message': "Invalid RAiD handle provided in parameter path. "
+                           "Ensure it is a valid RAiD handle URL encoded string"})
+
+        # Insert association to provider index table
+        provider_index_table = dynamo_db.Table(os.environ["PROVIDER_TABLE"])
+
+        # Interpret and validate request body
+        body = json.loads(event["body"])
+
+        if "endDate" in body:
+            try:
+                end_date = datetime.datetime.strptime(body["endDate"], "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                return generate_web_body_response('400', {
+                    'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
+        else:
+            # Get current datetime
+            end_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if "provider" not in body:
+            return generate_web_body_response('400', {
+                'message': "'provider' must be provided in your request body to end an association"})
+
+        # Update provider association
+        update_response = provider_index_table.update_item(
+            Key={
+                'provider': body['provider'],
+                'handle': raid_handle
             },
-            'body': json.dumps(
-                {
-                    'message': "Incorrect path parameter type formatting for RAiD handle."
-                               " Ensure it is a valid RAiD handle URL encoded string"
-                }
-            )
-        }
-    # Initialise DynamoDB
-    dynamo_db = boto3.resource('dynamodb')
-    raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
-
-    # Check if RAiD exists
-    query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
-
-    if query_response["Count"] != 1:
-        return {
-            'statusCode': '400',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
+            UpdateExpression="set endDate = :e",
+            ExpressionAttributeValues={
+                ':e': end_date
             },
-            'body': json.dumps(
-                {
-                    'message': "Invalid RAiD handle provided in parameter path."
-                               " Ensure it is a valid RAiD handle URL encoded string"
-                }
-            )
-        }
+            ReturnValues="ALL_NEW"
+        )
 
-    # Insert association to provider index table
-    provider_index_table = dynamo_db.Table(os.environ["PROVIDER_TABLE"])
+        return generate_web_body_response('200', {'body': json.dumps(update_response["Attributes"])})
+    except:
+        return generate_web_body_response('500', {
+            'message': "Unable to perform request due to error. Please check structure of the body."})
 
-    # Interpret and validate request body
-    body = json.loads(event["body"])
 
-    if "endDate" in body:
-        try:
-            end_date = datetime.datetime.strptime(body["endDate"], "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            return {
-                'statusCode': '400',
-                "headers": {
-                    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                    "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                    "Access-Control-Allow-Origin": "*"
-                },
-                'body': json.dumps({'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
-            }
-    else:
-        # Get current datetime
-        end_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    if "provider" not in body:
-        return {
-            'statusCode': '400',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
-            },
-            'body': json.dumps(
-                {'message': "'provider' must be provided in your request body to create an association"}
-            )
-        }
-
-    # Update provider association
-    update_response = provider_index_table.update_item(
-        Key={
-            'provider': body['provider'],
-            'handle': raid_handle
-        },
-        UpdateExpression="set endDate = :e",
-        ExpressionAttributeValues={
-            ':e': end_date
-        },
-        ReturnValues="ALL_NEW"
-    )
-
-    return {
-        'statusCode': '200',
-        "headers": {
-            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-            "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-            "Access-Control-Allow-Origin": "*"
-        },
-        'body': json.dumps(update_response["Attributes"])
+def get_institution_raids_handler(event, context):
+    """
+    Return RAiDs associated to the institution in the path with optional parameters for filter and search options
+    :param event:
+    :param context:
+    :return:
+    """
+    query_parameters = {
+        'IndexName': 'StartDateIndex',
+        'KeyConditionExpression': Key('grid').eq(event["pathParameters"]["grid"])
     }
+
+    return generate_table_list_response(event, query_parameters, os.environ["INSTITUTION_TABLE"])
+
+
+def get_raid_institutions_handler(event, context):
+    """
+    Return providers associated to the institution in the path with optional parameters for filter and search options
+    :param event:
+    :param context:
+    :return:
+    """
+    try:
+        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+
+    except:
+        return generate_web_body_response('400', {
+            'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
+
+    query_parameters = {
+        'IndexName': 'HandleProviderIndex',
+        'KeyConditionExpression': Key('handle').eq(raid_handle)
+    }
+
+    return generate_table_list_response(event, query_parameters, os.environ["INSTITUTION_TABLE"])
+
+
+def create_raid_institution_association_handler(event, context):
+    """
+    Create a new institution association to a RAiD
+    :param event:
+    :param context:
+    :return:
+    """
+    try:
+        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+
+    except:
+        return generate_web_body_response('400', {
+            'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
+
+    try:
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+
+        # Check if RAiD exists
+        query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
+
+        if query_response["Count"] != 1:
+            return generate_web_body_response('400', {
+                'message': "Invalid RAiD handle provided in parameter path. "
+                           "Ensure it is a valid RAiD handle URL encoded string"})
+
+        # Insert association to institution index table
+        institution_index_table = dynamo_db.Table(os.environ["INSTITUTION_TABLE"])
+
+        # Interpret and validate request body
+        body = json.loads(event["body"])
+
+        if "startDate" in body:
+            try:
+                start_date = datetime.datetime.strptime(body["startDate"], "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                return generate_web_body_response('400', {
+                    'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
+
+        else:
+            # Get current datetime
+            start_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if "grid" not in body:
+            return generate_web_body_response('400', {
+                'message': "'grid' must be provided in your request body to create an association"})
+
+        # Define RAiD item
+        institution_item = {
+            'grid': body['grid'],
+            'handle': raid_handle,
+            'startDate': start_date
+        }
+
+        # Send Dynamo DB put for new RAiD
+        institution_index_table.put_item(Item=institution_item)
+
+        return generate_web_body_response('200', {'body': json.dumps(institution_item)})
+
+    except:
+        return generate_web_body_response('500', {
+            'message': "Unable to perform request due to error. Please check structure of the body."})
+
+
+def end_raid_institution_association_handler(event, context):  # TODO
+    """
+    End a institution association to a RAiD
+    :param event:
+    :param context:
+    :return:
+    """
+    try:
+        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+
+    except:
+        return generate_web_body_response('400', {
+            'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
+
+    try:
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+
+        # Check if RAiD exists
+        query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
+
+        if query_response["Count"] != 1:
+            return generate_web_body_response('400', {
+                'message': "Invalid RAiD handle provided in parameter path. "
+                           "Ensure it is a valid RAiD handle URL encoded string"})
+
+        # Insert association to institution index table
+        institution_index_table = dynamo_db.Table(os.environ["INSTITUTION_TABLE"])
+
+        # Interpret and validate request body
+        body = json.loads(event["body"])
+
+        if "endDate" in body:
+            try:
+                end_date = datetime.datetime.strptime(body["endDate"], "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                return generate_web_body_response('400', {
+                    'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
+        else:
+            # Get current datetime
+            end_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if "grid" not in body:
+            return generate_web_body_response('400', {
+                'message': "'grid' must be provided in your request body to end an association"})
+
+        # Update institution association
+        update_response = institution_index_table.update_item(
+            Key={
+                'grid': body['grid'],
+                'handle': raid_handle
+            },
+            UpdateExpression="set endDate = :e",
+            ExpressionAttributeValues={
+                ':e': end_date
+            },
+            ReturnValues="ALL_NEW"
+        )
+
+        return generate_web_body_response('200', {'body': json.dumps(update_response["Attributes"])})
+    except:
+        return generate_web_body_response('500', {
+            'message': "Unable to perform request due to error. Please check structure of the body."})
 
 
 def generate_table_list_response(event, query_parameters, table):

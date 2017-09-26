@@ -63,15 +63,24 @@ Resources:
       Variables:
         CustomAuthorizer: !Ref CustomAuthorizer
         CustomAuthorizerRole: !Ref CustomAuthorizerRole
+
         CreateRaidFunction: !Ref CreateRaid
+        UpdateRaidContentPathFunction: !Ref UpdateRaidContentPath
+        GetRaidFunction: !Ref GetRaid
+
         GetOwnerRaidsFunction: !Ref GetOwnerRaids
+        UpdateRaidOwnerFunction: !Ref UpdateRaidOwner
         GetProviderRaidsFunction: !Ref GetProviderRaids
         GetRaidProvidersFunction: !Ref GetRaidProviders
         CreateRaidProviderAssociationFunction: !Ref CreateRaidProviderAssociation
         EndRaidProviderAssociationFunction: !Ref EndRaidProviderAssociation
-        GetRaidFunction: !Ref GetRaid
-        UpdateRaidContentPathFunction: !Ref UpdateRaidContentPath
-        UpdateRaidOwnerFunction: !Ref UpdateRaidOwner
+
+        GetInstitutionRaidsFunction: !Ref GetInstitutionRaids
+        GetRaidInstitutionsFunction: !Ref GetRaidInstitutions
+        CreateRaidInstitutionAssociationFunction: !Ref CreateRaidInstitutionAssociation
+        EndRaidInstitutionAssociationFunction: !Ref EndRaidInstitutionAssociation
+        
+        
   # IAM
   ## General
   LogsXrayLambdaPolicy:
@@ -262,6 +271,7 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD/{raidId}
             Method: GET
+  ### Providers
   GetOwnerRaids:
     Type: AWS::Serverless::Function
     Properties:
@@ -382,6 +392,87 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD/{raidId}/providers
             Method: DELETE
+  ### Institutions
+  GetInstitutionRaids:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.get_institution_raids_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_TABLE:
+            Ref: RAiDTable
+          INSTITUTION_TABLE:
+            Ref: InstitutionIndexTable
+      Events:
+        GetInstitutionRaidsHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /institution/{grid}
+            Method: GET
+  GetRaidInstitutions:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.get_raid_institutions_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_TABLE:
+            Ref: RAiDTable
+          INSTITUTION_TABLE:
+            Ref: InstitutionIndexTable
+      Events:
+        GetRaidInstitutionsHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/institutions
+            Method: GET
+  CreateRaidInstitutionAssociation:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.create_raid_institution_association_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_TABLE:
+            Ref: RAiDTable
+          INSTITUTION_TABLE:
+            Ref: InstitutionIndexTable
+      Events:
+        CreateRaidInstitutionAssociationHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/institutions
+            Method: POST
+  EndRaidInstitutionAssociation:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.end_raid_institution_association_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_TABLE:
+            Ref: RAiDTable
+          INSTITUTION_TABLE:
+            Ref: InstitutionIndexTable
+      Events:
+        EndRaidInstitutionAssociationHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/institutions
+            Method: DELETE
   # Database
   RAiDTable:
     Type: "AWS::DynamoDB::Table"
@@ -477,9 +568,66 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
-
+  InstitutionIndexTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "grid"
+          AttributeType: "S"
+        -
+          AttributeName: "handle"
+          AttributeType: "S"
+        -
+          AttributeName: "startDate"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "grid"
+          KeyType: "HASH"
+        -
+          AttributeName: handle
+          KeyType: RANGE
+      LocalSecondaryIndexes:
+        - 
+          IndexName: StartDateIndex
+          KeySchema:
+            -
+              AttributeName: grid
+              KeyType: HASH
+            -
+              AttributeName: startDate
+              KeyType: RANGE
+          Projection:
+              ProjectionType: "INCLUDE"
+              NonKeyAttributes:
+                - "handle"
+                - "endDate"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "HandleGridIndex"
+          KeySchema:
+            -
+              AttributeName: "handle"
+              KeyType: "HASH"
+            -
+              AttributeName: "grid"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "startDate"
+              - "endDate"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
 Outputs:
   RaidDB:
     Value: !Ref 'RAiDTable'
   RaidProviderDB:
     Value: !Ref 'ProviderIndexTable'
+  RaidProviderDB:
+    Value: !Ref 'InstitutionIndexTable'
