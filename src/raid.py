@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os
+import base64
 import datetime
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
@@ -775,7 +776,9 @@ def generate_table_list_response(event, query_parameters, table):
                         (parameters["ascending"] == 'False' or parameters["ascending"] == 'false'):
                     query_parameters["ScanIndexForward"] = False
                 if "exclusiveStartKey" in parameters:
-                    query_parameters["ExclusiveStartKey"] = parameters["lastEvaluatedKey"]
+                    query_parameters["ExclusiveStartKey"] = json.loads(base64.urlsafe_b64decode(
+                        parameters["exclusiveStartKey"].encode("ascii")
+                    ))
             except ValueError:
                 return {
                     'statusCode': '400',
@@ -798,7 +801,7 @@ def generate_table_list_response(event, query_parameters, table):
         }
 
         if 'LastEvaluatedKey' in query_response:
-            return_body['lastEvaluatedKey'] = query_response["LastEvaluatedKey"]
+            return_body['lastEvaluatedKey'] = base64.urlsafe_b64encode(json.dumps(query_response["LastEvaluatedKey"]))
 
         return {
             'statusCode': '200',
