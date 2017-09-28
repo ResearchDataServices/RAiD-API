@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os
+import logging
 import base64
 import datetime
 import boto3
@@ -11,6 +12,10 @@ import urllib
 import requests
 from random import randint
 from xml.etree import ElementTree
+
+# Set Logging Level
+logger = logging.getLogger()
+logger.setLevel(logging.ERROR)
 
 
 class AndsMintingError(Exception):
@@ -232,7 +237,7 @@ def update_content_path_handler(event, context):
             ReturnValues="ALL_NEW"
         )
 
-        return generate_web_body_response('200', {update_response["Attributes"]})
+        return generate_web_body_response('200', update_response["Attributes"])
 
     except ClientError as e:
         # if e.response['Error']['Code'] == 'EntityAlreadyExists':
@@ -258,20 +263,8 @@ def get_raid_handler(event, context):
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
 
     except:
-        return {
-            'statusCode': '400',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
-            },
-            'body': json.dumps(
-                {
-                    'message': "Incorrect path parameter type formatting for RAiD handle."
-                               " Ensure it is a valid RAiD handle URL encoded string"
-                }
-            )
-        }
+        return generate_web_body_response('400', {'message': "Incorrect path parameter type formatting for RAiD handle."
+                                                             " Ensure it is a valid RAiD handle URL encoded string"})
     try:
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
@@ -281,20 +274,8 @@ def get_raid_handler(event, context):
         query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
 
         if query_response["Count"] != 1:
-            return {
-                'statusCode': '400',
-                "headers": {
-                    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                    "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                    "Access-Control-Allow-Origin": "*"
-                },
-                'body': json.dumps(
-                    {
-                        'message': "Invalid RAiD handle provided in parameter path."
-                                   " Ensure it is a valid RAiD handle URL encoded string"
-                    }
-                )
-            }
+            return generate_web_body_response('400', {'message': "Invalid RAiD handle provided in parameter path."
+                                                                 " Ensure it is a valid RAiD handle URL encoded string"})
 
         # Assign raid item to single item, since the result will be an array of one item
         raid_item = query_response['Items'][0]
@@ -316,28 +297,11 @@ def get_raid_handler(event, context):
                 provider_query_response = provider_index_table.query(**provider_query_parameters)
                 raid_item["providers"] = provider_query_response["Items"]
 
-        return {
-            'statusCode': '200',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
-            },
-            'body': json.dumps(raid_item)
-        }
+        return generate_web_body_response('200', raid_item)
 
     except:
-        return {
-            'statusCode': '500',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
-            },
-            'body': json.dumps(
-                {'message': "Unable to fetch RAiD due to error. Please check structure of the parameters."}
-            )
-        }
+        return generate_web_body_response('500', {'message': "Unable to fetch RAiD due to error. "
+                                                          "Please check structure of the parameters."})
 
 
 def get_owner_raids_handler(event, context):
@@ -408,7 +372,7 @@ def update_raid_owner_handler(event, context):
             ReturnValues="ALL_NEW"
         )
 
-        return generate_web_body_response('200', {update_response["Attributes"]})
+        return generate_web_body_response('200', update_response["Attributes"])
 
     except ClientError:
         return generate_web_body_response('500', {'message': "Unable to update value."})
@@ -512,7 +476,7 @@ def create_raid_provider_association_handler(event, context):
         # Send Dynamo DB put for new RAiD
         provider_index_table.put_item(Item=service_item)
 
-        return generate_web_body_response('200', {'body': json.dumps(service_item)})
+        return generate_web_body_response('200', service_item)
 
     except:
         return generate_web_body_response('500', {
@@ -579,7 +543,7 @@ def end_raid_provider_association_handler(event, context):
             ReturnValues="ALL_NEW"
         )
 
-        return generate_web_body_response('200', {'body': json.dumps(update_response["Attributes"])})
+        return generate_web_body_response('200', update_response["Attributes"])
     except:
         return generate_web_body_response('500', {
             'message': "Unable to perform request due to error. Please check structure of the body."})
@@ -680,7 +644,7 @@ def create_raid_institution_association_handler(event, context):
         # Send Dynamo DB put for new RAiD
         institution_index_table.put_item(Item=institution_item)
 
-        return generate_web_body_response('200', {'body': json.dumps(institution_item)})
+        return generate_web_body_response('200', institution_item)
 
     except:
         return generate_web_body_response('500', {
@@ -747,7 +711,7 @@ def end_raid_institution_association_handler(event, context):  # TODO
             ReturnValues="ALL_NEW"
         )
 
-        return generate_web_body_response('200', {'body': json.dumps(update_response["Attributes"])})
+        return generate_web_body_response('200', update_response["Attributes"])
     except:
         return generate_web_body_response('500', {
             'message': "Unable to perform request due to error. Please check structure of the body."})
@@ -780,15 +744,7 @@ def generate_table_list_response(event, query_parameters, table):
                         parameters["exclusiveStartKey"].encode("ascii")
                     ))
             except ValueError:
-                return {
-                    'statusCode': '400',
-                    "headers": {
-                        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                        "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                        "Access-Control-Allow-Origin": "*"
-                    },
-                    'body': json.dumps({'message': "Incorrect parameter type formatting."})
-                }
+                return generate_web_body_response('400', {'message': "Incorrect parameter type formatting."})
 
         # Query table using parameters given and built to return a list of RAiDs the owner is attached too
         query_response = dynamo_db_table.query(**query_parameters)
@@ -803,25 +759,8 @@ def generate_table_list_response(event, query_parameters, table):
         if 'LastEvaluatedKey' in query_response:
             return_body['lastEvaluatedKey'] = base64.urlsafe_b64encode(json.dumps(query_response["LastEvaluatedKey"]))
 
-        return {
-            'statusCode': '200',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
-            },
-            'body': json.dumps(return_body)
-        }
+        return generate_web_body_response('200', return_body)
 
     except:
-        return {
-            'statusCode': '500',
-            "headers": {
-                "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
-                "Access-Control-Allow-Origin": "*"
-            },
-            'body': json.dumps(
-                {'message': "Unable to perform request due to error. Please check structure of the parameters."}
-            )
-        }
+        return generate_web_body_response('500', {'message': "Unable to perform request due to error. "
+                                                             "Please check structure of the parameters."})
