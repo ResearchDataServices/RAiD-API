@@ -296,6 +296,7 @@ def get_raid_handler(event, context):
 
             # Load listed providers and insert into RAiD object if lazy load is off
             if "lazy_load" in parameters and (parameters["lazy_load"] == 'False' or parameters["lazy_load"] == 'false'):
+                # Get Provider list
                 provider_index_table = dynamo_db.Table(os.environ["PROVIDER_TABLE"])
 
                 provider_query_parameters = {
@@ -306,6 +307,18 @@ def get_raid_handler(event, context):
                 # Query table using parameters given and built to return a list of RAiDs the owner is attached too
                 provider_query_response = provider_index_table.query(**provider_query_parameters)
                 raid_item["providers"] = provider_query_response["Items"]
+
+                # Get institution list
+                institution_index_table = dynamo_db.Table(os.environ["INSTITUTION_TABLE"])
+
+                query_parameters = {
+                    'IndexName': 'HandleGridIndex',
+                    'KeyConditionExpression': Key('handle').eq(raid_handle)
+                }
+
+                # Query table using parameters given and built to return a list of RAiDs the owner is attached too
+                institution_query_response = institution_index_table.query(**query_parameters)
+                raid_item["institutions"] = institution_query_response["Items"]
 
         return generate_web_body_response('200', raid_item)
 
@@ -602,7 +615,7 @@ def get_raid_institutions_handler(event, context):
             'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
 
     query_parameters = {
-        'IndexName': 'HandleProviderIndex',
+        'IndexName': 'HandleGridIndex',
         'KeyConditionExpression': Key('handle').eq(raid_handle)
     }
 
