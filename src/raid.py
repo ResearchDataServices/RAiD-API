@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os
+import sys
 import logging
 import base64
 import datetime
@@ -76,7 +77,8 @@ def ands_handle_request(url_path, app_id, identifier, auth_domain):
         }
         return response_data
     else:
-        raise AndsMintingError("Unable to mint content path for ANDS handle.")
+        raise AndsMintingError("Unable to mint content path for an ANDS handle: {}".format(
+            xml_tree.find("message").text))
 
 
 def generate_random_handle():
@@ -130,7 +132,8 @@ def create_handler(event, context):
                     start_date = body["startDate"]
                     datetime.datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
                     raid_item['startDate'] = start_date
-                except ValueError:
+                except ValueError as e:
+                    logger.error('Unable to capture date: {}'.format(e))
                     return generate_web_body_response(
                         '400', {'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
         else:
@@ -169,11 +172,13 @@ def create_handler(event, context):
                 }
             ]
         })
-    except AndsMintingError:
+    except AndsMintingError as e:
+        logger.error('Unable to mint content path for RAiD creation: {}'.format(e))
         return generate_web_body_response('500', {
             'message': "Unable to create a RAiD as ANDS was unable to mint the content path."})
 
     except:
+        logger.error('Unable to create RAiD: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('400', {
             'message': "Unable to perform request due to error. Please check structure of the body."})
 
@@ -190,9 +195,11 @@ def update_content_path_handler(event, context):
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
         body = json.loads(event["body"])
         new_content_path = body['contentPath']
-    except ValueError:
+    except ValueError as e:
+        logger.error('Unable to capture RAiD or content path: {}'.format(e))
         return generate_web_body_response('400', {'message': "Your request body must be valid JSON."})
-    except KeyError:
+    except KeyError as e:
+        logger.error('Unable to capture RAiD or content path: {}'.format(e))
         return generate_web_body_response('400', {
             'message': "A 'contentPath' URL string must be provided in the body of the request."})
 
@@ -240,14 +247,16 @@ def update_content_path_handler(event, context):
         return generate_web_body_response('200', update_response["Attributes"])
 
     except ClientError as e:
-        # if e.response['Error']['Code'] == 'EntityAlreadyExists':
-        return generate_web_body_response('500', {'message': "Unable to update value."})
+        logger.error('Unable to update content path in DynamoDB: {}'.format(e))
+        return generate_web_body_response('500', {'message': "Unable to update content path value."})
 
-    except AndsMintingError:
+    except AndsMintingError as e:
+        logger.error('Unable to update content path with ANDS: {}'.format(e))
         return generate_web_body_response('500', {
             'message': "Unable to modify the RAiD as ANDS was unable to mint the content path."})
 
     except:
+        logger.error('Unable to update RAiD: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('400', {'message': "Unable to perform request due to an error. "
                                                              "Please check structure of the body."})
 
@@ -263,6 +272,7 @@ def get_raid_handler(event, context):
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
 
     except:
+        logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('400', {'message': "Incorrect path parameter type formatting for RAiD handle."
                                                              " Ensure it is a valid RAiD handle URL encoded string"})
     try:
@@ -300,6 +310,7 @@ def get_raid_handler(event, context):
         return generate_web_body_response('200', raid_item)
 
     except:
+        logger.error('Unable to get RAiD: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('500', {'message': "Unable to fetch RAiD due to error. "
                                                           "Please check structure of the parameters."})
 
@@ -330,10 +341,12 @@ def update_raid_owner_handler(event, context):
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
         body = json.loads(event["body"])
         new_owner = body['provider']
-    except ValueError:
+    except ValueError as e:
+        logger.error('Unable to capture RAiD or content path: {}'.format(e))
         return generate_web_body_response('400', {'message': "Your request body must be valid JSON with a valid path"
                                                              " parameter RAiD handle URL encoded string."})
-    except KeyError:
+    except KeyError as e:
+        logger.error('Unable to capture RAiD or content path: {}'.format(e))
         return generate_web_body_response('400', {
             'message': "An 'owner' must be provided in the body of the request."})
 
@@ -374,9 +387,11 @@ def update_raid_owner_handler(event, context):
 
         return generate_web_body_response('200', update_response["Attributes"])
 
-    except ClientError:
-        return generate_web_body_response('500', {'message': "Unable to update value."})
+    except ClientError as e:
+        logger.error('Unable to update RAiD owner: {}'.format(e))
+        return generate_web_body_response('500', {'message': "Unable to update RAiD owner."})
     except:
+        logger.error('Unable to update RAiD owner: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('400', {'message': "Unable to perform request due to an error. "
                                                              "Please check structure of the body."})
 
@@ -407,6 +422,7 @@ def get_raid_providers_handler(event, context):
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
 
     except:
+        logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('400', {
             'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
 
@@ -429,6 +445,7 @@ def create_raid_provider_association_handler(event, context):
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
 
     except:
+        logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('400', {
             'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
 
@@ -454,7 +471,8 @@ def create_raid_provider_association_handler(event, context):
         if "startDate" in body:
             try:
                 start_date = datetime.datetime.strptime(body["startDate"], "%Y-%m-%d %H:%M:%S")
-            except ValueError:
+            except ValueError as e:
+                logger.error('Unable to capture date: {}'.format(e))
                 return generate_web_body_response('400', {
                     'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
 
@@ -479,6 +497,7 @@ def create_raid_provider_association_handler(event, context):
         return generate_web_body_response('200', service_item)
 
     except:
+        logger.error('Unable to associate a provider to a RAiD: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('500', {
             'message': "Unable to perform request due to error. Please check structure of the body."})
 
@@ -494,6 +513,7 @@ def end_raid_provider_association_handler(event, context):
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
 
     except:
+        logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('400', {
             'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
 
@@ -519,7 +539,8 @@ def end_raid_provider_association_handler(event, context):
         if "endDate" in body:
             try:
                 end_date = datetime.datetime.strptime(body["endDate"], "%Y-%m-%d %H:%M:%S")
-            except ValueError:
+            except ValueError as e:
+                logger.error('Unable to capture date: {}'.format(e))
                 return generate_web_body_response('400', {
                     'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
         else:
@@ -545,6 +566,7 @@ def end_raid_provider_association_handler(event, context):
 
         return generate_web_body_response('200', update_response["Attributes"])
     except:
+        logger.error('Unable to end a provider to a RAiD association: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('500', {
             'message': "Unable to perform request due to error. Please check structure of the body."})
 
@@ -575,6 +597,7 @@ def get_raid_institutions_handler(event, context):
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
 
     except:
+        logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('400', {
             'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
 
@@ -595,8 +618,8 @@ def create_raid_institution_association_handler(event, context):
     """
     try:
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
-
     except:
+        logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('400', {
             'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
 
@@ -622,7 +645,8 @@ def create_raid_institution_association_handler(event, context):
         if "startDate" in body:
             try:
                 start_date = datetime.datetime.strptime(body["startDate"], "%Y-%m-%d %H:%M:%S")
-            except ValueError:
+            except ValueError as e:
+                logger.error('Unable to capture date: {}'.format(e))
                 return generate_web_body_response('400', {
                     'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
 
@@ -647,6 +671,7 @@ def create_raid_institution_association_handler(event, context):
         return generate_web_body_response('200', institution_item)
 
     except:
+        logger.error('Unable to create an institution to a RAiD association: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('500', {
             'message': "Unable to perform request due to error. Please check structure of the body."})
 
@@ -662,6 +687,7 @@ def end_raid_institution_association_handler(event, context):  # TODO
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
 
     except:
+        logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('400', {
             'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"})
 
@@ -687,7 +713,8 @@ def end_raid_institution_association_handler(event, context):  # TODO
         if "endDate" in body:
             try:
                 end_date = datetime.datetime.strptime(body["endDate"], "%Y-%m-%d %H:%M:%S")
-            except ValueError:
+            except ValueError as e:
+                logger.error('Unable to capture date: {}'.format(e))
                 return generate_web_body_response('400', {
                     'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"})
         else:
@@ -713,6 +740,7 @@ def end_raid_institution_association_handler(event, context):  # TODO
 
         return generate_web_body_response('200', update_response["Attributes"])
     except:
+        logger.error('Unable to end a institution to a RAiD association: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('500', {
             'message': "Unable to perform request due to error. Please check structure of the body."})
 
@@ -743,7 +771,8 @@ def generate_table_list_response(event, query_parameters, table):
                     query_parameters["ExclusiveStartKey"] = json.loads(base64.urlsafe_b64decode(
                         parameters["exclusiveStartKey"].encode("ascii")
                     ))
-            except ValueError:
+            except ValueError as e:
+                logger.error('Incorrect parameter type formatting: {}'.format(e))
                 return generate_web_body_response('400', {'message': "Incorrect parameter type formatting."})
 
         # Query table using parameters given and built to return a list of RAiDs the owner is attached too
@@ -762,5 +791,6 @@ def generate_table_list_response(event, query_parameters, table):
         return generate_web_body_response('200', return_body)
 
     except:
+        logger.error('Unable to generate a DynamoDB list response: {}'.format(sys.exc_info()[0]))
         return generate_web_body_response('500', {'message': "Unable to perform request due to error. "
                                                              "Please check structure of the parameters."})
