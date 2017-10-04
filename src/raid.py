@@ -14,6 +14,13 @@ import requests
 from random import randint
 from xml.etree import ElementTree
 
+# Constants
+RAID_TABLE = "RAID_TABLE"
+PROVIDER_TABLE = "PROVIDER_TABLE"
+INSTITUTION_TABLE = "INSTITUTION_TABLE"
+DEMO_ENVIRONMENT = "demo"
+LIVE_ENVIRONMENT = "live"
+
 # Set Logging Level
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
@@ -90,6 +97,30 @@ def generate_random_handle():
     return hdl
 
 
+def get_environment_table(table_name, environment):
+    """
+    return the demo of live table name from environment variables
+    :param table_name:
+    :param environment:
+    :return:
+    """
+    if table_name == RAID_TABLE:
+        if environment == DEMO_ENVIRONMENT:
+            return os.environ["RAID_DEMO_TABLE"]
+        elif environment == LIVE_ENVIRONMENT:
+            return os.environ["RAID_TABLE"]
+    elif table_name == PROVIDER_TABLE:
+        if environment == DEMO_ENVIRONMENT:
+            return os.environ["PROVIDER_DEMO_TABLE"]
+        elif environment == LIVE_ENVIRONMENT:
+            return os.environ["PROVIDER_TABLE"]
+    elif table_name == INSTITUTION_TABLE:
+        if environment == DEMO_ENVIRONMENT:
+            return os.environ["INSTITUTION_DEMO_TABLE"]
+        elif environment == LIVE_ENVIRONMENT:
+            return os.environ["INSTITUTION_TABLE"]
+
+
 def create_handler(event, context):
     """
     Create and new RAiD by; generating a handle, registering with ANDS and putting to the RAiD DB and Provider Index.
@@ -100,8 +131,10 @@ def create_handler(event, context):
     try:
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
-        provider_index_table = dynamo_db.Table(os.environ["PROVIDER_TABLE"])
+        raid_table = dynamo_db.Table(
+            get_environment_table(RAID_TABLE, event['requestContext']['authorizer']['environment']))
+        provider_index_table = dynamo_db.Table(
+            get_environment_table(PROVIDER_TABLE, event['requestContext']['authorizer']['environment']))
 
         # Get current datetime
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -206,7 +239,8 @@ def update_content_path_handler(event, context):
     try:
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+        raid_table = dynamo_db.Table(
+            get_environment_table(RAID_TABLE, event['requestContext']['authorizer']['environment']))
 
         # Check if RAiD exists
         query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
@@ -278,7 +312,8 @@ def get_raid_handler(event, context):
     try:
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+        raid_table = dynamo_db.Table(
+            get_environment_table(RAID_TABLE, event['requestContext']['authorizer']['environment']))
 
         # Check if RAiD exists
         query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
@@ -297,7 +332,8 @@ def get_raid_handler(event, context):
             # Load listed providers and insert into RAiD object if lazy load is off
             if "lazy_load" in parameters and (parameters["lazy_load"] == 'False' or parameters["lazy_load"] == 'false'):
                 # Get Provider list
-                provider_index_table = dynamo_db.Table(os.environ["PROVIDER_TABLE"])
+                provider_index_table = dynamo_db.Table(
+                    get_environment_table(PROVIDER_TABLE, event['requestContext']['authorizer']['environment']))
 
                 provider_query_parameters = {
                     'IndexName': 'HandleProviderIndex',
@@ -309,7 +345,8 @@ def get_raid_handler(event, context):
                 raid_item["providers"] = provider_query_response["Items"]
 
                 # Get institution list
-                institution_index_table = dynamo_db.Table(os.environ["INSTITUTION_TABLE"])
+                institution_index_table = dynamo_db.Table(
+                    get_environment_table(INSTITUTION_TABLE, event['requestContext']['authorizer']['environment']))
 
                 query_parameters = {
                     'IndexName': 'HandleGridIndex',
@@ -340,7 +377,9 @@ def get_owner_raids_handler(event, context):
         'KeyConditionExpression': Key('owner').eq(event['requestContext']['authorizer']['provider'])
     }
 
-    return generate_table_list_response(event, query_parameters, os.environ["RAID_TABLE"])
+    return generate_table_list_response(
+        event, query_parameters,
+        get_environment_table(RAID_TABLE, event['requestContext']['authorizer']['environment']))
 
 
 def update_raid_owner_handler(event, context):
@@ -366,7 +405,8 @@ def update_raid_owner_handler(event, context):
     try:
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+        raid_table = dynamo_db.Table(
+            get_environment_table(RAID_TABLE, event['requestContext']['authorizer']['environment']))
 
         # Check if RAiD exists
         query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
@@ -421,7 +461,9 @@ def get_provider_raids_handler(event, context):
         'KeyConditionExpression': Key('provider').eq(event["pathParameters"]["providerId"])
     }
 
-    return generate_table_list_response(event, query_parameters, os.environ["PROVIDER_TABLE"])
+    return generate_table_list_response(
+        event, query_parameters,
+        get_environment_table(PROVIDER_TABLE, event['requestContext']['authorizer']['environment']))
 
 
 def get_raid_providers_handler(event, context):
@@ -444,7 +486,9 @@ def get_raid_providers_handler(event, context):
         'KeyConditionExpression': Key('handle').eq(raid_handle)
     }
 
-    return generate_table_list_response(event, query_parameters, os.environ["PROVIDER_TABLE"])
+    return generate_table_list_response(
+        event, query_parameters,
+        get_environment_table(PROVIDER_TABLE, event['requestContext']['authorizer']['environment']))
 
 
 def create_raid_provider_association_handler(event, context):
@@ -465,7 +509,8 @@ def create_raid_provider_association_handler(event, context):
     try:
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+        raid_table = dynamo_db.Table(
+            get_environment_table(RAID_TABLE, event['requestContext']['authorizer']['environment']))
 
         # Check if RAiD exists
         query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
@@ -476,7 +521,8 @@ def create_raid_provider_association_handler(event, context):
                            "Ensure it is a valid RAiD handle URL encoded string"})
 
         # Insert association to provider index table
-        provider_index_table = dynamo_db.Table(os.environ["PROVIDER_TABLE"])
+        provider_index_table = dynamo_db.Table(
+            get_environment_table(PROVIDER_TABLE, event['requestContext']['authorizer']['environment']))
 
         # Interpret and validate request body
         body = json.loads(event["body"])
@@ -533,7 +579,8 @@ def end_raid_provider_association_handler(event, context):
     try:
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+        raid_table = dynamo_db.Table(
+            get_environment_table(RAID_TABLE, event['requestContext']['authorizer']['environment']))
 
         # Check if RAiD exists
         query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
@@ -544,7 +591,8 @@ def end_raid_provider_association_handler(event, context):
                            "Ensure it is a valid RAiD handle URL encoded string"})
 
         # Insert association to provider index table
-        provider_index_table = dynamo_db.Table(os.environ["PROVIDER_TABLE"])
+        provider_index_table = dynamo_db.Table(
+            get_environment_table(PROVIDER_TABLE, event['requestContext']['authorizer']['environment']))
 
         # Interpret and validate request body
         body = json.loads(event["body"])
@@ -596,7 +644,9 @@ def get_institution_raids_handler(event, context):
         'KeyConditionExpression': Key('grid').eq(event["pathParameters"]["grid"])
     }
 
-    return generate_table_list_response(event, query_parameters, os.environ["INSTITUTION_TABLE"])
+    return generate_table_list_response(
+        event, query_parameters,
+        get_environment_table(INSTITUTION_TABLE, event['requestContext']['authorizer']['environment']))
 
 
 def get_raid_institutions_handler(event, context):
@@ -619,7 +669,9 @@ def get_raid_institutions_handler(event, context):
         'KeyConditionExpression': Key('handle').eq(raid_handle)
     }
 
-    return generate_table_list_response(event, query_parameters, os.environ["INSTITUTION_TABLE"])
+    return generate_table_list_response(
+        event, query_parameters,
+        get_environment_table(INSTITUTION_TABLE, event['requestContext']['authorizer']['environment']))
 
 
 def create_raid_institution_association_handler(event, context):
@@ -639,7 +691,8 @@ def create_raid_institution_association_handler(event, context):
     try:
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+        raid_table = dynamo_db.Table(
+            get_environment_table(RAID_TABLE, event['requestContext']['authorizer']['environment']))
 
         # Check if RAiD exists
         query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
@@ -650,7 +703,8 @@ def create_raid_institution_association_handler(event, context):
                            "Ensure it is a valid RAiD handle URL encoded string"})
 
         # Insert association to institution index table
-        institution_index_table = dynamo_db.Table(os.environ["INSTITUTION_TABLE"])
+        institution_index_table = dynamo_db.Table(
+            get_environment_table(INSTITUTION_TABLE, event['requestContext']['authorizer']['environment']))
 
         # Interpret and validate request body
         body = json.loads(event["body"])
@@ -707,7 +761,8 @@ def end_raid_institution_association_handler(event, context):  # TODO
     try:
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(os.environ["RAID_TABLE"])
+        raid_table = dynamo_db.Table(
+            get_environment_table(RAID_TABLE, event['requestContext']['authorizer']['environment']))
 
         # Check if RAiD exists
         query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
@@ -718,7 +773,8 @@ def end_raid_institution_association_handler(event, context):  # TODO
                            "Ensure it is a valid RAiD handle URL encoded string"})
 
         # Insert association to institution index table
-        institution_index_table = dynamo_db.Table(os.environ["INSTITUTION_TABLE"])
+        institution_index_table = dynamo_db.Table(
+            get_environment_table(INSTITUTION_TABLE, event['requestContext']['authorizer']['environment']))
 
         # Interpret and validate request body
         body = json.loads(event["body"])

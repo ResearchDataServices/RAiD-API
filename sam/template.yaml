@@ -218,14 +218,12 @@ Resources:
           Ref: AndsSubnets
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          PROVIDER_TABLE:
-            Ref: ProviderIndexTable
-          ANDS_SERVICE:
-            Ref: AndsService
-          ANDS_APP_ID:
-            Ref: AndsAppId          
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
+          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
+          ANDS_SERVICE: !Ref AndsService
+          ANDS_APP_ID: !Ref AndsAppId          
       Events:
         CreateRaidHandle:
           Type: Api
@@ -243,14 +241,12 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          PROVIDER_TABLE:
-            Ref: ProviderIndexTable
-          ANDS_SERVICE:
-            Ref: AndsService
-          ANDS_APP_ID:
-            Ref: AndsAppId    
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
+          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
+          ANDS_SERVICE: !Ref AndsService
+          ANDS_APP_ID: !Ref AndsAppId    
       Events:
         UpdateRaidContentPathHandle:
           Type: Api
@@ -267,10 +263,12 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          PROVIDER_TABLE:
-            Ref: ProviderIndexTable
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
+          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
+          INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
+          INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
       Events:
         GetRaidHandle:
           Type: Api
@@ -288,10 +286,10 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          PROVIDER_TABLE:
-            Ref: ProviderIndexTable
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
+          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
       Events:
         GetOwnerRaidsHandle:
           Type: Api
@@ -308,10 +306,10 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          PROVIDER_TABLE:
-            Ref: ProviderIndexTable  
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
+          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
       Events:
         UpdateRaidOwnerHandle:
           Type: Api
@@ -328,10 +326,10 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          PROVIDER_TABLE:
-            Ref: ProviderIndexTable
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
+          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
       Events:
         GetProviderRaidsHandle:
           Type: Api
@@ -348,10 +346,10 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          PROVIDER_TABLE:
-            Ref: ProviderIndexTable
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
+          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
       Events:
         GetRaidProvidersHandle:
           Type: Api
@@ -368,10 +366,10 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          PROVIDER_TABLE:
-            Ref: ProviderIndexTable
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
+          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
       Events:
         CreateRaidProviderAssociationHandle:
           Type: Api
@@ -388,10 +386,10 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          PROVIDER_TABLE:
-            Ref: ProviderIndexTable
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
+          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
       Events:
         EndRaidProviderAssociationHandle:
           Type: Api
@@ -409,10 +407,10 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          INSTITUTION_TABLE:
-            Ref: InstitutionIndexTable
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
+          INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
       Events:
         GetInstitutionRaidsHandle:
           Type: Api
@@ -429,10 +427,10 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          INSTITUTION_TABLE:
-            Ref: InstitutionIndexTable
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
+          INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
       Events:
         GetRaidInstitutionsHandle:
           Type: Api
@@ -449,10 +447,10 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          INSTITUTION_TABLE:
-            Ref: InstitutionIndexTable
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
+          INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
       Events:
         CreateRaidInstitutionAssociationHandle:
           Type: Api
@@ -469,10 +467,10 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          RAID_TABLE:
-            Ref: RAiDTable
-          INSTITUTION_TABLE:
-            Ref: InstitutionIndexTable
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
+          INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
       Events:
         EndRaidInstitutionAssociationHandle:
           Type: Api
@@ -481,160 +479,24 @@ Resources:
             Path: /RAiD/{raidId}/institutions
             Method: DELETE
   # Database
-  RAiDTable:
-    Type: "AWS::DynamoDB::Table"
+  RAiDDemoDB:
+    Type: "AWS::CloudFormation::Stack"
     Properties:
-      AttributeDefinitions:
-        -
-          AttributeName: "handle"
-          AttributeType: "S"
-        -
-          AttributeName: "creationDate"
-          AttributeType: "S"
-        -
-          AttributeName: "owner"
-          AttributeType: "S"
-      KeySchema:
-        -
-          AttributeName: "handle"
-          KeyType: "HASH"
-      GlobalSecondaryIndexes:
-        -
-          IndexName: "OwnerIndex"
-          KeySchema:
-            -
-              AttributeName: "owner"
-              KeyType: "HASH"
-            -
-              AttributeName: "creationDate"
-              KeyType: "RANGE"
-          Projection:
-            ProjectionType: "INCLUDE"
-            NonKeyAttributes:
-              - "handle"
-              - "startDate"
-          ProvisionedThroughput:
-            ReadCapacityUnits: 5
-            WriteCapacityUnits: 5
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5   
-  ProviderIndexTable:
-    Type: "AWS::DynamoDB::Table"
+      TemplateURL: database-template.yaml
+  RAiDLiveDB:
+    Type: "AWS::CloudFormation::Stack"
     Properties:
-      AttributeDefinitions:
-        -
-          AttributeName: "provider"
-          AttributeType: "S"
-        -
-          AttributeName: "handle"
-          AttributeType: "S"
-        -
-          AttributeName: "startDate"
-          AttributeType: "S"
-      KeySchema:
-        -
-          AttributeName: "provider"
-          KeyType: "HASH"
-        -
-          AttributeName: handle
-          KeyType: RANGE
-      LocalSecondaryIndexes:
-        - 
-          IndexName: StartDateIndex
-          KeySchema:
-            -
-              AttributeName: provider
-              KeyType: HASH
-            -
-              AttributeName: startDate
-              KeyType: RANGE
-          Projection:
-              ProjectionType: "INCLUDE"
-              NonKeyAttributes:
-                - "handle"
-                - "endDate"
-      GlobalSecondaryIndexes:
-        -
-          IndexName: "HandleProviderIndex"
-          KeySchema:
-            -
-              AttributeName: "handle"
-              KeyType: "HASH"
-            -
-              AttributeName: "provider"
-              KeyType: "RANGE"
-          Projection:
-            ProjectionType: "INCLUDE"
-            NonKeyAttributes:
-              - "startDate"
-              - "endDate"
-          ProvisionedThroughput:
-            ReadCapacityUnits: 5
-            WriteCapacityUnits: 5
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-  InstitutionIndexTable:
-    Type: "AWS::DynamoDB::Table"
-    Properties:
-      AttributeDefinitions:
-        -
-          AttributeName: "grid"
-          AttributeType: "S"
-        -
-          AttributeName: "handle"
-          AttributeType: "S"
-        -
-          AttributeName: "startDate"
-          AttributeType: "S"
-      KeySchema:
-        -
-          AttributeName: "grid"
-          KeyType: "HASH"
-        -
-          AttributeName: handle
-          KeyType: RANGE
-      LocalSecondaryIndexes:
-        - 
-          IndexName: StartDateIndex
-          KeySchema:
-            -
-              AttributeName: grid
-              KeyType: HASH
-            -
-              AttributeName: startDate
-              KeyType: RANGE
-          Projection:
-              ProjectionType: "INCLUDE"
-              NonKeyAttributes:
-                - "handle"
-                - "endDate"
-      GlobalSecondaryIndexes:
-        -
-          IndexName: "HandleGridIndex"
-          KeySchema:
-            -
-              AttributeName: "handle"
-              KeyType: "HASH"
-            -
-              AttributeName: "grid"
-              KeyType: "RANGE"
-          Projection:
-            ProjectionType: "INCLUDE"
-            NonKeyAttributes:
-              - "startDate"
-              - "endDate"
-          ProvisionedThroughput:
-            ReadCapacityUnits: 5
-            WriteCapacityUnits: 5
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      TemplateURL: database-template.yaml
 Outputs:
-  RaidDB:
-    Value: !Ref 'RAiDTable'
-  RaidProviderDB:
-    Value: !Ref 'ProviderIndexTable'
-  RaidProviderDB:
-    Value: !Ref 'InstitutionIndexTable'
+  RaidDemoDB:
+    Value: !GetAtt RAiDDemoDB.Outputs.RaidDB
+  RaidDemoProviderDB:
+    Value: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
+  RaidDemoInstitutionDB:
+    Value: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
+  RaidLiveDB:
+    Value: !GetAtt RAiDLiveDB.Outputs.RaidDB
+  RaidLiveProviderDB:
+    Value: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
+  RaidLiveInstitutionDB:
+    Value: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB

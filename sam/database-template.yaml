@@ -1,0 +1,159 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  RAiDTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "handle"
+          AttributeType: "S"
+        -
+          AttributeName: "creationDate"
+          AttributeType: "S"
+        -
+          AttributeName: "owner"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "handle"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "OwnerIndex"
+          KeySchema:
+            -
+              AttributeName: "owner"
+              KeyType: "HASH"
+            -
+              AttributeName: "creationDate"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "handle"
+              - "startDate"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5   
+  ProviderIndexTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "provider"
+          AttributeType: "S"
+        -
+          AttributeName: "handle"
+          AttributeType: "S"
+        -
+          AttributeName: "startDate"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "provider"
+          KeyType: "HASH"
+        -
+          AttributeName: handle
+          KeyType: RANGE
+      LocalSecondaryIndexes:
+        - 
+          IndexName: StartDateIndex
+          KeySchema:
+            -
+              AttributeName: provider
+              KeyType: HASH
+            -
+              AttributeName: startDate
+              KeyType: RANGE
+          Projection:
+              ProjectionType: "INCLUDE"
+              NonKeyAttributes:
+                - "handle"
+                - "endDate"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "HandleProviderIndex"
+          KeySchema:
+            -
+              AttributeName: "handle"
+              KeyType: "HASH"
+            -
+              AttributeName: "provider"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "startDate"
+              - "endDate"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  InstitutionIndexTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "grid"
+          AttributeType: "S"
+        -
+          AttributeName: "handle"
+          AttributeType: "S"
+        -
+          AttributeName: "startDate"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "grid"
+          KeyType: "HASH"
+        -
+          AttributeName: handle
+          KeyType: RANGE
+      LocalSecondaryIndexes:
+        - 
+          IndexName: StartDateIndex
+          KeySchema:
+            -
+              AttributeName: grid
+              KeyType: HASH
+            -
+              AttributeName: startDate
+              KeyType: RANGE
+          Projection:
+              ProjectionType: "INCLUDE"
+              NonKeyAttributes:
+                - "handle"
+                - "endDate"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "HandleGridIndex"
+          KeySchema:
+            -
+              AttributeName: "handle"
+              KeyType: "HASH"
+            -
+              AttributeName: "grid"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "startDate"
+              - "endDate"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+Outputs:
+  RaidDB:
+    Value: !Ref 'RAiDTable'
+  RaidProviderDB:
+    Value: !Ref 'ProviderIndexTable'
+  RaidInstitutionDB:
+    Value: !Ref 'InstitutionIndexTable'

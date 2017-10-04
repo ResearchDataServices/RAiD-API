@@ -129,6 +129,12 @@ def jwt_validation_handler(event, context):
             'provider': decoded["sub"],
             'role': decoded["role"],
         }
+
+        if "environment" in decoded:
+            context["environment"] = decoded["environment"]
+        else:
+            context["environment"] = "demo"
+
     elif decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["role"] == os.environ['INSTITUTION_ROLE']:
         policy.allow_method(HttpVerb.GET, '/*')
         policy.allow_method(HttpVerb.GET, '/RAiD/*')
@@ -138,6 +144,11 @@ def jwt_validation_handler(event, context):
             'provider': decoded["sub"],
             'role': decoded["role"],
         }
+
+        if "environment" in decoded:
+            context["environment"] = decoded["environment"]
+        else:
+            context["environment"] = "demo"
 
     else:
         raise Exception('Unauthorized')
