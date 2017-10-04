@@ -9,6 +9,8 @@ info:
   description: "The Data LifeCycle Framework (DLCF – www.dlc.edu.au ) has been initiated by five primary  organisations; Australian Access Federation (AAF), Australia’s Academic and Research Network (AARNet), Australian National Data Service (ANDS), National eResearch Collaboration Tools and Resources (NeCTAR) and Research Data Services (RDS).\n\n The DLCF is a nationwide effort to connect research resources and activities such that researchers can make the best use of existing national, state-based, local, and commercial eResearch tools. It aims to provide a simple path to reliable provenance, more effective collaboration across organisations and assist researchers to position themselves to address the growing potential of increasingly open data.\n\n The DLCF will connect critical elements and points in time of the data journey from grant approval through to project finalisation, results publication and archiving. It will leverage existing eResearch investment to provide a flexible and dynamic national framework supporting research.\n\n The Resource and Activity Persistent identifier(RAiD) is the first of the enabling technologies required for the DLCF. This specification document is for the development of the RAiD service and supporting features. Learn more about the RAiD project by visiting the website (https://www.raid.org.au/)."
 tags:
 - name: "RAiD"
+- name: "Provider"
+- name: "Institution"
 - name: "CORS"
 schemes:
 - https
@@ -291,7 +293,7 @@ paths:
     get:
       summary: "Return a list of institutions associated with a RAiD"
       tags:
-      - "RAiD"
+      - "Institution"
       x-amazon-apigateway-auth:
         type: aws_iam
       produces:
@@ -339,7 +341,7 @@ paths:
     post:
       summary: "Associate an institution to a RAiD and set a start date"
       tags:
-      - "RAiD"
+      - "Institution"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -381,7 +383,7 @@ paths:
     delete:
       summary: "Remove an associated institution from a RAiD by setting an end date to the relationship"
       tags:
-      - "RAiD"
+      - "Institution"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -455,7 +457,7 @@ paths:
     get:
       summary: "Return a list of providers associated with a RAiD"
       tags:
-      - "RAiD"
+      - "Provider"
       x-amazon-apigateway-auth:
         type: aws_iam
       produces:
@@ -503,7 +505,7 @@ paths:
     post:
       summary: "Associate a provider to a RAiD and set a start date"
       tags:
-      - "RAiD"
+      - "Provider"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -545,7 +547,7 @@ paths:
     delete:
       summary: "Remove an associated provider from a RAiD by setting an end date to the relationship"
       tags:
-      - "RAiD"
+      - "Provider"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -619,7 +621,7 @@ paths:
     get:
       summary: "Return a list of RAiDs belonging to the institution in the path"
       tags:
-      - "RAiD"
+      - "Institution"
       x-amazon-apigateway-auth:
         type: aws_iam
       produces:
@@ -699,7 +701,7 @@ paths:
     get:
       summary: "Return a list of RAiDs belonging to the provider in the path"
       tags:
-      - "RAiD"
+      - "Provider"
       x-amazon-apigateway-auth:
         type: aws_iam
       produces:
@@ -779,7 +781,7 @@ paths:
     get:
       summary: "Return a list of RAiDs that are currently owned to the authenticated key"
       tags:
-      - "RAiD"
+      - "Provider"
       consumes:
       - "application/json"
       produces:
@@ -855,7 +857,7 @@ paths:
     put:
       summary: "Change the ownership of a RAiD to another provider"
       tags:
-      - "RAiD"
+      - "Provider"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
