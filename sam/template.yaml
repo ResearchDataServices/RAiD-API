@@ -62,27 +62,25 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       DefinitionUri: swagger.yaml
-      StageName: Prod
+      StageName: v1
       Variables:
         CustomAuthorizer: !Ref CustomAuthorizer
         CustomAuthorizerRole: !Ref CustomAuthorizerRole
-
         CreateRaidFunction: !Ref CreateRaid
         UpdateRaidContentPathFunction: !Ref UpdateRaidContentPath
         GetRaidFunction: !Ref GetRaid
-
         GetOwnerRaidsFunction: !Ref GetOwnerRaids
         UpdateRaidOwnerFunction: !Ref UpdateRaidOwner
         GetProviderRaidsFunction: !Ref GetProviderRaids
         GetRaidProvidersFunction: !Ref GetRaidProviders
         CreateRaidProviderAssociationFunction: !Ref CreateRaidProviderAssociation
         EndRaidProviderAssociationFunction: !Ref EndRaidProviderAssociation
-
         GetInstitutionRaidsFunction: !Ref GetInstitutionRaids
         GetRaidInstitutionsFunction: !Ref GetRaidInstitutions
         CreateRaidInstitutionAssociationFunction: !Ref CreateRaidInstitutionAssociation
         EndRaidInstitutionAssociationFunction: !Ref EndRaidInstitutionAssociation
-        
+        GetRaidPublicFunction: !Ref GetRaidPublic
+        RedirectRaidContentPathFunction: !Ref RedirectRaidContentPath
         
   # IAM
   ## General
@@ -202,6 +200,43 @@ Resources:
             Ref: ProviderRole
           INSTITUTION_ROLE:
             Ref: InstitutionRole
+  ## RAiD CRUD Public
+  GetRaidPublic:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.get_raid_public_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+      Events:
+        GetRaidHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /handle/{raidId}
+            Method: GET
+  RedirectRaidContentPath:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.redirect_raid_path_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+      Events:
+        GetRaidHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /handle/{raidId}/redirect
+            Method: GET
   ## RAiD CRUD
   CreateRaid:
     Type: AWS::Serverless::Function
@@ -209,7 +244,7 @@ Resources:
       CodeUri: ../src
       Handler: raid.create_handler
       Runtime: python2.7
-      Timeout: 10
+      Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
       VpcConfig:
         SecurityGroupIds:
@@ -237,7 +272,7 @@ Resources:
       CodeUri: ../src
       Handler: raid.update_content_path_handler
       Runtime: python2.7
-      Timeout: 10
+      Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:

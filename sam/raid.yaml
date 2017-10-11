@@ -2,12 +2,13 @@
 ---
 swagger: "2.0"
 host: <<api_url>>
-basePath: /Prod
+basePath: /v1
 info:
   title: RAiD API
-  version: "3.0-Alpha"
+  version: "1.0-Alpha"
   description: "The Data LifeCycle Framework (DLCF – www.dlc.edu.au ) has been initiated by five primary  organisations; Australian Access Federation (AAF), Australia’s Academic and Research Network (AARNet), Australian National Data Service (ANDS), National eResearch Collaboration Tools and Resources (NeCTAR) and Research Data Services (RDS).\n\n The DLCF is a nationwide effort to connect research resources and activities such that researchers can make the best use of existing national, state-based, local, and commercial eResearch tools. It aims to provide a simple path to reliable provenance, more effective collaboration across organisations and assist researchers to position themselves to address the growing potential of increasingly open data.\n\n The DLCF will connect critical elements and points in time of the data journey from grant approval through to project finalisation, results publication and archiving. It will leverage existing eResearch investment to provide a flexible and dynamic national framework supporting research.\n\n The Resource and Activity Persistent identifier(RAiD) is the first of the enabling technologies required for the DLCF. This specification document is for the development of the RAiD service and supporting features. Learn more about the RAiD project by visiting the website (https://www.raid.org.au/)."
 tags:
+- name: "RAiD Public"
 - name: "RAiD"
 - name: "Provider"
 - name: "Institution"
@@ -19,7 +20,7 @@ paths:
     get:
       summary: "Get API version metadata"
       tags:
-      - "RAiD"
+      - "RAiD Public"
       consumes:
       - "application/json"
       produces:
@@ -32,8 +33,6 @@ paths:
           headers:
             Access-Control-Allow-Origin:
               type: "string"
-      security:
-      - CustomAuthorizerJwt: []
       x-amazon-apigateway-integration:
         responses:
           default:
@@ -41,11 +40,147 @@ paths:
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
             responseTemplates:
-              application/json: "{\"version\": \"3.0-Alpha\"}"
+              application/json: "{\"version\": \"1.0-Alpha\"}"
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         passthroughBehavior: "when_no_match"
         type: "mock"
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
+  /handle/{raidId}:
+    get:
+      summary: "Return the public information for RAiD"
+      tags:
+      - "RAiD Public"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      produces:
+      - application/json
+      parameters:
+      - name: raidId
+        in: path
+        required: true
+        type: string
+        description: "RAiD handle created by minting service. Example: 10378.1/1590366"
+      - name: "demo"
+        in: "query"
+        required: false
+        description: "(Default False) Do not include attached RAiD providers unless value is set to false"
+        type: "boolean"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/RAiDPublicModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidPublicFunction}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
+  /handle/{raidId}/redirect:
+    get:
+      summary: "Public redirect call the the content path of a RAiD"
+      tags:
+      - "RAiD Public"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      produces:
+      - application/json
+      parameters:
+      - name: raidId
+        in: path
+        required: true
+        type: string
+        description: "RAiD handle created by minting service. Example: 10378.1/1590366"
+      - name: "demo"
+        in: "query"
+        required: false
+        description: "(Default False) Do not include attached RAiD providers unless value is set to false"
+        type: "boolean"
+      responses:
+        307:
+          description: "307 Redirect"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            location:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.RedirectRaidContentPathFunction}/invocations
+        httpMethod: POST
+        type: aws_proxy
     options:
       tags:
       - "CORS"
@@ -1194,4 +1329,18 @@ definitions:
         type: "string"
         description: "Unique minted ANDS handle"
         example: "10378.1/1590349"
-  
+  RAiDPublicModel:
+    type: "object"
+    properties:
+      creationDate:
+        type: "string"
+        description: "RAiD created datetime (yyyy-MM-dd hh:mm:ss)"
+        example: "2017-09-11 06:07:39"
+      handle:
+        type: "string"
+        description: "Unique minted ANDS handle"
+        example: "10378.1/1590349"
+      contentPath:
+        type: "string"
+        description: "URL path minted with ANDS"
+        example: "http://myorganisation.org.au/contentlocation"

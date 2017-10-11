@@ -1,12 +1,15 @@
-# NOTE: Replace <<region>> and <<account>> fields
+# NOTE: Replace <<region>> and ap-southeast-2 fields
 ---
 swagger: "2.0"
 info:
   title: RAiD API
-  version: "3.0-Alpha"
+  version: "1.0-Alpha"
   description: "The Data LifeCycle Framework (DLCF – www.dlc.edu.au ) has been initiated by five primary  organisations; Australian Access Federation (AAF), Australia’s Academic and Research Network (AARNet), Australian National Data Service (ANDS), National eResearch Collaboration Tools and Resources (NeCTAR) and Research Data Services (RDS).\n\n The DLCF is a nationwide effort to connect research resources and activities such that researchers can make the best use of existing national, state-based, local, and commercial eResearch tools. It aims to provide a simple path to reliable provenance, more effective collaboration across organisations and assist researchers to position themselves to address the growing potential of increasingly open data.\n\n The DLCF will connect critical elements and points in time of the data journey from grant approval through to project finalisation, results publication and archiving. It will leverage existing eResearch investment to provide a flexible and dynamic national framework supporting research.\n\n The Resource and Activity Persistent identifier(RAiD) is the first of the enabling technologies required for the DLCF. This specification document is for the development of the RAiD service and supporting features. Learn more about the RAiD project by visiting the website (https://www.raid.org.au/)."
 tags:
+- name: "RAiD Public"
 - name: "RAiD"
+- name: "Provider"
+- name: "Institution"
 - name: "CORS"
 schemes:
 - https
@@ -15,7 +18,7 @@ paths:
     get:
       summary: "Get API version metadata"
       tags:
-      - "RAiD"
+      - "RAiD Public"
       consumes:
       - "application/json"
       produces:
@@ -28,8 +31,6 @@ paths:
           headers:
             Access-Control-Allow-Origin:
               type: "string"
-      security:
-      - CustomAuthorizerJwt: []
       x-amazon-apigateway-integration:
         responses:
           default:
@@ -37,11 +38,147 @@ paths:
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
             responseTemplates:
-              application/json: "{\"version\": \"3.0-Alpha\"}"
+              application/json: "{\"version\": \"1.0-Alpha\"}"
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         passthroughBehavior: "when_no_match"
         type: "mock"
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
+  /handle/{raidId}:
+    get:
+      summary: "Return the public information for RAiD"
+      tags:
+      - "RAiD Public"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      produces:
+      - application/json
+      parameters:
+      - name: raidId
+        in: path
+        required: true
+        type: string
+        description: "RAiD handle created by minting service. Example: 10378.1/1590366"
+      - name: "demo"
+        in: "query"
+        required: false
+        description: "(Default False) Do not include attached RAiD providers unless value is set to false"
+        type: "boolean"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/RAiDPublicModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetRaidPublicFunction}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
+  /handle/{raidId}/redirect:
+    get:
+      summary: "Public redirect call the the content path of a RAiD"
+      tags:
+      - "RAiD Public"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      produces:
+      - application/json
+      parameters:
+      - name: raidId
+        in: path
+        required: true
+        type: string
+        description: "RAiD handle created by minting service. Example: 10378.1/1590366"
+      - name: "demo"
+        in: "query"
+        required: false
+        description: "(Default False) Do not include attached RAiD providers unless value is set to false"
+        type: "boolean"
+      responses:
+        307:
+          description: "307 Redirect"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+            location:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.RedirectRaidContentPathFunction}/invocations
+        httpMethod: POST
+        type: aws_proxy
     options:
       tags:
       - "CORS"
@@ -106,7 +243,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CreateRaidFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.CreateRaidFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -177,7 +314,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetRaidFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     options:
@@ -250,7 +387,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.UpdateRaidContentPathFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.UpdateRaidContentPathFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -289,7 +426,7 @@ paths:
     get:
       summary: "Return a list of institutions associated with a RAiD"
       tags:
-      - "RAiD"
+      - "Institution"
       x-amazon-apigateway-auth:
         type: aws_iam
       produces:
@@ -331,13 +468,13 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidInstitutionsFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetRaidInstitutionsFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     post:
       summary: "Associate an institution to a RAiD and set a start date"
       tags:
-      - "RAiD"
+      - "Institution"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -372,14 +509,14 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CreateRaidInstitutionAssociationFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.CreateRaidInstitutionAssociationFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
     delete:
       summary: "Remove an associated institution from a RAiD by setting an end date to the relationship"
       tags:
-      - "RAiD"
+      - "Institution"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -414,7 +551,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.EndRaidInstitutionAssociationFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.EndRaidInstitutionAssociationFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -453,7 +590,7 @@ paths:
     get:
       summary: "Return a list of providers associated with a RAiD"
       tags:
-      - "RAiD"
+      - "Provider"
       x-amazon-apigateway-auth:
         type: aws_iam
       produces:
@@ -495,13 +632,13 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidProvidersFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetRaidProvidersFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     post:
       summary: "Associate a provider to a RAiD and set a start date"
       tags:
-      - "RAiD"
+      - "Provider"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -536,14 +673,14 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CreateRaidProviderAssociationFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.CreateRaidProviderAssociationFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
     delete:
       summary: "Remove an associated provider from a RAiD by setting an end date to the relationship"
       tags:
-      - "RAiD"
+      - "Provider"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -578,7 +715,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.EndRaidProviderAssociationFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.EndRaidProviderAssociationFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -617,7 +754,7 @@ paths:
     get:
       summary: "Return a list of RAiDs belonging to the institution in the path"
       tags:
-      - "RAiD"
+      - "Institution"
       x-amazon-apigateway-auth:
         type: aws_iam
       produces:
@@ -659,7 +796,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetInstitutionRaidsFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetInstitutionRaidsFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     options:
@@ -697,7 +834,7 @@ paths:
     get:
       summary: "Return a list of RAiDs belonging to the provider in the path"
       tags:
-      - "RAiD"
+      - "Provider"
       x-amazon-apigateway-auth:
         type: aws_iam
       produces:
@@ -739,7 +876,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetProviderRaidsFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetProviderRaidsFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     options:
@@ -777,7 +914,7 @@ paths:
     get:
       summary: "Return a list of RAiDs that are currently owned to the authenticated key"
       tags:
-      - "RAiD"
+      - "Provider"
       consumes:
       - "application/json"
       produces:
@@ -814,7 +951,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetOwnerRaidsFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetOwnerRaidsFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -853,7 +990,7 @@ paths:
     put:
       summary: "Change the ownership of a RAiD to another provider"
       tags:
-      - "RAiD"
+      - "Provider"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -888,7 +1025,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.UpdateRaidOwnerFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.UpdateRaidOwnerFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -931,11 +1068,11 @@ securityDefinitions:
     in: "header"
     x-amazon-apigateway-authtype: "custom"
     x-amazon-apigateway-authorizer:
-      authorizerCredentials: "arn:aws:iam::<<account>>:role/${stageVariables.CustomAuthorizerRole}"
+      authorizerCredentials: "arn:aws:iam::ap-southeast-2:role/${stageVariables.CustomAuthorizerRole}"
       authorizerResultTtlInSeconds: 300
       identityValidationExpression: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+\\\
           /=]*$"
-      authorizerUri: "arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CustomAuthorizer}/invocations"
+      authorizerUri: "arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.CustomAuthorizer}/invocations"
       type: "token"
 definitions:
   Empty:
@@ -1149,4 +1286,15 @@ definitions:
       handle:
         type: "string"
         description: "Unique minted ANDS handle"
-  
+  RAiDPublicModel:
+    type: "object"
+    properties:
+      creationDate:
+        type: "string"
+        description: "RAiD created datetime (yyyy-MM-dd hh:mm:ss)"
+      handle:
+        type: "string"
+        description: "Unique minted ANDS handle"
+      contentPath:
+        type: "string"
+        description: "URL path minted with ANDS"
