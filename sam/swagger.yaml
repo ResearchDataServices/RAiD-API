@@ -1070,7 +1070,7 @@ securityDefinitions:
     x-amazon-apigateway-authorizer:
       authorizerCredentials: "arn:aws:iam::<<account>>:role/${stageVariables.CustomAuthorizerRole}"
       authorizerResultTtlInSeconds: 300
-      identityValidationExpression: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+\\\
+      identityValidationExpression: "^Bearer [A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+\\\
           /=]*$"
       authorizerUri: "arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CustomAuthorizer}/invocations"
       type: "token"

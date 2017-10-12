@@ -15,6 +15,10 @@ import datetime
 import jwt
 
 
+# Constants
+AUTHENTICATION_SCHEME = "Bearer"
+
+
 def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_issuer_self):
     """
     Validate authenticity and validity of JWT token against authorised third party or self signed .
@@ -85,13 +89,15 @@ def jwt_redirection_handler(event, context):
 def jwt_validation_handler(event, context):
     """
     Perform validation of API Gateway custom authoriser by checking JWT user token
-    from cookie.
+    from header.
     """
     print("Client token: " + event['authorizationToken'])
     print("Method ARN: " + event['methodArn'])
 
     # Validate the incoming JWT token from pass Auth header
-    jwt_token = event["authorizationToken"]
+    authentication_token = event["authorizationToken"]
+    jwt_token = authentication_token.replace(AUTHENTICATION_SCHEME, '').strip(' ')
+    print("post stip token: " + jwt_token)
 
     decoded = jwt_validate(jwt_token, os.environ['JWT_SECRET'], os.environ['JWT_AUDIENCE'],
                            os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
