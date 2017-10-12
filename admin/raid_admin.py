@@ -23,7 +23,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def jwt_role_encode(jwt_secret, jwt_audience, jwt_issuer, subject, role, months=6):
+def jwt_role_encode(jwt_secret, jwt_audience, jwt_issuer, subject, role, environment, months=6):
     """
     Generate a JWT token for a subject that will last a number months of months after the current date.
     :param jwt_secret: String used for encrypted JWT signature 
@@ -32,6 +32,7 @@ def jwt_role_encode(jwt_secret, jwt_audience, jwt_issuer, subject, role, months=
     :param subject: Identifying attribute for the JWT token subject 
     :param role: Must be either 'service' or 'role'
     :param months: Number of months the token should expire from the current date
+    :param environment: The environment (demo or live) of RAiD
     :return: JWT Token
     """
     try:
@@ -49,6 +50,7 @@ def jwt_role_encode(jwt_secret, jwt_audience, jwt_issuer, subject, role, months=
             'iss': jwt_issuer,
             'iat': datetime.datetime.now(),
             'exp': datetime.datetime.combine(future_date, datetime.time.min),
+            'environment': environment,
             'role': role
         }
         token = jwt.encode(payload, jwt_secret)
@@ -87,9 +89,15 @@ def institution_crud_handler(event, context):
             # Get current datetime
             now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+            # Get environment
+            if "environment" in event["parameters"]:
+                environment = event["parameters"]["environment"]
+            else:
+                environment = "demo"
+
             # Create JWT token
             jwt = jwt_role_encode(JWT_SECRET, JWT_AUDIENCE, JWT_ISSUER, event["parameters"]["grid"], INSTITUTION_ROLE,
-                                  24)
+                                  environment, 24)
 
             # Define item
             item = {
@@ -111,6 +119,12 @@ def institution_crud_handler(event, context):
                 raise Exception("Key fields 'grid' and 'date' must be provided in 'parameters' for this query.")
 
             if event["query"] == "update":
+                # Get environment
+                if "environment" in event["parameters"]:
+                    environment = event["parameters"]["environment"]
+                else:
+                    environment = "demo"
+
                 update_response = institution_table.update_item(
                     Key={
                         'Grid': event["parameters"]["grid"],
@@ -119,7 +133,7 @@ def institution_crud_handler(event, context):
                     UpdateExpression="set #token = :t",
                     ExpressionAttributeValues={
                         ':t': jwt_role_encode(JWT_SECRET, JWT_AUDIENCE, JWT_ISSUER, event["parameters"]["grid"],
-                                              INSTITUTION_ROLE, 24)
+                                              INSTITUTION_ROLE, environment, 24)
                     },
                     ExpressionAttributeNames={
                         '#token': "Token",
@@ -221,9 +235,15 @@ def service_crud_handler(event, context):
             # Get current datetime
             now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+            # Get environment
+            if "environment" in event["parameters"]:
+                environment = event["parameters"]["environment"]
+            else:
+                environment = "demo"
+
             # Create JWT token
             jwt = jwt_role_encode(JWT_SECRET, JWT_AUDIENCE, JWT_ISSUER, event["parameters"]["name"], SERVICE_ROLE,
-                                  24)
+                                  environment, 24)
 
             # Define item
             item = {
@@ -244,6 +264,12 @@ def service_crud_handler(event, context):
                 raise Exception("Key fields 'name' and 'date' must be provided in 'parameters' for this query.")
 
             if event["query"] == "update":
+                # Get environment
+                if "environment" in event["parameters"]:
+                    environment = event["parameters"]["environment"]
+                else:
+                    environment = "demo"
+
                 update_response = service_table.update_item(
                     Key={
                         'Name': event["parameters"]["name"],
@@ -252,7 +278,7 @@ def service_crud_handler(event, context):
                     UpdateExpression="set #token = :t",
                     ExpressionAttributeValues={
                         ':t': jwt_role_encode(JWT_SECRET, JWT_AUDIENCE, JWT_ISSUER, event["parameters"]["name"],
-                                              SERVICE_ROLE, 24)
+                                              SERVICE_ROLE, environment, 24)
                     },
                     ExpressionAttributeNames={
                         '#token': "Token",

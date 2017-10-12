@@ -97,7 +97,6 @@ def jwt_validation_handler(event, context):
     # Validate the incoming JWT token from pass Auth header
     authentication_token = event["authorizationToken"]
     jwt_token = authentication_token.replace(AUTHENTICATION_SCHEME, '').strip(' ')
-    print("post stip token: " + jwt_token)
 
     decoded = jwt_validate(jwt_token, os.environ['JWT_SECRET'], os.environ['JWT_AUDIENCE'],
                            os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
