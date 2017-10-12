@@ -1,4 +1,4 @@
-# NOTE: Replace <<region>> and ap-southeast-2 fields
+# NOTE: Replace <<region>> and <<account>> fields
 ---
 swagger: "2.0"
 info:
@@ -108,7 +108,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetRaidPublicFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidPublicFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     options:
@@ -176,7 +176,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.RedirectRaidContentPathFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.RedirectRaidContentPathFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     options:
@@ -243,7 +243,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.CreateRaidFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CreateRaidFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -314,7 +314,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetRaidFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     options:
@@ -387,7 +387,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.UpdateRaidContentPathFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.UpdateRaidContentPathFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -468,7 +468,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetRaidInstitutionsFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidInstitutionsFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     post:
@@ -509,7 +509,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.CreateRaidInstitutionAssociationFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CreateRaidInstitutionAssociationFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -551,7 +551,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.EndRaidInstitutionAssociationFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.EndRaidInstitutionAssociationFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -632,7 +632,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetRaidProvidersFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidProvidersFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     post:
@@ -673,7 +673,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.CreateRaidProviderAssociationFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CreateRaidProviderAssociationFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -715,7 +715,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.EndRaidProviderAssociationFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.EndRaidProviderAssociationFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -796,7 +796,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetInstitutionRaidsFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetInstitutionRaidsFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     options:
@@ -876,7 +876,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetProviderRaidsFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetProviderRaidsFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     options:
@@ -951,7 +951,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.GetOwnerRaidsFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetOwnerRaidsFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -1025,7 +1025,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.UpdateRaidOwnerFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.UpdateRaidOwnerFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -1068,11 +1068,11 @@ securityDefinitions:
     in: "header"
     x-amazon-apigateway-authtype: "custom"
     x-amazon-apigateway-authorizer:
-      authorizerCredentials: "arn:aws:iam::ap-southeast-2:role/${stageVariables.CustomAuthorizerRole}"
+      authorizerCredentials: "arn:aws:iam::<<account>>:role/${stageVariables.CustomAuthorizerRole}"
       authorizerResultTtlInSeconds: 300
       identityValidationExpression: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+\\\
           /=]*$"
-      authorizerUri: "arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:ap-southeast-2:function:${stageVariables.CustomAuthorizer}/invocations"
+      authorizerUri: "arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CustomAuthorizer}/invocations"
       type: "token"
 definitions:
   Empty:
