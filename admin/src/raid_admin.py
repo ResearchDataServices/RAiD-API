@@ -2,10 +2,12 @@ from __future__ import print_function
 
 import os
 import sys
-import re
+import json
 import logging
 import datetime
 import jwt
+import base64
+import urllib
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 
@@ -20,7 +22,25 @@ JWT_SECRET = os.environ["JWT_SECRET"]
 
 # Set Logging Level
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.ERROR)
+
+
+def generate_web_body_response(status_code, body):
+    """
+    Generate a valid API Gateway CORS enabled JSON body response
+    :param status_code: string of a HTTP status code
+    :param body: Dictionary object, converted to JSON
+    :return:
+    """
+    return {
+        'statusCode': status_code,
+        "headers": {
+            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+            "Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+            "Access-Control-Allow-Origin": "*"
+        },
+        'body': json.dumps(body)
+    }
 
 
 def jwt_role_encode(jwt_secret, jwt_audience, jwt_issuer, subject, role, environment, months=6):
@@ -351,4 +371,268 @@ def service_crud_handler(event, context):
     except:
         logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
         raise
+
+
+def create_provider_key_handler(event, context):
+    try:
+        # Interpret and validate request body
+        body = json.loads(event["body"])
+
+        if "name" not in body:
+            raise Exception("'name' must be provided in 'parameters to generate a JWT token.")
+
+        # Get current datetime
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Get environment
+        if "environment" in body:
+            environment = body["environment"]
+        else:
+            environment = "demo"
+
+        # Create JWT token
+        jwt = jwt_role_encode(JWT_SECRET, JWT_AUDIENCE, JWT_ISSUER, body["name"], SERVICE_ROLE, environment, 24)
+
+        # Define item
+        item = {'Name': body["name"], 'Date': now, 'Token': jwt, 'environment': environment}
+
+        # Initialise DynamoDB
+        dynamodb = boto3.resource('dynamodb')
+        provider_table = dynamodb.Table(os.environ["PROVIDER_TABLE"])
+        # Send Dynamo DB put response
+        provider_table.put_item(Item=item)
+
+        return generate_web_body_response('200', item)
+
+    except:
+        logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
+        return generate_web_body_response('400', {'message': "Unable to create a Provider token. "
+                                                             "'name' must be provided in the body of the request"})
+
+
+def delete_provider_key_handler(event, context):
+    try:
+        name = urllib.unquote(urllib.unquote(event["pathParameters"]["provider"]))
+
+    except:
+        logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
+        return generate_web_body_response(
+            '400',
+            {'message': "Incorrect path parameter formatting for provider name. Ensure it is a URL encoded string."}
+        )
+
+    try:
+        # Interpret and validate request body
+        body = json.loads(event["body"])
+
+        if "date" not in body:
+            raise Exception("A valid 'date' must be provided in parameters to delete the JWT token.")
+
+        # Initialise DynamoDB
+        dynamodb = boto3.resource('dynamodb')
+        provider_table = dynamodb.Table(os.environ["PROVIDER_TABLE"])
+        provider_table.delete_item(Key={'Name': name, 'Date': body["date"]})
+        return generate_web_body_response('200', {'message': "Successfully deleted provider token."})
+
+    except:
+        logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
+        return generate_web_body_response(
+            '400',
+            {'message': "A valid 'date' must be provided in parameters to delete the JWT token."}
+        )
+
+
+def get_provider_keys_handler(event, context):
+    try:
+        name = urllib.unquote(urllib.unquote(event["pathParameters"]["provider"]))
+
+        query_parameters = {'KeyConditionExpression': Key('Name').eq(name)}
+
+        return generate_table_list_response(event, query_parameters, os.environ["PROVIDER_TABLE"])
+
+    except:
+        logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
+        return generate_web_body_response(
+            '400',
+            {'message': "Incorrect path parameter type formatting for provider name. Ensure it is a URL encoded string"}
+        )
+
+
+def create_provider_metadata_handler(event, context):
+    try:
+        # Interpret and validate request body
+        body = json.loads(event["body"])
+
+        if "name" not in body:
+            raise Exception("'name' must be provided in 'parameters to generate a JWT token.")
+
+        # Define item
+        item = {'name': body["name"]}
+
+        if 'isni' in body:
+            item['isni'] = body['isni']
+
+        if 'grid' in body:
+            item['grid'] = body['grid']
+
+        # Initialise DynamoDB
+        dynamodb = boto3.resource('dynamodb')
+        provider_table = dynamodb.Table(os.environ["PROVIDER_METADATA_TABLE"])
+
+        # Send Dynamo DB put response
+        provider_table.put_item(Item=item)
+        return generate_web_body_response('200', item)
+
+    except:
+        logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
+        return generate_web_body_response(
+            '400',
+            {'message': "Incorrect path parameter type formatting for provider name. Ensure it is a URL encoded string"}
+        )
+
+
+def update_provider_metadata_handler(event, context):
+    try:
+        name = urllib.unquote(urllib.unquote(event["pathParameters"]["provider"]))
+
+    except:
+        logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
+        return generate_web_body_response(
+            '400',
+            {'message': "Incorrect path parameter type formatting for provider name. Ensure it is a URL encoded string"}
+        )
+
+    try:
+        # Interpret and validate request body
+        body = json.loads(event["body"])
+
+        if 'isni' not in body or 'grid' not in body:
+            raise Exception("'isni' and 'grid' must be provided.")
+
+        dynamodb = boto3.resource('dynamodb')
+        provider_table = dynamodb.Table(os.environ["PROVIDER_METADATA_TABLE"])
+
+        # Update meta values
+        update_response = provider_table.update_item(
+            Key={'name': name},
+            UpdateExpression="set isni = :i, grid = :g",
+            ExpressionAttributeValues={
+                ':i': body['isni'],
+                ':g': body['grid']
+            },
+            ReturnValues="ALL_NEW"
+        )
+
+        return generate_web_body_response('200', update_response["Attributes"])
+
+    except:
+        logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
+        return generate_web_body_response(
+            '400',
+            {'message': "Incorrect path parameter formatting for provider name. Ensure it is a URL encoded string."}
+        )
+
+
+def delete_provider_metadata_handler(event, context):
+    try:
+        name = urllib.unquote(urllib.unquote(event["pathParameters"]["provider"]))
+
+    except:
+        logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
+        return generate_web_body_response(
+            '400',
+            {'message': "Incorrect path parameter type formatting for provider name. Ensure it is a URL encoded string"}
+        )
+
+    try:
+        dynamodb = boto3.resource('dynamodb')
+        provider_table = dynamodb.Table(os.environ["PROVIDER_METADATA_TABLE"])
+        provider_table.delete_item(Key={'name': name})
+        return generate_web_body_response('200', {'message': "Successfully deleted provider."})
+
+    except:
+        logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
+        return generate_web_body_response(
+            '400',
+            {'message': "Incorrect path parameter formatting for provider name. Ensure it is a URL encoded string."}
+        )
+
+
+def get_provider_metadata_handler(event, context):
+    try:
+        name = urllib.unquote(urllib.unquote(event["pathParameters"]["provider"]))
+
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        provider_table = dynamo_db.Table(os.environ["PROVIDER_METADATA_TABLE"])
+
+        # Check if provider meta data exists
+        query_response = provider_table.query(KeyConditionExpression=Key('name').eq(name))
+
+        if query_response["Count"] != 1:
+            return generate_web_body_response('404', {'message': "Provider '{}' has no meta data.".format(name)})
+
+        # Assign raid item to single item, since the result will be an array of one item
+        provider_metadata = query_response['Items'][0]
+
+        return generate_web_body_response('200', provider_metadata)
+
+
+    except:
+        logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
+        return generate_web_body_response(
+            '400',
+            {'message': "Incorrect path parameter formatting for provider name. Ensure it is a URL encoded string."}
+        )
+
+
+def generate_table_list_response(event, query_parameters, table):
+    """
+    A generic method for Dynamo DB queries that return a list of items.
+    :param event: Dictionary of values provided from the invoking API Gateway
+    :param query_parameters: Dictionary of DynamoDB parameters unique to the calling method
+    :param table: String representing the name of the DynamoDB table
+    :return:
+    """
+    try:
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        dynamo_db_table = dynamo_db.Table(table)
+
+        # Interpret and validate request body for optional parameters
+        if event["queryStringParameters"]:
+            try:
+                parameters = event["queryStringParameters"]
+                if "limit" in parameters:
+                    query_parameters["Limit"] = int(parameters["limit"])
+                if "ascending" in parameters and \
+                        (parameters["ascending"] == 'False' or parameters["ascending"] == 'false'):
+                    query_parameters["ScanIndexForward"] = False
+                if "exclusiveStartKey" in parameters:
+                    query_parameters["ExclusiveStartKey"] = json.loads(base64.urlsafe_b64decode(
+                        parameters["exclusiveStartKey"].encode("ascii")
+                    ))
+            except ValueError as e:
+                logger.error('Incorrect parameter type formatting: {}'.format(e))
+                return generate_web_body_response('400', {'message': "Incorrect parameter type formatting."})
+
+        # Query table using parameters given and built to return a list of RAiDs the owner is attached too
+        query_response = dynamo_db_table.query(**query_parameters)
+
+        # Build response body
+        return_body = {
+            'items': query_response["Items"],
+            'count': query_response["Count"],
+            'scannedCount': query_response["ScannedCount"]
+        }
+
+        if 'LastEvaluatedKey' in query_response:
+            return_body['lastEvaluatedKey'] = base64.urlsafe_b64encode(json.dumps(query_response["LastEvaluatedKey"]))
+
+        return generate_web_body_response('200', return_body)
+
+    except:
+        logger.error('Unable to generate a DynamoDB list response: {}'.format(sys.exc_info()[0]))
+        return generate_web_body_response('500', {'message': "Unable to perform request due to error. "
+                                                             "Please check structure of the parameters."})
 
