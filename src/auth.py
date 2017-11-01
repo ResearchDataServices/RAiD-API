@@ -106,7 +106,7 @@ def jwt_validation_handler(event, context):
         principal_id = 'user|' + decoded["https://aaf.edu.au/attributes"]["mail"]
     else:
         # Organisation is the principal ID
-        principal_id = 'user|' + decoded["sub"]
+        principal_id = decoded["sub"]
 
     '''
     If the token is valid, a policy must be generated which will allow or deny

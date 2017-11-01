@@ -180,17 +180,17 @@ def get_environment_table(table_name, environment):
 def create_handler(event, context):
     """
     Create and new RAiD by; generating a handle, registering with ANDS and putting to the RAiD DB and Provider Index.
-    :param event: 
+    :param event:
     :param context:
     :return: RAiD object
     """
     try:
+        environment = event['requestContext']['authorizer']['environment']
+
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(
-            get_environment_table(RAID_TABLE, event['requestContext']['authorizer']['environment']))
-        provider_index_table = dynamo_db.Table(
-            get_environment_table(PROVIDER_TABLE, event['requestContext']['authorizer']['environment']))
+        raid_table = dynamo_db.Table(get_environment_table(RAID_TABLE, environment))
+        provider_index_table = dynamo_db.Table(get_environment_table(PROVIDER_TABLE, environment))
 
         # Get current datetime
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -229,7 +229,11 @@ def create_handler(event, context):
             raid_item['contentPath'] = generate_random_handle()
 
         # Mints ANDS handle
-        ands_url_path = "{}mint?type=URL&value={}".format(os.environ["ANDS_SERVICE"], raid_item['contentPath'])
+        if environment == DEMO_ENVIRONMENT:
+            ands_url_path = "{}mint?type=URL&value={}".format(os.environ["DEMO_ANDS_SERVICE"], raid_item['contentPath'])
+        elif environment == LIVE_ENVIRONMENT:
+            ands_url_path = "{}mint?type=URL&value={}".format(os.environ["ANDS_SERVICE"], raid_item['contentPath'])
+
         ands_mint = ands_handle_request(ands_url_path, os.environ["ANDS_APP_ID"], "raid", "raid.org.au")
 
         ands_handle = ands_mint["handle"]
@@ -293,10 +297,11 @@ def update_content_path_handler(event, context):
             'message': "A 'contentPath' URL string must be provided in the body of the request."})
 
     try:
+        environment = event['requestContext']['authorizer']['environment']
+
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(
-            get_environment_table(RAID_TABLE, event['requestContext']['authorizer']['environment']))
+        raid_table = dynamo_db.Table(get_environment_table(RAID_TABLE, environment))
 
         # Check if RAiD exists
         query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
@@ -314,10 +319,17 @@ def update_content_path_handler(event, context):
             raid_item["contentIndex"] = "1"
 
         # Mints ANDS handle
-        ands_url_path = "{}modifyValueByIndex?handle={}&value={}index={}".format(os.environ["ANDS_SERVICE"],
-                                                                                 raid_item['handle'],
-                                                                                 new_content_path,
-                                                                                 raid_item['contentIndex'])
+        if environment == DEMO_ENVIRONMENT:
+            ands_url_path = "{}modifyValueByIndex?handle={}&value={}index={}".format(os.environ["DEMO_ANDS_SERVICE"],
+                                                                                     raid_item['handle'],
+                                                                                     new_content_path,
+                                                                                     raid_item['contentIndex'])
+
+        elif environment == LIVE_ENVIRONMENT:
+            ands_url_path = "{}modifyValueByIndex?handle={}&value={}index={}".format(os.environ["ANDS_SERVICE"],
+                                                                                     raid_item['handle'],
+                                                                                     new_content_path,
+                                                                                     raid_item['contentIndex'])
 
         ands_mint = ands_handle_request(ands_url_path, os.environ["ANDS_APP_ID"], "raid", "raid.org.au")
 
@@ -353,10 +365,10 @@ def update_content_path_handler(event, context):
 
 def get_raid_handler(event, context):
     """
-    
-    :param event: 
-    :param context: 
-    :return: 
+
+    :param event:
+    :param context:
+    :return:
     """
     try:
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
@@ -398,7 +410,21 @@ def get_raid_handler(event, context):
 
                 # Query table using parameters given and built to return a list of RAiDs the owner is attached too
                 provider_query_response = provider_index_table.query(**provider_query_parameters)
-                raid_item["providers"] = provider_query_response["Items"]
+
+                providers = provider_query_response["Items"]
+
+                """
+                # Get metadata for each listed metadata
+                for provider in providers:
+                    provider_metadata_table = dynamo_db.Table(os.environ["PROVIDER_METADATA_TABLE"])
+                    provider_metadata_query_response = provider_metadata_table.query(
+                        KeyConditionExpression=Key('name').eq(provider['provider']))
+                    if provider_metadata_query_response["Count"] > 0:
+                        provider['metadata'] = provider_metadata_query_response['Items'][0]
+                """
+
+
+                raid_item["providers"] = providers
 
                 # Get institution list
                 institution_index_table = dynamo_db.Table(
@@ -424,9 +450,9 @@ def get_raid_handler(event, context):
 def get_owner_raids_handler(event, context):
     """
     Return RAiDs associated to the authenticated owner with optional parameters for filter and search options
-    :param event: 
-    :param context: 
-    :return: 
+    :param event:
+    :param context:
+    :return:
     """
     query_parameters = {
         'IndexName': 'OwnerIndex',
@@ -441,9 +467,9 @@ def get_owner_raids_handler(event, context):
 def update_raid_owner_handler(event, context):
     """
     Change the ownership of a RAiD to another provider
-    :param event: 
-    :param context: 
-    :return: 
+    :param event:
+    :param context:
+    :return:
     """
     try:
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
@@ -550,9 +576,9 @@ def get_raid_providers_handler(event, context):
 def create_raid_provider_association_handler(event, context):
     """
     Create a new provider association to a RAiD
-    :param event: 
-    :param context: 
-    :return: 
+    :param event:
+    :param context:
+    :return:
     """
     try:
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
@@ -620,9 +646,9 @@ def create_raid_provider_association_handler(event, context):
 def end_raid_provider_association_handler(event, context):
     """
     End a provider association to a RAiD
-    :param event: 
-    :param context: 
-    :return: 
+    :param event:
+    :param context:
+    :return:
     """
     try:
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
@@ -924,9 +950,9 @@ def generate_table_list_response(event, query_parameters, table):
 def get_raid_public_handler(event, context):
     """
     Show the existence of the RAiD and all public information metadata attached RAiDPublicModel
-    :param event: 
-    :param context: 
-    :return: 
+    :param event:
+    :param context:
+    :return:
     """
     try:
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
@@ -980,10 +1006,10 @@ def get_raid_public_handler(event, context):
 
 def redirect_raid_path_handler(event, context):
     """
-    Redirect from a RAiD handle to it'c minted content path 
-    :param event: 
-    :param context: 
-    :return: 
+    Redirect from a RAiD handle to it'c minted content path
+    :param event:
+    :param context:
+    :return:
     """
     try:
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))

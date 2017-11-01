@@ -13,14 +13,12 @@
 # aws cloudformation deploy \=
 # --template-file <path-to-file>/template-out.yaml \
 # --stack-name <STACK_NAME>  \
-# --parameter-overrides JwtSecret=<<jwt-secret>> AndsService=<<ands_service>> AndsAppId=<<app_id>> AndsSubnets=<<subnet1,subnet2>> AndsSecurityGroups=<<sg1,sg1>> ElasticsearchHost=<<....ap-southeast-2.es.amazonaws.com>>\
+# --parameter-overrides JwtSecret=<<jwt-secret>> AndsService=<<ands_service>> DemoAndsService=<<ands_service>> AndsAppId=<<app_id>> AndsSubnets=<<subnet1,subnet2>> AndsSecurityGroups=<<sg1,sg1>> ElasticsearchHost=<<....ap-southeast-2.es.amazonaws.com>>\
 # --capabilities CAPABILITY_IAM
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
-
 Description: RAiD AWS resources
-
 Parameters:
   Tracing:
     Type: String
@@ -46,6 +44,8 @@ Parameters:
     Type: String
     Default: institution
   AndsService:
+    Type: String
+  DemoAndsService:
     Type: String
   AndsAppId:
     Type: String
@@ -266,6 +266,7 @@ Resources:
           PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
           PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
           ANDS_SERVICE: !Ref AndsService
+          DEMO_ANDS_SERVICE: !Ref DemoAndsService
           ANDS_APP_ID: !Ref AndsAppId          
       Events:
         CreateRaidHandle:
@@ -290,6 +291,7 @@ Resources:
           PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
           PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
           ANDS_SERVICE: !Ref AndsService
+          DEMO_ANDS_SERVICE: !Ref DemoAndsService
           ANDS_APP_ID: !Ref AndsAppId    
       Events:
         UpdateRaidContentPathHandle:
@@ -314,6 +316,7 @@ Resources:
           PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
           INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
           INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
+          PROVIDER_METADATA_TABLE: !Ref ProviderMetadataTable
       Events:
         GetRaidHandle:
           Type: Api
@@ -400,6 +403,7 @@ Resources:
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
           PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
           PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
+          PROVIDER_METADATA_TABLE: !Ref ProviderMetadataTable
       Events:
         GetRaidProvidersHandle:
           Type: Api
@@ -543,6 +547,15 @@ Resources:
     Type: "AWS::CloudFormation::Stack"
     Properties:
       TemplateURL: database-template.yaml
+  ProviderMetadataTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: name
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
 Outputs:
   RaidDemoDB:
     Value: !GetAtt RAiDDemoDB.Outputs.RaidDB
@@ -556,3 +569,5 @@ Outputs:
     Value: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
   RaidLiveInstitutionDB:
     Value: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
+  ProviderMetadataDB:
+    Value: !Ref ProviderMetadataTable
