@@ -88,7 +88,7 @@ Resources:
   AdminApi:
     Type: AWS::Serverless::Api
     Properties:
-      DefinitionUri: swagger.yaml
+      DefinitionUri: admin-swagger.yaml
       StageName: v1
       Variables:
         CreateProviderFunction: !Ref CreateProvider
