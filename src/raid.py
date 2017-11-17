@@ -409,23 +409,6 @@ def update_raid_owner_handler(event, context):
                                                              "Please check structure of the body."}, event)
 
 
-def get_provider_raids_handler(event, context):
-    """
-    Return RAiDs associated to the provider in the path with optional parameters for filter and search options
-    :param event:
-    :param context:
-    :return:
-    """
-    query_parameters = {
-        'IndexName': 'StartDateIndex',
-        'KeyConditionExpression': Key('provider').eq(event["pathParameters"]["providerId"])
-    }
-
-    return generate_table_list_response(
-        event, query_parameters,
-        get_environment_table(PROVIDER_TABLE, event['requestContext']['authorizer']['environment']))
-
-
 def get_raid_providers_handler(event, context):
     """
     Return providers associated to the raid in the path with optional parameters for filter and search options
@@ -590,23 +573,6 @@ def end_raid_provider_association_handler(event, context):
         logger.error('Unable to end a provider to a RAiD association: {}'.format(sys.exc_info()[0]))
         return web_helpers.generate_web_body_response('500', {
             'message': "Unable to perform request due to error. Please check structure of the body."}, event)
-
-
-def get_institution_raids_handler(event, context):
-    """
-    Return RAiDs associated to the institution in the path with optional parameters for filter and search options
-    :param event:
-    :param context:
-    :return:
-    """
-    query_parameters = {
-        'IndexName': 'StartDateIndex',
-        'KeyConditionExpression': Key('grid').eq(event["pathParameters"]["grid"])
-    }
-
-    return generate_table_list_response(
-        event, query_parameters,
-        get_environment_table(INSTITUTION_TABLE, event['requestContext']['authorizer']['environment']))
 
 
 def get_raid_institutions_handler(event, context):
@@ -774,12 +740,13 @@ def end_raid_institution_association_handler(event, context):  # TODO
             'message': "Unable to perform request due to error. Please check structure of the body."}, event)
 
 
-def generate_table_list_response(event, query_parameters, table):
+def generate_table_list_response(event, query_parameters, table, replacement_dictionary=None):
     """
     A generic method for Dynamo DB queries that return a list of items.
     :param event: Dictionary of values provided from the invoking API Gateway
     :param query_parameters: Dictionary of DynamoDB parameters unique to the calling method
     :param table: String representing the name of the DynamoDB table
+    :param replacement_dictionary: Dictionary of new key names to replace current DyanmoDB name
     :return:
     """
     try:
@@ -939,4 +906,48 @@ def redirect_raid_path_handler(event, context):
         logger.error('Unable to get RAiD: {}'.format(sys.exc_info()[0]))
         return web_helpers.generate_web_body_response('500', {'message': "Unable to fetch RAiD due to an error. "
                                                              "Please check structure of the parameters."}, event)
+
+
+def get_raids_handler(event, context):
+    """
+    Return RAiDs associated to the provier or institution with optional parameters for filter and search options
+    :param event:
+    :param context:
+    :return:
+    """
+    #Get authenticated user type
+    user_role = event['requestContext']['authorizer']['role']
+
+    if user_role is 'service':
+        provider = event['requestContext']['authorizer']['provider']
+        query_parameters = {
+            'IndexName': 'StartDateIndex',
+            'KeyConditionExpression': Key('provider').eq(provider)
+        }
+
+        # Replace names dictionary
+        replacement_dictionary = {'provider': 'entityId'}
+
+        return generate_table_list_response(
+            event, query_parameters,
+            get_environment_table(PROVIDER_TABLE, event['requestContext']['authorizer']['environment']),
+            replacement_dictionary
+        )
+
+    elif user_role is 'institution':
+        institution_grid = event['requestContext']['authorizer']['grid']
+        query_parameters = {
+            'IndexName': 'StartDateIndex',
+            'KeyConditionExpression': Key('grid').eq(institution_grid)
+        }
+
+        # Replace names dictionary
+        replacement_dictionary = {'grid': 'entityId'}
+
+        return generate_table_list_response(
+            event, query_parameters,
+            get_environment_table(INSTITUTION_TABLE, event['requestContext']['authorizer']['environment']),
+            replacement_dictionary)
+
+    return web_helpers.generate_web_body_response('400', {'message': 'Unable to get RAiDs due to unknown user type.'})
 

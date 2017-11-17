@@ -71,20 +71,19 @@ Resources:
         AuthenticateTokenFunction: !Ref AuthenticateToken
         CreateRaidFunction: !Ref CreateRaid
         UpdateRaidContentPathFunction: !Ref UpdateRaidContentPath
+        GetRaidsFunction: !Ref GetRaids
         GetRaidFunction: !Ref GetRaid
         GetOwnerRaidsFunction: !Ref GetOwnerRaids
         UpdateRaidOwnerFunction: !Ref UpdateRaidOwner
-        GetProviderRaidsFunction: !Ref GetProviderRaids
         GetRaidProvidersFunction: !Ref GetRaidProviders
         CreateRaidProviderAssociationFunction: !Ref CreateRaidProviderAssociation
         EndRaidProviderAssociationFunction: !Ref EndRaidProviderAssociation
-        GetInstitutionRaidsFunction: !Ref GetInstitutionRaids
         GetRaidInstitutionsFunction: !Ref GetRaidInstitutions
         CreateRaidInstitutionAssociationFunction: !Ref CreateRaidInstitutionAssociation
         EndRaidInstitutionAssociationFunction: !Ref EndRaidInstitutionAssociation
         GetRaidPublicFunction: !Ref GetRaidPublic
         RedirectRaidContentPathFunction: !Ref RedirectRaidContentPath
-        
+
   # IAM
   ## General
   LogsXrayLambdaPolicy:
@@ -271,6 +270,29 @@ Resources:
             Path: /handle/{raidId}/redirect
             Method: GET
   ## RAiD CRUD
+  GetRaids:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: raid.get_raids_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
+          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
+          INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
+          INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
+      Events:
+        GetProviderRaidsHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD
+            Method: GET
   CreateRaid:
     Type: AWS::Serverless::Function
     Properties:
@@ -394,27 +416,7 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /owner/{raidId}
             Method: PUT
-  GetProviderRaids:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ../src
-      Handler: raid.get_provider_raids_handler
-      Runtime: python2.7
-      Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
-          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
-      Events:
-        GetProviderRaidsHandle:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGatewayApi
-            Path: /provider/{providerId}
-            Method: GET
+
   GetRaidProviders:
     Type: AWS::Serverless::Function
     Properties:
@@ -480,27 +482,6 @@ Resources:
             Path: /RAiD/{raidId}/providers
             Method: DELETE
   ### Institutions
-  GetInstitutionRaids:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ../src
-      Handler: raid.get_institution_raids_handler
-      Runtime: python2.7
-      Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
-          INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
-      Events:
-        GetInstitutionRaidsHandle:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGatewayApi
-            Path: /institution/{grid}
-            Method: GET
   GetRaidInstitutions:
     Type: AWS::Serverless::Function
     Properties:

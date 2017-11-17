@@ -97,6 +97,7 @@ def custom_authorisation_handler(event, context):
         policy.allow_method(auth.HttpVerb.ALL, '/institution/*')
         context = {
             'provider': decoded["sub"],
+            'grid': decoded["grid"],
             'role': decoded["role"],
         }
 

@@ -9,6 +9,7 @@ tags:
 - name: "Auth"
 - name: "RAiD Public"
 - name: "RAiD"
+- name: "Owner"
 - name: "Provider"
 - name: "Institution"
 - name: "CORS"
@@ -277,6 +278,50 @@ paths:
           application/json: "{\"statusCode\": 200}"
         type: mock
   /RAiD:
+    get:
+      summary: "Return a list of RAiDs that the user owns or is associated to"
+      tags:
+      - "RAiD"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "limit"
+        in: "query"
+        required: false
+        type: "integer"
+        description: "The maximum number of items to return"
+      - name: "ascending"
+        in: "query"
+        required: false
+        type: "boolean"
+        description: "Order list by in ascending order (most recently created first)"
+      - name: "exclusiveStartKey"
+        in: "query"
+        required: false
+        type: "string"
+        description: "Key of the last item returned in a previous query to be used for large lists and pagination"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/RAiDsModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - CustomAuthorizerJwt: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidsFunction}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
     post:
       summary: "Generate a RAiD with a unique URL handle"
       tags:
@@ -980,7 +1025,7 @@ paths:
     get:
       summary: "Return a list of RAiDs that are currently owned to the authenticated key"
       tags:
-      - "Provider"
+      - "Owner"
       consumes:
       - "application/json"
       produces:
@@ -1056,7 +1101,7 @@ paths:
     put:
       summary: "Change the ownership of a RAiD to another provider"
       tags:
-      - "Provider"
+      - "Owner"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -1394,3 +1439,32 @@ definitions:
       aud:
         type: "string"
         description: "Where the JWT is intended for (Standard field)"
+  RAiDsModel:
+    type: "object"
+    properties:
+      count:
+        type: "string"
+        description: "Number of items returned"
+      items:
+        type: "array"
+        description: "(optional) Providers associated to the RAiD"
+        items:
+          $ref: "#/definitions/AssociationModel"
+      scannedCount:
+        type: "string"
+        description: "Total number of items that were scanned in the query"
+  AssociationModel:
+    type: "object"
+    properties:
+      startDate:
+        type: "string"
+        description: "Datetime the entity associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+      endDate:
+        type: "string"
+        description: "(optional) Datetime the entity dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+      entityId:
+        type: "string"
+        description: "Name of provider or GRID of institution"
+      handle:
+        type: "string"
+        description: "Unique minted ANDS handle"
