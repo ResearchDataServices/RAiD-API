@@ -8,6 +8,7 @@ info:
   version: "1.0-Alpha"
   description: "The Data LifeCycle Framework (DLCF – www.dlc.edu.au ) has been initiated by five primary  organisations; Australian Access Federation (AAF), Australia’s Academic and Research Network (AARNet), Australian National Data Service (ANDS), National eResearch Collaboration Tools and Resources (NeCTAR) and Research Data Services (RDS).\n\n The DLCF is a nationwide effort to connect research resources and activities such that researchers can make the best use of existing national, state-based, local, and commercial eResearch tools. It aims to provide a simple path to reliable provenance, more effective collaboration across organisations and assist researchers to position themselves to address the growing potential of increasingly open data.\n\n The DLCF will connect critical elements and points in time of the data journey from grant approval through to project finalisation, results publication and archiving. It will leverage existing eResearch investment to provide a flexible and dynamic national framework supporting research.\n\n The Resource and Activity Persistent identifier(RAiD) is the first of the enabling technologies required for the DLCF. This specification document is for the development of the RAiD service and supporting features. Learn more about the RAiD project by visiting the website (https://www.raid.org.au/)."
 tags:
+- name: "Auth"
 - name: "RAiD Public"
 - name: "RAiD"
 - name: "Provider"
@@ -179,6 +180,70 @@ paths:
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
         uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.RedirectRaidContentPathFunction}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
+  /auth:
+    post:
+      summary: "Authenticate a JWT token and get the base64 decoded object"
+      tags:
+      - "Auth"
+      consumes:
+      - "application/json"
+      produces:
+      - application/json
+      parameters:
+      - in: "body"
+        required: false
+        name: "body"
+        schema:
+          $ref: "#/definitions/RAiDAuthModel"
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/RAiDAuthResponseModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.AuthenticateTokenFunction}/invocations
+        passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
     options:
@@ -1344,3 +1409,41 @@ definitions:
         type: "string"
         description: "URL path minted with ANDS"
         example: "http://myorganisation.org.au/contentlocation"
+  RAiDAuthModel:
+    type: "object"
+    properties:
+      token:
+        type: "string"
+        description: "JSON Web Token"
+        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
+  RAiDAuthResponseModel:
+    type: "object"
+    properties:
+      sub:
+        type: "string"
+        description: "Subject of the JWT (Standard field)"
+        example: "TechConnect"
+      iss:
+        type: "string"
+        description: "Principal that issued the JWT (Standard field)"
+        example: "https://www.raid.org.au"
+      environment:
+        type: "string"
+        description: "RAiD environment token is linked to (Custom field)"
+        example: "demo"
+      role:
+        type: "string"
+        description: "RAiD user type token is linked to (Custom field); 'service' or 'institution'"
+        example: "service"
+      exp:
+        type: "string"
+        description: "Expiration time on or after which the JWT must not be accepted for processing (Standard field)"
+        example: "1570924800"
+      iat:
+        type: "string"
+        description: "Time at which the JWT was issued (Standard field)"
+        example: "1507866567"
+      aud:
+        type: "string"
+        description: "Where the JWT is intended for (Standard field)"
+        example: "https://api.raid.org.au"

@@ -68,6 +68,7 @@ Resources:
       Variables:
         CustomAuthorizer: !Ref CustomAuthorizer
         CustomAuthorizerRole: !Ref CustomAuthorizerRole
+        AuthenticateTokenFunction: !Ref AuthenticateToken
         CreateRaidFunction: !Ref CreateRaid
         UpdateRaidContentPathFunction: !Ref UpdateRaidContentPath
         GetRaidFunction: !Ref GetRaid
@@ -188,7 +189,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: auth.jwt_validation_handler
+      Handler: auth_handlers.custom_authorisation_handler
       Runtime: python2.7
       Role: !GetAtt CustomAuthorizerRole.Arn
       Environment:
@@ -205,6 +206,31 @@ Resources:
             Ref: ProviderRole
           INSTITUTION_ROLE:
             Ref: InstitutionRole
+  ## Authenticate Token
+  AuthenticateToken:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: auth_handlers.authenticate_token_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          JWT_ISSUER_SELF:
+            Ref: JwtIssuerSelf
+          JWT_ISSUER_3RD_PARTY:
+            Ref: JwtIssuerThirdParty
+          JWT_AUDIENCE:
+            Ref: JwtAudience
+          JWT_SECRET:
+            Ref: JwtSecret
+      Events:
+        AuthenticateTokenHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /auth
+            Method: POST
   ## RAiD CRUD Public
   GetRaidPublic:
     Type: AWS::Serverless::Function

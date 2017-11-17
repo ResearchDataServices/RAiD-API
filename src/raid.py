@@ -48,16 +48,6 @@ def get_environment_table(table_name, environment):
             return os.environ["INSTITUTION_TABLE"]
 
 
-def authenticate_token_handler(event, context):
-    """
-
-    :param event:
-    :param context:
-    :return:
-    """
-    pass
-
-
 def create_handler(event, context):
     """
     Create and new RAiD by; generating a handle, registering with ANDS and putting to the RAiD DB and Provider Index.

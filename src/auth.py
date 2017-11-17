@@ -19,151 +19,6 @@ import jwt
 AUTHENTICATION_SCHEME = "Bearer"
 
 
-def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_issuer_self):
-    """
-    Validate authenticity and validity of JWT token against authorised third party or self signed .
-    Client should handle invalid token by sending a 401 Unauthorized response.
-    """
-    print("JWT token: " + jwt_token)
-    try:
-        # Identify token issuer and attributes
-        attributes = jwt_token.split('.')[1] + "=="  # Add Base64 padding at end
-        decoded_base64_attributes = base64.b64decode(attributes)
-        attributes_obj = json.loads(decoded_base64_attributes)
-
-        if attributes_obj["iss"] == jwt_issuer_3rd_party:
-            # Authorized 3rd party
-            return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_3rd_party, audience=jwt_audience,
-                              options={'verify_exp': False})
-        else:
-            # Self Signed
-            return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_self, audience=jwt_audience)
-
-    except jwt.ExpiredSignatureError:
-        # Signature has expired
-        print("JWT Signature has expired")
-        raise Exception('Unauthorized: JWT Signature has expired')
-    except jwt.InvalidIssuerError:
-        # Invalid Issuer
-        print("JWT Invalid Issuer")
-        raise Exception('Unauthorized: JWT Invalid Issuer')
-    except jwt.InvalidAudienceError:
-        # Invalid audience
-        print("JWT Invalid audience")
-        raise Exception('Unauthorized: JWT Invalid audience')
-    except jwt.InvalidIssuedAtError:
-        # Invalid audience
-        print("JWT InvalidIssuedAtError")
-        raise Exception('Unauthorized: JWT InvalidIssuedAtError')
-    except Exception, e:
-        print("JWT Unexpected error")
-        print(str(e))
-        raise Exception('Unauthorized: JWT Unexpected error')
-
-
-def jwt_redirection_handler(event, context):
-    """
-    Perform validation and redirection for a SAML assertion endpoint. 
-    Parse url encoded form data for JWT token and check against secret.
-    """
-    # Parse form data which should contain at minimum an SAML assertion
-    body_parse = urlparse.parse_qs(event["body"])
-    
-    # Capture JWT token
-    jwt_token = body_parse["assertion"][0]
-
-    # Decode and validate JWT token
-    decoded = jwt_validate(jwt_token, os.environ['JWT_SECRET'], os.environ['JWT_AUDIENCE'],
-                           os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
-    print(json.dumps(decoded))
-
-    # Generate Cookie string
-    cookie_string = 'jwt_token={0}; domain={1}; Path=/;'.format(jwt_token, os.environ['SITE_DOMAIN'])
-
-    return {
-        'location': os.environ['SITE_URL'],
-        'cookie': cookie_string
-    }
-
-
-def jwt_validation_handler(event, context):
-    """
-    Perform validation of API Gateway custom authoriser by checking JWT user token
-    from header.
-    """
-    print("Client token: " + event['authorizationToken'])
-    print("Method ARN: " + event['methodArn'])
-
-    # Validate the incoming JWT token from pass Auth header
-    authentication_token = event["authorizationToken"]
-    jwt_token = authentication_token.replace(AUTHENTICATION_SCHEME, '').strip(' ')
-
-    decoded = jwt_validate(jwt_token, os.environ['JWT_SECRET'], os.environ['JWT_AUDIENCE'],
-                           os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
-
-    if decoded["iss"] == os.environ['JWT_ISSUER_3RD_PARTY']:
-        # User email will be Principal ID to be associated with calls. Ex 'user|j.smith@example.com'
-        principal_id = 'user|' + decoded["https://aaf.edu.au/attributes"]["mail"]
-    else:
-        # Organisation is the principal ID
-        principal_id = decoded["sub"]
-
-    '''
-    If the token is valid, a policy must be generated which will allow or deny
-    access to the client. If access is denied, the client will receive a 403
-    Access Denied response. If access is allowed, API Gateway will proceed with
-    the backend integration configured on the method that was called.
-
-    The policy is cached for 5 minutes by default (TTL is
-    configurable in the authorizer) and will apply to subsequent calls to any
-    method/resource in the RestApi made with the same token.
-    '''
-    tmp = event['methodArn'].split(':')
-    api_gateway_arn_tmp = tmp[5].split('/')
-    aws_account_id = tmp[4]
-
-    policy = AuthPolicy(principal_id, aws_account_id)
-    policy.restApiId = api_gateway_arn_tmp[0]
-    policy.region = tmp[3]
-    policy.stage = api_gateway_arn_tmp[1]
-
-    if decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["role"] == os.environ['PROVIDER_ROLE']:
-        # Self signed provider users can use all HTTP methods
-        policy.allow_all_methods()
-        context = {
-            'provider': decoded["sub"],
-            'role': decoded["role"],
-        }
-
-        if "environment" in decoded:
-            context["environment"] = decoded["environment"]
-        else:
-            context["environment"] = "demo"
-
-    elif decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["role"] == os.environ['INSTITUTION_ROLE']:
-        policy.allow_method(HttpVerb.GET, '/*')
-        policy.allow_method(HttpVerb.GET, '/RAiD/*')
-        policy.allow_method(HttpVerb.GET, '/provider/*')
-        policy.allow_method(HttpVerb.ALL, '/institution/*')
-        context = {
-            'provider': decoded["sub"],
-            'role': decoded["role"],
-        }
-
-        if "environment" in decoded:
-            context["environment"] = decoded["environment"]
-        else:
-            context["environment"] = "demo"
-
-    else:
-        raise Exception('Unauthorized')
-
-    # Finally, build the policy
-    auth_response = policy.build()
-    auth_response['context'] = context
-    return auth_response
-
-
 class HttpVerb:
     GET = 'GET'
     POST = 'POST'
@@ -338,3 +193,46 @@ class AuthPolicy(object):
         policy['policyDocument']['Statement'].extend(self._get_statement_for_effect('Deny', self.denyMethods))
 
         return policy
+
+
+def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_issuer_self):
+    """
+    Validate authenticity and validity of JWT token against authorised third party or self signed .
+    Client should handle invalid token by sending a 401 Unauthorized response.
+    """
+    print("JWT token: " + jwt_token)
+    try:
+        # Identify token issuer and attributes
+        attributes = jwt_token.split('.')[1] + "=="  # Add Base64 padding at end
+        decoded_base64_attributes = base64.b64decode(attributes)
+        attributes_obj = json.loads(decoded_base64_attributes)
+
+        if attributes_obj["iss"] == jwt_issuer_3rd_party:
+            # Authorized 3rd party
+            return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_3rd_party, audience=jwt_audience,
+                              options={'verify_exp': False})
+        else:
+            # Self Signed
+            return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_self, audience=jwt_audience)
+
+    except jwt.ExpiredSignatureError:
+        # Signature has expired
+        print("JWT Signature has expired")
+        raise Exception('Unauthorized: JWT Signature has expired')
+    except jwt.InvalidIssuerError:
+        # Invalid Issuer
+        print("JWT Invalid Issuer")
+        raise Exception('Unauthorized: JWT Invalid Issuer')
+    except jwt.InvalidAudienceError:
+        # Invalid audience
+        print("JWT Invalid audience")
+        raise Exception('Unauthorized: JWT Invalid audience')
+    except jwt.InvalidIssuedAtError:
+        # Invalid audience
+        print("JWT InvalidIssuedAtError")
+        raise Exception('Unauthorized: JWT InvalidIssuedAtError')
+    except Exception, e:
+        print("JWT Unexpected error")
+        print(str(e))
+        raise Exception('Unauthorized: JWT Unexpected error')
+
