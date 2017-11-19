@@ -4,8 +4,7 @@ Authentication AWS Lambda handler code
 Perform validation and redirection on custom authentication from third party
 provided JWT.
 """
-from __future__ import print_function
-
+import datetime
 import json
 import base64
 import re
@@ -192,12 +191,40 @@ class AuthPolicy(object):
         return policy
 
 
+def jwt_role_encode(jwt_secret, jwt_audience, jwt_issuer, subject, role, environment, months=6):
+    """
+    Generate a JWT token for a subject that will last a number months of months after the current date.
+    :param jwt_secret: String used for encrypted JWT signature
+    :param jwt_audience: Target site the JWT token will be authenticated against
+    :param jwt_issuer: Organisation name of the principal issuer
+    :param subject: Identifying attribute for the JWT token subject
+    :param role: Must be either 'service' or 'role'
+    :param months: Number of months the token should expire from the current date
+    :param environment: The environment (demo or live) of RAiD
+    :return: JWT Token
+    """
+    # Calculate future expiration date
+    future_date = datetime.date.today() + datetime.timedelta(months*365/12)
+
+    # Generate payload and token
+    payload = {
+        'sub': subject,
+        'aud': jwt_audience,
+        'iss': jwt_issuer,
+        'iat': datetime.datetime.now(),
+        'exp': datetime.datetime.combine(future_date, datetime.time.min),
+        'environment': environment,
+        'role': role
+    }
+    token = jwt.encode(payload, jwt_secret)
+    return token
+
+
 def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_issuer_self):
     """
     Validate authenticity and validity of JWT token against authorised third party or self signed .
     Client should handle invalid token by sending a 401 Unauthorized response.
     """
-    print("JWT token: " + jwt_token)
     try:
         # Identify token issuer and attributes
         attributes = jwt_token.split('.')[1] + "=="  # Add Base64 padding at end
@@ -214,22 +241,16 @@ def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_
 
     except jwt.ExpiredSignatureError:
         # Signature has expired
-        print("JWT Signature has expired")
         raise Exception('Unauthorized: JWT Signature has expired')
     except jwt.InvalidIssuerError:
         # Invalid Issuer
-        print("JWT Invalid Issuer")
         raise Exception('Unauthorized: JWT Invalid Issuer')
     except jwt.InvalidAudienceError:
         # Invalid audience
-        print("JWT Invalid audience")
         raise Exception('Unauthorized: JWT Invalid audience')
     except jwt.InvalidIssuedAtError:
         # Invalid audience
-        print("JWT InvalidIssuedAtError")
         raise Exception('Unauthorized: JWT InvalidIssuedAtError')
     except Exception, e:
-        print("JWT Unexpected error")
-        print(str(e))
         raise Exception('Unauthorized: JWT Unexpected error')
 

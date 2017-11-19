@@ -10,6 +10,70 @@ tags:
 schemes:
 - https
 paths:
+  /auth:
+    post:
+      summary: "Validate an API Key"
+      tags:
+      - "Auth"
+      consumes:
+      - "application/json"
+      produces:
+      - application/json
+      parameters:
+      - in: "body"
+        required: false
+        name: "body"
+        schema:
+          $ref: "#/definitions/RAiDAdminAuthModel"
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/RAiDAdminAuthResponseModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.ValidateApiKeyFunction}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
   /provider/metadata:
     post:
       summary: "Create a new provider"
@@ -494,3 +558,33 @@ definitions:
       grid:
         type: "string"
         description: "GRID (Global Research Identifier Database) of the Institution"
+  RAiDAdminAuthModel:
+    type: "object"
+    properties:
+      apiKey:
+        type: "string"
+        description: "AWS API Gateway API Key"
+  RAiDAdminAuthResponseModel:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        description: "The identifier of the API Key"
+      value:
+        type: "string"
+        description: "The value of the API Key"
+      name:
+        type: "string"
+        description: "The name of the API Key"
+      description:
+        type: "string"
+        description: "The description of the API Key"
+      enabled:
+        type: "boolean"
+        description: "Specifies whether the API Key can be used by callers"
+      createdDate:
+        type: "string"
+        description: "The timestamp when the API Key was created"
+      lastUpdatedDate:
+        type: "string"
+        description: "The timestamp when the API Key was last updated"

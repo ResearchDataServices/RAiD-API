@@ -91,6 +91,7 @@ Resources:
       DefinitionUri: admin-swagger.yaml
       StageName: v1
       Variables:
+        ValidateApiKeyFunction: !Ref ValidateApiKey
         CreateProviderFunction: !Ref CreateProvider
         GetProviderFunction: !Ref GetProvider
         UpdateProviderFunction: !Ref UpdateProvider
@@ -98,6 +99,21 @@ Resources:
         CreateProviderKeyFunction: !Ref CreateProviderKey
         GetProviderKeysFunction: !Ref GetProviderKeys
         DeleteProviderKeyFunction: !Ref DeleteProviderKey
+  # API Key validator
+  ValidateApiKey:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.auth_handlers.validate_admin_api_key_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Events:
+        AuthenticateTokenHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AdminApi
+            Path: /auth
+            Method: POST
   # Provider Metadata Admin CRUD Resources
   CreateProviderLambdaPermission:
     Type: "AWS::Lambda::Permission"
@@ -111,7 +127,7 @@ Resources:
   CreateProvider:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: raid_admin.create_provider_metadata_handler
+      Handler: handlers.admin_metadata_handlers.create_provider_metadata_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
@@ -134,7 +150,7 @@ Resources:
   UpdateProvider:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: raid_admin.update_provider_metadata_handler
+      Handler: handlers.admin_metadata_handlers.update_provider_metadata_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
@@ -157,7 +173,7 @@ Resources:
   DeleteProvider:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: raid_admin.delete_provider_metadata_handler
+      Handler: handlers.admin_metadata_handlers.delete_provider_metadata_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
@@ -180,7 +196,7 @@ Resources:
   GetProvider:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: raid_admin.get_provider_metadata_handler
+      Handler: handlers.admin_metadata_handlers.get_provider_metadata_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
@@ -204,7 +220,7 @@ Resources:
   CreateProviderKey:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: raid_admin.create_provider_key_handler
+      Handler: handlers.admin_token_handlers.create_provider_key_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
@@ -227,7 +243,7 @@ Resources:
   DeleteProviderKey:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: raid_admin.delete_provider_key_handler
+      Handler: handlers.admin_token_handlers.delete_provider_key_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
@@ -250,7 +266,7 @@ Resources:
   GetProviderKeys:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: raid_admin.get_provider_keys_handler
+      Handler: handlers.admin_token_handlers.get_provider_keys_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
@@ -324,59 +340,7 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
-  InstitutionCrudLambda:
-      Type: 'AWS::Serverless::Function'
-      Properties:
-        Handler: raid_admin.institution_crud_handler
-        Runtime: python2.7
-        CodeUri: ../src
-        Description: ''
-        MemorySize: 128
-        Timeout: 30
-        Role: !GetAtt InstitutionCrudIAMRole.Arn
-        Environment:
-          Variables:
-            INSTITUTION_TABLE:
-               Ref: InstitutionTable
-            JWT_ISSUER:
-              Ref: JwtIssuer
-            JWT_AUDIENCE:
-              Ref: JwtAudience
-            JWT_SECRET:
-              Ref: JwtSecret
-  InstitutionCrudIAMRole:
-        Type: "AWS::IAM::Role"
-        Properties:
-            Path: "/"
-            AssumeRolePolicyDocument:
-              Version: "2012-10-17"
-              Statement:
-                -
-                  Sid: "AllowLambdaServiceToAssumeRole"
-                  Effect: "Allow"
-                  Action:
-                    - "sts:AssumeRole"
-                  Principal:
-                    Service:
-                      - "lambda.amazonaws.com"
-  InstitutionLambdaPolicy:
-    Type: "AWS::IAM::Policy"
-    DependsOn: [InstitutionCrudIAMRole, InstitutionTable]
-    Properties:
-      PolicyName: InstitutionLambdaPolicy
-      PolicyDocument:
-        Statement:
-        - Effect: Allow
-          Action: [
-            "dynamodb:*"
-          ]
-          Resource: [!GetAtt InstitutionTable.Arn]
-      Roles: [!Ref InstitutionCrudIAMRole]
-
-
 Outputs:
-  InstitutionKeys:
-    Value: !Ref 'InstitutionTable'
   ProviderKeys:
     Value: !Ref 'ServiceTable'
   AdminApi:

@@ -83,7 +83,6 @@ Resources:
         EndRaidInstitutionAssociationFunction: !Ref EndRaidInstitutionAssociation
         GetRaidPublicFunction: !Ref GetRaidPublic
         RedirectRaidContentPathFunction: !Ref RedirectRaidContentPath
-
   # IAM
   ## General
   LogsXrayLambdaPolicy:
