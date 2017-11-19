@@ -6,12 +6,9 @@ provided JWT.
 """
 from __future__ import print_function
 
-import os
 import json
 import base64
-import urlparse
 import re
-import datetime
 import jwt
 
 

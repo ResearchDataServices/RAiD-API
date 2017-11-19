@@ -24,7 +24,7 @@ def jwt_redirection_handler(event, context):
 
     # Decode and validate JWT token
     decoded = auth.jwt_validate(jwt_token, os.environ['JWT_SECRET'], os.environ['JWT_AUDIENCE'],
-                           os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
+                                os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
     print(json.dumps(decoded))
 
     # Generate Cookie string
@@ -49,7 +49,7 @@ def custom_authorisation_handler(event, context):
     jwt_token = authentication_token.replace(auth.AUTHENTICATION_SCHEME, '').strip(' ')
 
     decoded = auth.jwt_validate(jwt_token, os.environ['JWT_SECRET'], os.environ['JWT_AUDIENCE'],
-                           os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
+                                os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
 
     if decoded["iss"] == os.environ['JWT_ISSUER_3RD_PARTY']:
         # User email will be Principal ID to be associated with calls. Ex 'user|j.smith@example.com'
@@ -129,7 +129,7 @@ def authenticate_token_handler(event, context):
         jwt_token = body["token"]
 
         decoded_token = auth.jwt_validate(jwt_token, os.environ['JWT_SECRET'], os.environ['JWT_AUDIENCE'],
-                                    os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
+                                          os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
 
         return web_helpers.generate_web_body_response('200', decoded_token, event)
 

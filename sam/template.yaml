@@ -188,7 +188,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: auth_handlers.custom_authorisation_handler
+      Handler: handlers.auth_handlers.custom_authorisation_handler
       Runtime: python2.7
       Role: !GetAtt CustomAuthorizerRole.Arn
       Environment:
@@ -210,7 +210,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: auth_handlers.authenticate_token_handler
+      Handler: handlers.auth_handlers.authenticate_token_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -230,12 +230,12 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /auth
             Method: POST
-  ## RAiD CRUD Public
+  ## RAiD Public
   GetRaidPublic:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.get_raid_public_handler
+      Handler: handlers.raid_public_handlers.get_raid_public_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -254,7 +254,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.redirect_raid_path_handler
+      Handler: handlers.raid_public_handlers.redirect_raid_path_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -269,12 +269,12 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /handle/{raidId}/redirect
             Method: GET
-  ## RAiD CRUD
+  ## RAiD
   GetRaids:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.get_raids_handler
+      Handler: handlers.raid_handlers.get_raids_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -297,7 +297,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.create_handler
+      Handler: handlers.raid_handlers.create_raid_handler
       Runtime: python2.7
       Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
@@ -327,7 +327,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.update_content_path_handler
+      Handler: handlers.raid_handlers.update_content_path_handler
       Runtime: python2.7
       Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
@@ -352,7 +352,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.get_raid_handler
+      Handler: handlers.raid_handlers.get_raid_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -372,12 +372,12 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD/{raidId}
             Method: GET
-  ### Providers
+  ### Owner
   GetOwnerRaids:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.get_owner_raids_handler
+      Handler: handlers.owner_handlers.get_owner_raids_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -399,7 +399,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.update_raid_owner_handler
+      Handler: handlers.owner_handlers..update_raid_owner_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -416,12 +416,12 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /owner/{raidId}
             Method: PUT
-
+  ### Providers
   GetRaidProviders:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.get_raid_providers_handler
+      Handler: handlers.provider_handlers.get_raid_providers_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -443,7 +443,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.create_raid_provider_association_handler
+      Handler: handlers.provider_handlers.create_raid_provider_association_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -464,7 +464,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.end_raid_provider_association_handler
+      Handler: handlers.provider_handlers.end_raid_provider_association_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -486,7 +486,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.get_raid_institutions_handler
+      Handler: handlers.institution_handlers.get_raid_institutions_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -507,7 +507,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.create_raid_institution_association_handler
+      Handler: handlers.institution_handlers.create_raid_institution_association_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -528,7 +528,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: raid.end_raid_institution_association_handler
+      Handler: handlers.institution_handlers.end_raid_institution_association_handler
       Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
