@@ -79,7 +79,8 @@ Resources:
             "dynamodb:PutItem",
             "dynamodb:Query",
             "dynamodb:Scan",
-            "dynamodb:UpdateItem"
+            "dynamodb:UpdateItem",
+            "apigateway:GET"
           ]
           Resource: ["*"]
         - Effect: Allow
@@ -93,189 +94,216 @@ Resources:
       DefinitionUri: admin-swagger.yaml
       StageName: v1
       Variables:
-        ValidateApiKeyFunction: !Ref ValidateApiKey
-        CreateProviderFunction: !Ref CreateProvider
-        GetProviderFunction: !Ref GetProvider
-        UpdateProviderFunction: !Ref UpdateProvider
-        DeleteProviderFunction: !Ref DeleteProvider
-        CreateProviderKeyFunction: !Ref CreateProviderKey
-        GetProviderKeysFunction: !Ref GetProviderKeys
-        DeleteProviderKeyFunction: !Ref DeleteProviderKey
-  # API Key validator
-  ValidateApiKey:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ../src
-      Handler: handlers.auth_handlers.validate_admin_api_key_handler
-      Runtime: python2.7
-      Role: !GetAtt CrudLambdaIAMRole.Arn
-      Events:
-        AuthenticateTokenHandle:
-          Type: Api
-          Properties:
-            RestApiId: !Ref AdminApi
-            Path: /auth
-            Method: POST
-  # Provider Metadata Admin CRUD Resources
-  CreateProviderLambdaPermission:
+        CreateMetadataFunction: !Ref CreateMetadata
+        GetMetadataFunction: !Ref GetMetadata
+        UpdateMetadataFunction: !Ref UpdateMetadata
+        DeleteMetadataFunction: !Ref DeleteMetadata
+        CreateKeyFunction: !Ref CreateKey
+        GetKeysFunction: !Ref GetKeys
+        DeleteKeyFunction: !Ref DeleteKey
+        GetSerivcePointsFunction: !Ref GetSerivcePoints
+        GetInstitutionsFunction: !Ref GetInstitutions
+  # Serivce Point functions
+  GetSerivcePointsLambdaPermission:
     Type: "AWS::Lambda::Permission"
     DependsOn:
     - AdminApi
-    - CreateProviderKey
+    - GetSerivcePoints
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref CreateProvider
+      FunctionName: !Ref GetSerivcePoints
       Principal: apigateway.amazonaws.com
-  CreateProvider:
+  GetSerivcePoints:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handlers.admin_metadata_handlers.create_provider_metadata_handler
+      Handler: handlers.admin_metadata_handlers.get_service_points_handler
+      Runtime: python2.7
+      CodeUri: ../src
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref MetadataTable
+  # Institution functions
+  GetInstitutionsLambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    DependsOn:
+    - AdminApi
+    - GetInstitutions
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GetInstitutions
+      Principal: apigateway.amazonaws.com
+  GetInstitutions:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.admin_metadata_handlers.get_institution_handler
+      Runtime: python2.7
+      CodeUri: ../src
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref MetadataTable
+
+  # Metadata Admin CRUD Resources
+  CreateMetadataLambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    DependsOn:
+    - AdminApi
+    - CreateMetadata
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref CreateMetadata
+      Principal: apigateway.amazonaws.com
+  CreateMetadata:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.admin_metadata_handlers.create_metadata_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
           TOKEN_TABLE: !Ref TokenTable
-          METADATA_TABLE: !Ref ProviderMetadataTable
+          METADATA_TABLE: !Ref MetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
-  UpdateProviderLambdaPermission:
+  UpdateMetadataLambdaPermission:
     Type: "AWS::Lambda::Permission"
     DependsOn:
     - AdminApi
-    - UpdateProvider
+    - UpdateMetadata
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref UpdateProvider
+      FunctionName: !Ref UpdateMetadata
       Principal: apigateway.amazonaws.com
-  UpdateProvider:
+  UpdateMetadata:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handlers.admin_metadata_handlers.update_provider_metadata_handler
+      Handler: handlers.admin_metadata_handlers.update_metadata_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
           TOKEN_TABLE: !Ref TokenTable
-          METADATA_TABLE: !Ref ProviderMetadataTable
+          METADATA_TABLE: !Ref MetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
-  DeleteProviderLambdaPermission:
+  DeleteMetadataLambdaPermission:
     Type: "AWS::Lambda::Permission"
     DependsOn:
     - AdminApi
-    - DeleteProvider
+    - DeleteMetadata
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref DeleteProvider
+      FunctionName: !Ref DeleteMetadata
       Principal: apigateway.amazonaws.com
-  DeleteProvider:
+  DeleteMetadata:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handlers.admin_metadata_handlers.delete_provider_metadata_handler
+      Handler: handlers.admin_metadata_handlers.delete_metadata_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
           TOKEN_TABLE: !Ref TokenTable
-          METADATA_TABLE: !Ref ProviderMetadataTable
+          METADATA_TABLE: !Ref MetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
-  GetProviderLambdaPermission:
+  GetMetadataLambdaPermission:
     Type: "AWS::Lambda::Permission"
     DependsOn:
     - AdminApi
-    - GetProvider
+    - GetMetadata
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref GetProvider
+      FunctionName: !Ref GetMetadata
       Principal: apigateway.amazonaws.com
-  GetProvider:
+  GetMetadata:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handlers.admin_metadata_handlers.get_provider_metadata_handler
+      Handler: handlers.admin_metadata_handlers.get_metadata_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
           TOKEN_TABLE: !Ref TokenTable
-          METADATA_TABLE: !Ref ProviderMetadataTable
+          METADATA_TABLE: !Ref MetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
-  # Provider Key CRUD Resources
-  CreateProviderKeyLambdaPermission:
+  # Key CRUD Resources
+  CreateKeyLambdaPermission:
     Type: "AWS::Lambda::Permission"
     DependsOn:
     - AdminApi
-    - CreateProviderKey
+    - CreateKey
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref CreateProviderKey
+      FunctionName: !Ref CreateKey
       Principal: apigateway.amazonaws.com
-  CreateProviderKey:
+  CreateKey:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handlers.admin_token_handlers.create_provider_key_handler
+      Handler: handlers.admin_token_handlers.create_key_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
           TOKEN_TABLE: !Ref TokenTable
-          METADATA_TABLE: !Ref ProviderMetadataTable
+          METADATA_TABLE: !Ref MetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
-  DeleteProviderKeyLambdaPermission:
+  DeleteKeyLambdaPermission:
     Type: "AWS::Lambda::Permission"
     DependsOn:
     - AdminApi
-    - DeleteProviderKey
+    - DeleteKey
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref DeleteProviderKey
+      FunctionName: !Ref DeleteKey
       Principal: apigateway.amazonaws.com
-  DeleteProviderKey:
+  DeleteKey:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handlers.admin_token_handlers.delete_provider_key_handler
+      Handler: handlers.admin_token_handlers.delete_key_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
           TOKEN_TABLE: !Ref TokenTable
-          METADATA_TABLE: !Ref ProviderMetadataTable
+          METADATA_TABLE: !Ref MetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
-  GetProviderKeysLambdaPermission:
+  GetKeysLambdaPermission:
     Type: "AWS::Lambda::Permission"
     DependsOn:
     - AdminApi
-    - GetProviderKeys
+    - GetKeys
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref GetProviderKeys
+      FunctionName: !Ref GetKeys
       Principal: apigateway.amazonaws.com
-  GetProviderKeys:
+  GetKeys:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handlers.admin_token_handlers.get_provider_keys_handler
+      Handler: handlers.admin_token_handlers.get_keys_handler
       Runtime: python2.7
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
           TOKEN_TABLE: !Ref TokenTable
-          METADATA_TABLE: !Ref ProviderMetadataTable
+          METADATA_TABLE: !Ref MetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret

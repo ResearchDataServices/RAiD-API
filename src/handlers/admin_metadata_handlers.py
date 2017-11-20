@@ -6,13 +6,14 @@ from boto3.dynamodb.conditions import Key
 import json
 import urllib
 from helpers import web_helpers
+import settings
 
 # Set Logging Level
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
 
 
-def create_provider_metadata_handler(event, context):
+def create_metadata_handler(event, context):
     try:
         # Interpret and validate request body
         body = json.loads(event["body"])
@@ -45,9 +46,9 @@ def create_provider_metadata_handler(event, context):
         )
 
 
-def update_provider_metadata_handler(event, context):
+def update_metadata_handler(event, context):
     try:
-        name = urllib.unquote(urllib.unquote(event["pathParameters"]["provider"]))
+        name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
 
     except:
         logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
@@ -87,9 +88,9 @@ def update_provider_metadata_handler(event, context):
         )
 
 
-def delete_provider_metadata_handler(event, context):
+def delete_metadata_handler(event, context):
     try:
-        name = urllib.unquote(urllib.unquote(event["pathParameters"]["provider"]))
+        name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
 
     except:
         logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
@@ -112,9 +113,9 @@ def delete_provider_metadata_handler(event, context):
         )
 
 
-def get_provider_metadata_handler(event, context):
+def get_metadata_handler(event, context):
     try:
-        name = urllib.unquote(urllib.unquote(event["pathParameters"]["provider"]))
+        name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
 
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
@@ -142,3 +143,36 @@ def get_provider_metadata_handler(event, context):
             {'message': "Incorrect path parameter formatting for provider name. Ensure it is a URL encoded string."}
         )
 
+
+def get_service_points_handler(event, context):
+    try:
+        query_parameters = {
+            'IndexName': 'type',
+            'KeyConditionExpression': Key('type').eq(settings.SERVICE_ROLE)
+        }
+
+        return web_helpers.generate_table_list_response(event, query_parameters, os.environ["METADATA_TABLE"])
+
+    except:
+        logger.error('Unable to get service points: {}'.format(sys.exc_info()[0]))
+        return web_helpers.generate_web_body_response(
+            '400',
+            {'message': "Unable to get service points."}
+        )
+
+
+def get_institution_handler(event, context):
+    try:
+        query_parameters = {
+            'IndexName': 'type',
+            'KeyConditionExpression': Key('type').eq(settings.INSTITUTION_ROLE)
+        }
+
+        return web_helpers.generate_table_list_response(event, query_parameters, os.environ["METADATA_TABLE"])
+
+    except:
+        logger.error('Unable to get institutions: {}'.format(sys.exc_info()[0]))
+        return web_helpers.generate_web_body_response(
+            '400',
+            {'message': "Unable to get institutions."}
+        )

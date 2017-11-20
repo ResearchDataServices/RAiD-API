@@ -147,29 +147,3 @@ def authenticate_token_handler(event, context):
             event
         )
 
-
-def validate_admin_api_key_handler(event, context):
-    """
-    Validate an API Gateway token and provide a descriptive human readable bodied 200
-    response or a 401 unauthorised response.
-    :param event:
-    :param context:
-    :return:
-    """
-    try:
-        # Validate the incoming api key token from passed in the body
-        body = json.loads(event["body"])
-        api_key = body["apiKey"]
-        client = boto3.client('apigateway')
-        response = client.get_api_key(api_key)
-        return web_helpers.generate_web_body_response('200', response)
-
-    except Exception:
-        logger.error('Unable to authenticate api key: {}'.format(sys.exc_info()[0]))
-        return web_helpers.generate_web_body_response(
-            '401',
-            {
-                'message': "Unable to authenticate the api key. Please check structure of the body."
-            },
-            event
-        )

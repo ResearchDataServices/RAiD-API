@@ -5,161 +5,44 @@ info:
   title: RAiD Admin API
   version: "1.0.0"
 tags:
-- name: "Provider"
+- name: "Service Point"
+- name: "Institution"
+- name: "Entity Metadata"
+- name: "Tokens"
 - name: "CORS"
 schemes:
 - https
 paths:
-  /auth:
-    post:
-      summary: "Validate an API Key"
-      tags:
-      - "Auth"
-      consumes:
-      - "application/json"
-      produces:
-      - application/json
-      parameters:
-      - in: "body"
-        required: false
-        name: "body"
-        schema:
-          $ref: "#/definitions/RAiDAdminAuthModel"
-      responses:
-        200:
-          description: 200 response
-          schema:
-            $ref: "#/definitions/RAiDAdminAuthResponseModel"
-          headers:
-            Access-Control-Allow-Origin:
-              type: "string"
-      x-amazon-apigateway-integration:
-        responses:
-          default:
-            statusCode: 200
-            responseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.ValidateApiKeyFunction}/invocations
-        passthroughBehavior: when_no_match
-        httpMethod: POST
-        type: aws_proxy
-    options:
-      tags:
-      - "CORS"
-      consumes:
-      - application/json
-      produces:
-      - application/json
-      responses:
-        200:
-          description: 200 response
-          schema:
-            $ref: "#/definitions/Empty"
-          headers:
-            Access-Control-Allow-Origin:
-              type: string
-            Access-Control-Allow-Methods:
-              type: string
-            Access-Control-Allow-Headers:
-              type: string
-      x-amazon-apigateway-integration:
-        responses:
-          default:
-            statusCode: 200
-            responseParameters:
-              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-        passthroughBehavior: when_no_match
-        requestTemplates:
-          application/json: "{\"statusCode\": 200}"
-        type: mock
-  /provider/metadata:
-    post:
-      summary: "Create a new provider"
-      tags:
-      - "Provider"
-      consumes:
-      - "application/json"
-      produces:
-      - application/json
-      parameters:
-      - in: "body"
-        required: false
-        name: "body"
-        schema:
-          $ref: "#/definitions/ProviderCreateModel"
-      responses:
-        200:
-          description: 200 response
-          schema:
-            $ref: "#/definitions/ProviderModel"
-          headers:
-            Access-Control-Allow-Origin:
-              type: "string"
-      security:
-      - api_key: []
-      x-amazon-apigateway-integration:
-        responses:
-          default:
-            statusCode: 200
-            responseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CreateProviderFunction}/invocations
-        passthroughBehavior: when_no_match
-        httpMethod: POST
-        type: aws_proxy
-    options:
-      tags:
-      - "CORS"
-      consumes:
-      - application/json
-      produces:
-      - application/json
-      responses:
-        200:
-          description: 200 response
-          schema:
-            $ref: "#/definitions/Empty"
-          headers:
-            Access-Control-Allow-Origin:
-              type: string
-            Access-Control-Allow-Methods:
-              type: string
-            Access-Control-Allow-Headers:
-              type: string
-      x-amazon-apigateway-integration:
-        responses:
-          default:
-            statusCode: 200
-            responseParameters:
-              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-        passthroughBehavior: when_no_match
-        requestTemplates:
-          application/json: "{\"statusCode\": 200}"
-        type: mock
-  /provider/metadata/{provider}:
+  /service:
     get:
-      summary: "Return metadata of a given provider"
+      summary: "Return of service points"
       tags:
-      - "Provider"
+      - "Service Point"
       x-amazon-apigateway-auth:
         type: aws_iam
       produces:
       - application/json
       parameters:
-      - name: provider
-        in: path
-        required: true
-        type: string
-        description: "Provider name. Example: ORG@UQ"
+      - name: "limit"
+        in: "query"
+        required: false
+        type: "integer"
+        description: "The maximum number of items to return"
+      - name: "ascending"
+        in: "query"
+        required: false
+        type: "boolean"
+        description: "Order list by in ascending order (most recently created first)"
+      - name: "exclusiveStartKey"
+        in: "query"
+        required: false
+        type: "string"
+        description: "Key of the last item returned in a previous query to be used for large lists and pagination"
       responses:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/ProviderModel"
+            $ref: "#/definitions/EntitiesModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -171,13 +54,219 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetProviderFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetSerivcePointsFunction}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
+  /institution:
+    get:
+      summary: "Return a list of institutions"
+      tags:
+      - "Institution"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      produces:
+      - application/json
+      parameters:
+      - name: "limit"
+        in: "query"
+        required: false
+        type: "integer"
+        description: "The maximum number of items to return"
+      - name: "ascending"
+        in: "query"
+        required: false
+        type: "boolean"
+        description: "Order list by in ascending order (most recently created first)"
+      - name: "exclusiveStartKey"
+        in: "query"
+        required: false
+        type: "string"
+        description: "Key of the last item returned in a previous query to be used for large lists and pagination"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/EntitiesModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - api_key: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetInstitutionsFunction}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
+  /metadata:
+    post:
+      summary: "Create a new entity (service or institution)"
+      tags:
+      - "Entity Metadata"
+      consumes:
+      - "application/json"
+      produces:
+      - application/json
+      parameters:
+      - in: "body"
+        required: false
+        name: "body"
+        schema:
+          $ref: "#/definitions/EntityCreateModel"
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/EntityModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - api_key: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CreateMetadataFunction}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
+  /metadata/{name}:
+    get:
+      summary: "Return metadata of a given entity (service or institution)"
+      tags:
+      - "Entity Metadata"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      produces:
+      - application/json
+      parameters:
+      - name: name
+        in: path
+        required: true
+        type: string
+        description: "Entity name. Example: ORG@UQ"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/EntityModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - api_key: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetMetadataFunction}/invocations
         httpMethod: POST
         type: aws_proxy
     put:
-      summary: "Update metadata of a given provider"
+      summary: "Update metadata of a given entity (service or institution)"
       tags:
-      - "Provider"
+      - "Entity Metadata"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -185,22 +274,22 @@ paths:
       produces:
       - application/json
       parameters:
-      - name: provider
+      - name: name
         in: path
         required: true
         type: string
-        description: "Provider name. Example: ORG@UQ"
+        description: "Entity name. Example: ORG@UQ"
       - in: "body"
         required: false
         name: "body"
-        description: "Parameters that are used when updating a provider"
+        description: "Parameters that are used when updating an entity"
         schema:
-          $ref: "#/definitions/ProviderUpdateModel"
+          $ref: "#/definitions/EntityUpdateModel"
       responses:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/ProviderModel"
+            $ref: "#/definitions/EntityModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -212,14 +301,14 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.UpdateProviderFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.UpdateMetadataFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
     delete:
-      summary: "Delete metadata of a given provider"
+      summary: "Delete metadata of a given entity (service or institution)"
       tags:
-      - "Provider"
+      - "Entity Metadata"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -227,11 +316,11 @@ paths:
       produces:
       - application/json
       parameters:
-      - name: provider
+      - name: name
         in: path
         required: true
         type: string
-        description: "Provider name. Example: ORG@UQ"
+        description: "Entity name. Example: ORG@UQ"
       responses:
         200:
           description: "200 response"
@@ -248,7 +337,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.DeleteProviderFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.DeleteMetadataFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -284,26 +373,41 @@ paths:
           application/json: "{\"statusCode\": 200}"
         type: mock
 
-  /provider/keys:
-    post:
-      summary: "Create a new provider JWT token"
+  /metadata/{name}/tokens:
+    get:
+      summary: "Return a list of JWT tokens that belong to the entity (service or institution)"
       tags:
-      - "Provider"
-      consumes:
-      - "application/json"
+      - "Tokens"
+      x-amazon-apigateway-auth:
+        type: aws_iam
       produces:
       - application/json
       parameters:
-      - in: "body"
+      - name: name
+        in: path
+        required: true
+        type: string
+        description: "Entity name. Example: ORG@UQ"
+      - name: "limit"
+        in: "query"
         required: false
-        name: "body"
-        schema:
-          $ref: "#/definitions/ProviderKeyCreateModel"
+        type: "integer"
+        description: "The maximum number of items to return"
+      - name: "ascending"
+        in: "query"
+        required: false
+        type: "boolean"
+        description: "Order list by in ascending order (most recently created first)"
+      - name: "exclusiveStartKey"
+        in: "query"
+        required: false
+        type: "string"
+        description: "Key of the last item returned in a previous query to be used for large lists and pagination"
       responses:
         200:
-          description: 200 response
+          description: "200 response"
           schema:
-            $ref: "#/definitions/ProviderKeyModel"
+            $ref: "#/definitions/KeysModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -315,10 +419,49 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CreateProviderKeyFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetKeysFunction}/invocations
+        httpMethod: POST
+        type: aws_proxy
+    post:
+      summary: "Create a new JWT token for an entity (service or institution)"
+      tags:
+      - "Tokens"
+      consumes:
+      - "application/json"
+      produces:
+      - application/json
+      parameters:
+      - name: name
+        in: path
+        required: true
+        type: string
+        description: "Entity name. Example: ORG@UQ"
+      - in: "body"
+        required: false
+        name: "body"
+        schema:
+          $ref: "#/definitions/KeyCreateModel"
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/KeyModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - api_key: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.CreateKeyFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
+
     options:
       tags:
       - "CORS"
@@ -350,59 +493,12 @@ paths:
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         type: mock
-  /provider/keys/{provider}:
-    get:
-      summary: "Return a list of JWT tokens that belong to the provider"
-      tags:
-      - "Provider"
-      x-amazon-apigateway-auth:
-        type: aws_iam
-      produces:
-      - application/json
-      parameters:
-      - name: provider
-        in: path
-        required: true
-        type: string
-        description: "Provider name. Example: ORG@UQ"
-      - name: "limit"
-        in: "query"
-        required: false
-        type: "integer"
-        description: "The maximum number of items to return"
-      - name: "ascending"
-        in: "query"
-        required: false
-        type: "boolean"
-        description: "Order list by in ascending order (most recently created first)"
-      - name: "exclusiveStartKey"
-        in: "query"
-        required: false
-        type: "string"
-        description: "Key of the last item returned in a previous query to be used for large lists and pagination"
-      responses:
-        200:
-          description: "200 response"
-          schema:
-            $ref: "#/definitions/ProviderKeysModel"
-          headers:
-            Access-Control-Allow-Origin:
-              type: "string"
-      security:
-      - api_key: []
-      x-amazon-apigateway-integration:
-        responses:
-          default:
-            statusCode: 200
-            responseParameters:
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetProviderKeysFunction}/invocations
-        httpMethod: POST
-        type: aws_proxy
+
+  /metadata/{name}/tokens/{datetime}:
     delete:
-      summary: "Delete the JWT token of a provider created on the given date"
+      summary: "Delete the JWT token of a entity (service or institution) created on the given datetime"
       tags:
-      - "Provider"
+      - "Tokens"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -410,17 +506,21 @@ paths:
       produces:
       - application/json
       parameters:
-      - name: provider
+      - name: name
         in: path
         required: true
         type: string
-        description: "Provider name. Example: ORG@UQ"
+        description: "Entity name. Example: ORG@UQ"
+      - name: datetime
+        in: path
+        required: true
+        type: string
+        description: "Datetime ('yyyyMMddTHHmmssZ')"
       - in: "body"
         required: false
         name: "body"
-        description: "Optional parameters that are used when removing a provider"
         schema:
-          $ref: "#/definitions/DeleteProviderKeyModel"
+          $ref: "#/definitions/Empty"
       responses:
         200:
           description: "200 response"
@@ -437,7 +537,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.DeleteProviderKeyFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.DeleteKeyFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -487,25 +587,25 @@ definitions:
     properties:
       name:
         type: "string"
-  ProviderKeyCreateModel:
+  KeyCreateModel:
     type: "object"
     properties:
       name:
         type: "string"
-        description: "Provider Name"
-  ProviderKeyModel:
+        description: "Entity Name"
+  KeyModel:
     type: "object"
     properties:
       name:
         type: "string"
-        description: "Provider name"
+        description: "Entity name"
       date:
         type: "string"
-        description: "Date of token creation"
+        description: "Datetime ('yyyyMMddTHHmmssZ') of token creation"
       token:
         type: "string"
         description: "JWT token"
-  ProviderKeysModel:
+  KeysModel:
     type: "object"
     properties:
       count:
@@ -513,78 +613,62 @@ definitions:
         description: "Number of items returned"
       items:
         type: "array"
-        description: "(optional) Providers keys"
+        description: "Entity keys"
         items:
-          $ref: "#/definitions/ProviderKeyModel"
+          $ref: "#/definitions/KeyModel"
       scannedCount:
         type: "string"
         description: "Total number of items that were scanned in the query"
-  DeleteProviderKeyModel:
-      type: "object"
-      properties:
-        date:
-          type: "string"
-          description: "Date of token creation"
-  ProviderCreateModel:
+  EntityCreateModel:
     type: "object"
     properties:
       name:
         type: "string"
         description: ""
+      type:
+        type: "string"
+        description: "The role of type the entity; 'service' or 'institution'"
       isni:
         type: "string"
-        description: "The International Standard Name Identifier (ISNI)"
+        description: "(optional) The International Standard Name Identifier (ISNI)"
       grid:
         type: "string"
-        description: "GRID (Global Research Identifier Database) of the Institution"
-  ProviderUpdateModel:
+        description: "(optional) GRID (Global Research Identifier Database) of the entity"
+  EntityUpdateModel:
     type: "object"
     properties:
       isni:
         type: "string"
-        description: "The International Standard Name Identifier (ISNI)"
+        description: "(optional) The International Standard Name Identifier (ISNI)"
       grid:
         type: "string"
-        description: "GRID (Global Research Identifier Database) of the Institution"
-  ProviderModel:
+        description: "(optional) GRID (Global Research Identifier Database) of the entity"
+  EntityModel:
     type: "object"
     properties:
       name:
         type: "string"
         description: ""
+      type:
+        type: "string"
+        description: "The role of type the entity; 'service' or 'institution'"
       isni:
         type: "string"
-        description: "The International Standard Name Identifier (ISNI)"
+        description: "(optional) The International Standard Name Identifier (ISNI)"
       grid:
         type: "string"
-        description: "GRID (Global Research Identifier Database) of the Institution"
-  RAiDAdminAuthModel:
+        description: "(optional) GRID (Global Research Identifier Database) of the entity"
+  EntitiesModel:
     type: "object"
     properties:
-      apiKey:
+      count:
         type: "string"
-        description: "AWS API Gateway API Key"
-  RAiDAdminAuthResponseModel:
-    type: "object"
-    properties:
-      id:
+        description: "Number of items returned"
+      items:
+        type: "array"
+        description: "Entities"
+        items:
+          $ref: "#/definitions/EntityModel"
+      scannedCount:
         type: "string"
-        description: "The identifier of the API Key"
-      value:
-        type: "string"
-        description: "The value of the API Key"
-      name:
-        type: "string"
-        description: "The name of the API Key"
-      description:
-        type: "string"
-        description: "The description of the API Key"
-      enabled:
-        type: "boolean"
-        description: "Specifies whether the API Key can be used by callers"
-      createdDate:
-        type: "string"
-        description: "The timestamp when the API Key was created"
-      lastUpdatedDate:
-        type: "string"
-        description: "The timestamp when the API Key was last updated"
+        description: "Total number of items that were scanned in the query"

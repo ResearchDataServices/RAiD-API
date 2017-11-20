@@ -21,7 +21,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
 
 
-def create_provider_key_handler(event, context):
+def create_key_handler(event, context):
     try:
         # Interpret and validate request body
         body = json.loads(event["body"])
@@ -61,9 +61,9 @@ def create_provider_key_handler(event, context):
         )
 
 
-def delete_provider_key_handler(event, context):
+def delete_key_handler(event, context):
     try:
-        name = urllib.unquote(urllib.unquote(event["pathParameters"]["provider"]))
+        name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
 
     except:
         logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
@@ -93,9 +93,9 @@ def delete_provider_key_handler(event, context):
         )
 
 
-def get_provider_keys_handler(event, context):
+def get_keys_handler(event, context):
     try:
-        name = urllib.unquote(urllib.unquote(event["pathParameters"]["provider"]))
+        name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
 
         query_parameters = {'KeyConditionExpression': Key('Name').eq(name)}
 
