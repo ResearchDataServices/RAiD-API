@@ -47,7 +47,7 @@ def create_provider_key_handler(event, context):
 
         # Initialise DynamoDB
         dynamodb = boto3.resource('dynamodb')
-        provider_table = dynamodb.Table(os.environ["PROVIDER_TABLE"])
+        provider_table = dynamodb.Table(os.environ["TOKEN_TABLE"])
         # Send Dynamo DB put response
         provider_table.put_item(Item=item)
 
@@ -81,7 +81,7 @@ def delete_provider_key_handler(event, context):
 
         # Initialise DynamoDB
         dynamodb = boto3.resource('dynamodb')
-        provider_table = dynamodb.Table(os.environ["PROVIDER_TABLE"])
+        provider_table = dynamodb.Table(os.environ["TOKEN_TABLE"])
         provider_table.delete_item(Key={'Name': name, 'Date': body["date"]})
         return web_helpers.generate_web_body_response('200', {'message': "Successfully deleted provider token."})
 
@@ -99,7 +99,7 @@ def get_provider_keys_handler(event, context):
 
         query_parameters = {'KeyConditionExpression': Key('Name').eq(name)}
 
-        return web_helpers.generate_table_list_response(event, query_parameters, os.environ["PROVIDER_TABLE"])
+        return web_helpers.generate_table_list_response(event, query_parameters, os.environ["TOKEN_TABLE"])
 
     except:
         logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))

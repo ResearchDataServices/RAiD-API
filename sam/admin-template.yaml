@@ -9,7 +9,7 @@
 # aws cloudformation deploy \
 # --template-file <path-to-file>/template-out.yaml \
 # --stack-name <STACK_NAME> \
-# --parameter-overrides Tracing=Active JwtSecret=<TOKEN_SECRET> ProviderMetadataTable=<<>>\
+# --parameter-overrides Tracing=Active JwtSecret=<TOKEN_SECRET> MetadataTable=<<>> TokenTable=<<>>\
 # --capabilities CAPABILITY_IAM
 ---
 AWSTemplateFormatVersion: '2010-09-09'
@@ -32,7 +32,9 @@ Parameters:
     Default: https://api.raid.org.au
   JwtSecret:
     Type: String
-  ProviderMetadataTable:
+  MetadataTable:
+    Type: String
+  TokenTable:
     Type: String
 
 Resources:
@@ -133,8 +135,8 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          PROVIDER_TABLE: !Ref ServiceTable
-          PROVIDER_METADATA_TABLE: !Ref ProviderMetadataTable
+          TOKEN_TABLE: !Ref TokenTable
+          METADATA_TABLE: !Ref ProviderMetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
@@ -156,8 +158,8 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          PROVIDER_TABLE: !Ref ServiceTable
-          PROVIDER_METADATA_TABLE: !Ref ProviderMetadataTable
+          TOKEN_TABLE: !Ref TokenTable
+          METADATA_TABLE: !Ref ProviderMetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
@@ -179,8 +181,8 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          PROVIDER_TABLE: !Ref ServiceTable
-          PROVIDER_METADATA_TABLE: !Ref ProviderMetadataTable
+          TOKEN_TABLE: !Ref TokenTable
+          METADATA_TABLE: !Ref ProviderMetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
@@ -202,8 +204,8 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          PROVIDER_TABLE: !Ref ServiceTable
-          PROVIDER_METADATA_TABLE: !Ref ProviderMetadataTable
+          TOKEN_TABLE: !Ref TokenTable
+          METADATA_TABLE: !Ref ProviderMetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
@@ -226,8 +228,8 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          PROVIDER_TABLE: !Ref ServiceTable
-          PROVIDER_METADATA_TABLE: !Ref ProviderMetadataTable
+          TOKEN_TABLE: !Ref TokenTable
+          METADATA_TABLE: !Ref ProviderMetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
@@ -249,8 +251,8 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          PROVIDER_TABLE: !Ref ServiceTable
-          PROVIDER_METADATA_TABLE: !Ref ProviderMetadataTable
+          TOKEN_TABLE: !Ref TokenTable
+          METADATA_TABLE: !Ref ProviderMetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
@@ -272,77 +274,12 @@ Resources:
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
-          PROVIDER_TABLE: !Ref ServiceTable
-          PROVIDER_METADATA_TABLE: !Ref ProviderMetadataTable
+          TOKEN_TABLE: !Ref TokenTable
+          METADATA_TABLE: !Ref ProviderMetadataTable
           JWT_ISSUER: !Ref JwtIssuer
           JWT_AUDIENCE: !Ref JwtAudience
           JWT_SECRET: !Ref JwtSecret
-  # Service Resources
-  ServiceTable:
-    Type: "AWS::DynamoDB::Table"
-    Properties:
-      AttributeDefinitions:
-        -
-          AttributeName: "Name"
-          AttributeType: "S"
-        -
-          AttributeName: "Date"
-          AttributeType: "S"
-      KeySchema:
-        -
-          AttributeName: "Name"
-          KeyType: "HASH"
-        -
-          AttributeName: "Date"
-          KeyType: "RANGE"
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-
-  # Institution Resources
-  InstitutionTable:
-    Type: "AWS::DynamoDB::Table"
-    Properties:
-      AttributeDefinitions:
-        -
-          AttributeName: "Name"
-          AttributeType: "S"
-        -
-          AttributeName: "Grid"
-          AttributeType: "S"
-        -
-          AttributeName: "Date"
-          AttributeType: "S"
-      KeySchema:
-        -
-          AttributeName: "Grid"
-          KeyType: "HASH"
-        -
-          AttributeName: "Date"
-          KeyType: "RANGE"
-      GlobalSecondaryIndexes:
-        -
-          IndexName: "GSI"
-          KeySchema:
-            -
-              AttributeName: "Name"
-              KeyType: "HASH"
-            -
-              AttributeName: "Date"
-              KeyType: "RANGE"
-          Projection:
-            ProjectionType: "INCLUDE"
-            NonKeyAttributes:
-              - "Token"
-          ProvisionedThroughput:
-            ReadCapacityUnits: 5
-            WriteCapacityUnits: 5
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
 Outputs:
-  ProviderKeys:
-    Value: !Ref 'ServiceTable'
   AdminApi:
     Value: !Ref 'AdminApi'
   

@@ -31,7 +31,7 @@ def create_provider_metadata_handler(event, context):
 
         # Initialise DynamoDB
         dynamodb = boto3.resource('dynamodb')
-        provider_table = dynamodb.Table(os.environ["PROVIDER_METADATA_TABLE"])
+        provider_table = dynamodb.Table(os.environ["METADATA_TABLE"])
 
         # Send Dynamo DB put response
         provider_table.put_item(Item=item)
@@ -64,7 +64,7 @@ def update_provider_metadata_handler(event, context):
             raise Exception("'isni' and 'grid' must be provided.")
 
         dynamodb = boto3.resource('dynamodb')
-        provider_table = dynamodb.Table(os.environ["PROVIDER_METADATA_TABLE"])
+        provider_table = dynamodb.Table(os.environ["METADATA_TABLE"])
 
         # Update meta values
         update_response = provider_table.update_item(
@@ -100,7 +100,7 @@ def delete_provider_metadata_handler(event, context):
 
     try:
         dynamodb = boto3.resource('dynamodb')
-        provider_table = dynamodb.Table(os.environ["PROVIDER_METADATA_TABLE"])
+        provider_table = dynamodb.Table(os.environ["METADATA_TABLE"])
         provider_table.delete_item(Key={'name': name})
         return web_helpers.generate_web_body_response('200', {'message': "Successfully deleted provider."})
 
@@ -118,7 +118,7 @@ def get_provider_metadata_handler(event, context):
 
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        provider_table = dynamo_db.Table(os.environ["PROVIDER_METADATA_TABLE"])
+        provider_table = dynamo_db.Table(os.environ["METADATA_TABLE"])
 
         # Check if provider meta data exists
         query_response = provider_table.query(KeyConditionExpression=Key('name').eq(name))

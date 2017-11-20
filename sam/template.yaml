@@ -363,7 +363,6 @@ Resources:
           PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
           INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
           INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
-          PROVIDER_METADATA_TABLE: !Ref ProviderMetadataTable
       Events:
         GetRaidHandle:
           Type: Api
@@ -430,7 +429,6 @@ Resources:
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
           PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
           PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
-          PROVIDER_METADATA_TABLE: !Ref ProviderMetadataTable
       Events:
         GetRaidProvidersHandle:
           Type: Api
@@ -553,12 +551,61 @@ Resources:
     Type: "AWS::CloudFormation::Stack"
     Properties:
       TemplateURL: database-template.yaml
-  ProviderMetadataTable:
-    Type: AWS::Serverless::SimpleTable
+
+  ## Metadata table
+  MetadataTable:
+    Type: "AWS::DynamoDB::Table"
     Properties:
-      PrimaryKey:
-        Name: name
-        Type: String
+      AttributeDefinitions:
+        -
+          AttributeName: "name"
+          AttributeType: "S"
+        -
+          AttributeName: "type"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "name"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "type"
+          KeySchema:
+            -
+              AttributeName: "type"
+              KeyType: "HASH"
+            -
+              AttributeName: "name"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "grid"
+              - "isni"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  ## JWT token table
+  TokenTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "name"
+          AttributeType: "S"
+        -
+          AttributeName: "dateCreated"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "name"
+          KeyType: "HASH"
+        -
+          AttributeName: "dateCreated"
+          KeyType: "RANGE"
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
@@ -575,5 +622,7 @@ Outputs:
     Value: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
   RaidLiveInstitutionDB:
     Value: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
-  ProviderMetadataDB:
-    Value: !Ref ProviderMetadataTable
+  MetadataDB:
+    Value: !Ref MetadataTable
+  TokenDB:
+    Value: !Ref TokenTable
