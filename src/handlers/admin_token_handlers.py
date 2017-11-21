@@ -23,73 +23,79 @@ logger.setLevel(logging.ERROR)
 
 def create_key_handler(event, context):
     try:
+        name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
+
+        # Get current datetime
+        now = datetime.datetime.now().isoformat()
+
         # Interpret and validate request body
         body = json.loads(event["body"])
 
-        if "name" not in body:
-            raise Exception("'name' must be provided in 'parameters to generate a JWT token.")
-
-        # Get current datetime
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
         # Get environment
-        if "environment" in body:
+        if "environment" in body \
+                and (body["environment"] == settings.DEMO_ENVIRONMENT
+                     or body["environment"] == settings.LIVE_ENVIRONMENT):
             environment = body["environment"]
         else:
-            environment = "demo"
-
-        # Create JWT token
-        jwt = auth.jwt_role_encode(JWT_SECRET, JWT_AUDIENCE, JWT_ISSUER, body["name"], settings.SERVICE_ROLE,
-                                   environment, 24)
-
-        # Define item
-        item = {'Name': body["name"], 'Date': now, 'Token': jwt, 'environment': environment}
+            return web_helpers.generate_web_body_response(
+                '400',
+                {'message': "Unable to create a entity token. 'environment' must be provided in the body of the"
+                            " request and have the value 'demo' or 'live'"}
+            )
 
         # Initialise DynamoDB
         dynamodb = boto3.resource('dynamodb')
-        provider_table = dynamodb.Table(os.environ["TOKEN_TABLE"])
+        token_table = dynamodb.Table(os.environ["TOKEN_TABLE"])
+        metadata_table = dynamodb.Table(os.environ["METADATA_TABLE"])
+
+        # Check if metadata exists
+        query_response = metadata_table.query(KeyConditionExpression=Key('name').eq(name))
+
+        if query_response["Count"] != 1:
+            return web_helpers.generate_web_body_response(
+                '404',
+                {'message': "Entity '{}' has no metadata.".format(name)}
+            )
+
+        # Assign metadata item to single item, since the result will be an array of one item
+        metadata = query_response['Items'][0]
+
+
+        # Create JWT token
+        jwt = auth.jwt_role_encode(JWT_SECRET, JWT_AUDIENCE, JWT_ISSUER, name, metadata['type'], environment, 24)
+
+        # Define item
+        item = {'name': name, 'dateCreated': str(now), 'token': jwt, 'environment': environment}
+
         # Send Dynamo DB put response
-        provider_table.put_item(Item=item)
+        token_table.put_item(Item=item)
 
         return web_helpers.generate_web_body_response('200', item)
 
-    except:
+    except Exception, e:
         logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
         return web_helpers.generate_web_body_response(
             '400',
-            {'message': "Unable to create a Provider token. 'name' must be provided in the body of the request"}
+            {'message': "Unable to create an entity token. 'environment' must be provided in the body of the request"} #TODO
         )
 
 
 def delete_key_handler(event, context):
     try:
         name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
-
-    except:
-        logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
-        return web_helpers.generate_web_body_response(
-            '400',
-            {'message': "Incorrect path parameter formatting for provider name. Ensure it is a URL encoded string."}
-        )
-
-    try:
-        # Interpret and validate request body
-        body = json.loads(event["body"])
-
-        if "date" not in body:
-            raise Exception("A valid 'date' must be provided in parameters to delete the JWT token.")
+        date_created = urllib.unquote(urllib.unquote(event["pathParameters"]["datetime"]))
 
         # Initialise DynamoDB
         dynamodb = boto3.resource('dynamodb')
-        provider_table = dynamodb.Table(os.environ["TOKEN_TABLE"])
-        provider_table.delete_item(Key={'Name': name, 'Date': body["date"]})
-        return web_helpers.generate_web_body_response('200', {'message': "Successfully deleted provider token."})
+        token_table = dynamodb.Table(os.environ["TOKEN_TABLE"])
+        token_table.delete_item(Key={'name': name, 'dateCreated': date_created})
+        return web_helpers.generate_web_body_response('200', {'message': "Successfully deleted an entity token."})
 
     except:
         logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
         return web_helpers.generate_web_body_response(
             '400',
-            {'message': "A valid 'date' must be provided in parameters to delete the JWT token."}
+            {'message': "Incorrect path parameter formatting for an entity name or date. Ensure it is a URL encoded string."}
         )
 
 
@@ -97,14 +103,14 @@ def get_keys_handler(event, context):
     try:
         name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
 
-        query_parameters = {'KeyConditionExpression': Key('Name').eq(name)}
+        query_parameters = {'KeyConditionExpression': Key('name').eq(name)}
 
         return web_helpers.generate_table_list_response(event, query_parameters, os.environ["TOKEN_TABLE"])
 
     except:
-        logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
+        logger.error('Unable to validate entity name: {}'.format(sys.exc_info()[0]))
         return web_helpers.generate_web_body_response(
             '400',
-            {'message': "Incorrect path parameter type formatting for provider name. Ensure it is a URL encoded string"}
+            {'message': "Incorrect path parameter type formatting for entity name. Ensure it is a URL encoded string"}
         )
 

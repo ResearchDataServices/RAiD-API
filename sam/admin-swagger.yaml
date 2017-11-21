@@ -5,6 +5,7 @@ info:
   title: RAiD Admin API
   version: "1.0.0"
 tags:
+- name: "API Version"
 - name: "Service Point"
 - name: "Institution"
 - name: "Entity Metadata"
@@ -13,6 +14,68 @@ tags:
 schemes:
 - https
 paths:
+  /:
+    get:
+      summary: "Get API version metadata"
+      tags:
+      - "API Version"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/APIVersionModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - api_key: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: "{\"version\": \"1.0.0\"}"
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        passthroughBehavior: "when_no_match"
+        type: "mock"
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
   /service:
     get:
       summary: "Return of service points"
@@ -325,7 +388,7 @@ paths:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/MessageModel"
+            $ref: "#/definitions/Empty"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -525,7 +588,7 @@ paths:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/MessageModel"
+            $ref: "#/definitions/Empty"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -582,6 +645,12 @@ definitions:
   Empty:
     type: object
     title: Empty Schema
+  APIVersionModel:
+    type: "object"
+    properties:
+      version:
+        type: "string"
+    description: "API Version Summary"
   MessageModel:
     type: object
     properties:
@@ -590,18 +659,21 @@ definitions:
   KeyCreateModel:
     type: "object"
     properties:
-      name:
+      environment:
         type: "string"
-        description: "Entity Name"
+        description: "RAiD environment token is associated too; 'live' or 'demo'"
   KeyModel:
     type: "object"
     properties:
       name:
         type: "string"
         description: "Entity name"
-      date:
+      dateCreated:
         type: "string"
-        description: "Datetime ('yyyyMMddTHHmmssZ') of token creation"
+        description: "Datetime in ISO 8601 format of token creation. Example: 2017-11-21T00:39:24.031958"
+      environment:
+        type: "string"
+        description: "RAiD environment token is associated too; 'live' or 'demo'"
       token:
         type: "string"
         description: "JWT token"
@@ -634,6 +706,12 @@ definitions:
       grid:
         type: "string"
         description: "(optional) GRID (Global Research Identifier Database) of the entity"
+      technicalContactEmailAddress:
+        type: "string"
+        description: "technical staff contact email address of the entity"
+      adminContactEmailAddress:
+        type: "string"
+        description: "administrative staff contact email address of the entity"
   EntityUpdateModel:
     type: "object"
     properties:
@@ -643,7 +721,34 @@ definitions:
       grid:
         type: "string"
         description: "(optional) GRID (Global Research Identifier Database) of the entity"
+      technicalContactEmailAddress:
+        type: "string"
+        description: "technical staff contact email address of the entity"
+      adminContactEmailAddress:
+        type: "string"
+        description: "administrative staff contact email address of the entity"
   EntityModel:
+    type: "object"
+    properties:
+      name:
+        type: "string"
+        description: ""
+      type:
+        type: "string"
+        description: "The role of type the entity; 'service' or 'institution'"
+      isni:
+        type: "string"
+        description: "(optional) The International Standard Name Identifier (ISNI)"
+      grid:
+        type: "string"
+        description: "(optional) GRID (Global Research Identifier Database) of the entity"
+      technicalContactEmailAddress:
+        type: "string"
+        description: "technical staff contact email address of the entity"
+      adminContactEmailAddress:
+        type: "string"
+        description: "administrative staff contact email address of the entity"
+  EntityOverviewModel:
     type: "object"
     properties:
       name:
@@ -668,7 +773,7 @@ definitions:
         type: "array"
         description: "Entities"
         items:
-          $ref: "#/definitions/EntityModel"
+          $ref: "#/definitions/EntityOverviewModel"
       scannedCount:
         type: "string"
         description: "Total number of items that were scanned in the query"

@@ -18,11 +18,17 @@ def create_metadata_handler(event, context):
         # Interpret and validate request body
         body = json.loads(event["body"])
 
-        if "name" not in body:
-            raise Exception("'name' must be provided in 'parameters to generate a JWT token.")
+        if "name" not in body \
+                or "type" not in body \
+                or (body["type"] != settings.SERVICE_ROLE and body["type"] != settings.INSTITUTION_ROLE):
+            return web_helpers.generate_web_body_response(
+                '400',
+                {
+                    'message': "Incorrect parameters or format."}
+            )
 
         # Define item
-        item = {'name': body["name"]}
+        item = {'name': body["name"], 'type': body["type"]}
 
         if 'isni' in body:
             item['isni'] = body['isni']
@@ -32,17 +38,17 @@ def create_metadata_handler(event, context):
 
         # Initialise DynamoDB
         dynamodb = boto3.resource('dynamodb')
-        provider_table = dynamodb.Table(os.environ["METADATA_TABLE"])
+        metadata_table = dynamodb.Table(os.environ["METADATA_TABLE"])
 
         # Send Dynamo DB put response
-        provider_table.put_item(Item=item)
+        metadata_table.put_item(Item=item)
         return web_helpers.generate_web_body_response('200', item)
 
     except:
         logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
         return web_helpers.generate_web_body_response(
-            '400',
-            {'message': "Incorrect path parameter type formatting for provider name. Ensure it is a URL encoded string"}
+            '500',
+            {'message': "Unknown error has occurred."}
         )
 
 
@@ -50,31 +56,38 @@ def update_metadata_handler(event, context):
     try:
         name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
 
-    except:
-        logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
-        return web_helpers.generate_web_body_response(
-            '400',
-            {'message': "Incorrect path parameter type formatting for provider name. Ensure it is a URL encoded string"}
-        )
-
-    try:
         # Interpret and validate request body
         body = json.loads(event["body"])
 
-        if 'isni' not in body or 'grid' not in body:
-            raise Exception("'isni' and 'grid' must be provided.")
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        metadata_table = dynamo_db.Table(os.environ["METADATA_TABLE"])
 
-        dynamodb = boto3.resource('dynamodb')
-        provider_table = dynamodb.Table(os.environ["METADATA_TABLE"])
+        # Check if metadata exists
+        query_response = metadata_table.query(KeyConditionExpression=Key('name').eq(name))
+        if query_response["Count"] != 1:
+            return web_helpers.generate_web_body_response(
+                '404',
+                {'message': "Entity '{}' has no metadata.".format(name)}
+            )
+
+        # Build update dictionary
+        update_values_list = []
+        expression_attribute_values = {}
+
+        if 'isni' in body:
+            update_values_list.append("isni = :i")
+            expression_attribute_values[':i'] = body['isni']
+
+        if 'grid' in body:
+            update_values_list.append("grid = :g")
+            expression_attribute_values[':g'] = body['grid']
 
         # Update meta values
-        update_response = provider_table.update_item(
+        update_response = metadata_table.update_item(
             Key={'name': name},
-            UpdateExpression="set isni = :i, grid = :g",
-            ExpressionAttributeValues={
-                ':i': body['isni'],
-                ':g': body['grid']
-            },
+            UpdateExpression='set {}'.format(", ".join(update_values_list)),
+            ExpressionAttributeValues=expression_attribute_values,
             ReturnValues="ALL_NEW"
         )
 
@@ -84,7 +97,7 @@ def update_metadata_handler(event, context):
         logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
         return web_helpers.generate_web_body_response(
             '400',
-            {'message': "Incorrect path parameter formatting for provider name. Ensure it is a URL encoded string."}
+            {'message': "Incorrect path parameter formatting for entity name. Ensure it is a URL encoded string."}
         )
 
 
@@ -92,24 +105,26 @@ def delete_metadata_handler(event, context):
     try:
         name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
 
-    except:
-        logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
-        return web_helpers.generate_web_body_response(
-            '400',
-            {'message': "Incorrect path parameter type formatting for provider name. Ensure it is a URL encoded string"}
-        )
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        metadata_table = dynamo_db.Table(os.environ["METADATA_TABLE"])
 
-    try:
-        dynamodb = boto3.resource('dynamodb')
-        provider_table = dynamodb.Table(os.environ["METADATA_TABLE"])
-        provider_table.delete_item(Key={'name': name})
-        return web_helpers.generate_web_body_response('200', {'message': "Successfully deleted provider."})
+        # Check if metadata exists
+        query_response = metadata_table.query(KeyConditionExpression=Key('name').eq(name))
+        if query_response["Count"] != 1:
+            return web_helpers.generate_web_body_response(
+                '404',
+                {'message': "Entity '{}' has no metadata.".format(name)}
+            )
+
+        metadata_table.delete_item(Key={'name': name})
+        return web_helpers.generate_web_body_response('200', {'message': "Successfully deleted entity metadata."})
 
     except:
         logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
         return web_helpers.generate_web_body_response(
             '400',
-            {'message': "Incorrect path parameter formatting for provider name. Ensure it is a URL encoded string."}
+            {'message': "Incorrect path parameter formatting for entity name. Ensure it is a URL encoded string."}
         )
 
 
@@ -119,28 +134,28 @@ def get_metadata_handler(event, context):
 
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        provider_table = dynamo_db.Table(os.environ["METADATA_TABLE"])
+        metadata_table = dynamo_db.Table(os.environ["METADATA_TABLE"])
 
-        # Check if provider meta data exists
-        query_response = provider_table.query(KeyConditionExpression=Key('name').eq(name))
+        # Check if metadata exists
+        query_response = metadata_table.query(KeyConditionExpression=Key('name').eq(name))
 
         if query_response["Count"] != 1:
             return web_helpers.generate_web_body_response(
                 '404',
-                {'message': "Provider '{}' has no meta data.".format(name)}
+                {'message': "Entity '{}' has no metadata.".format(name)}
             )
 
-        # Assign raid item to single item, since the result will be an array of one item
-        provider_metadata = query_response['Items'][0]
+        # Assign metadata item to single item, since the result will be an array of one item
+        metadata = query_response['Items'][0]
 
-        return web_helpers.generate_web_body_response('200', provider_metadata)
+        return web_helpers.generate_web_body_response('200', metadata)
 
 
     except:
-        logger.error('Unable to validate provider name: {}'.format(sys.exc_info()[0]))
+        logger.error('Unable to validate entity name: {}'.format(sys.exc_info()[0]))
         return web_helpers.generate_web_body_response(
             '400',
-            {'message': "Incorrect path parameter formatting for provider name. Ensure it is a URL encoded string."}
+            {'message': "Incorrect path parameter formatting for entity name. Ensure it is a URL encoded string."}
         )
 
 
