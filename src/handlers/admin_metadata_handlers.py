@@ -20,6 +20,8 @@ def create_metadata_handler(event, context):
 
         if "name" not in body \
                 or "type" not in body \
+                or "technicalContactEmailAddress" not in body \
+                or "adminContactEmailAddress" not in body \
                 or (body["type"] != settings.SERVICE_ROLE and body["type"] != settings.INSTITUTION_ROLE):
             return web_helpers.generate_web_body_response(
                 '400',
@@ -28,7 +30,11 @@ def create_metadata_handler(event, context):
             )
 
         # Define item
-        item = {'name': body["name"], 'type': body["type"]}
+        item = {
+            'name': body["name"], 'type': body["type"],
+            "technicalContactEmailAddress": body["technicalContactEmailAddress"],
+            "adminContactEmailAddress": body["adminContactEmailAddress"]
+        }
 
         if 'isni' in body:
             item['isni'] = body['isni']
@@ -74,6 +80,14 @@ def update_metadata_handler(event, context):
         # Build update dictionary
         update_values_list = []
         expression_attribute_values = {}
+
+        if 'technicalContactEmailAddress' in body:
+            update_values_list.append("technicalContactEmailAddress = :t")
+            expression_attribute_values[':t'] = body['technicalContactEmailAddress']
+
+        if 'adminContactEmailAddress' in body:
+            update_values_list.append("adminContactEmailAddress = :a")
+            expression_attribute_values[':a'] = body['adminContactEmailAddress']
 
         if 'isni' in body:
             update_values_list.append("isni = :i")
