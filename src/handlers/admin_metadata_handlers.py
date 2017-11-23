@@ -19,19 +19,19 @@ def create_metadata_handler(event, context):
         body = json.loads(event["body"])
 
         if "name" not in body \
-                or "type" not in body \
-                or "technicalContactEmailAddress" not in body \
-                or "adminContactEmailAddress" not in body \
+                or ("type" not in body) \
+                or ("technicalContactEmailAddress" not in body) \
+                or ("adminContactEmailAddress" not in body) \
                 or (body["type"] != settings.SERVICE_ROLE and body["type"] != settings.INSTITUTION_ROLE):
             return web_helpers.generate_web_body_response(
                 '400',
-                {
-                    'message': "Incorrect parameters or format."}
+                {'message': "Incorrect parameters or format."}
             )
 
         # Define item
         item = {
-            'name': body["name"], 'type': body["type"],
+            'name': body["name"],
+            'type': body["type"],
             "technicalContactEmailAddress": body["technicalContactEmailAddress"],
             "adminContactEmailAddress": body["adminContactEmailAddress"]
         }
@@ -48,10 +48,11 @@ def create_metadata_handler(event, context):
 
         # Send Dynamo DB put response
         metadata_table.put_item(Item=item)
+
         return web_helpers.generate_web_body_response('200', item)
 
-    except:
-        logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
+    except Exception, e:
+        logger.error('Unexpected error string: {}'.format(str(e)))
         return web_helpers.generate_web_body_response(
             '500',
             {'message': "Unknown error has occurred."}
