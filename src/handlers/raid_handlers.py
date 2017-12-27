@@ -276,9 +276,9 @@ def get_raid_handler(event, context):
         )
 
 
-def update_content_path_handler(event, context):
+def update_raid(event, context):
     """
-    Update the content path of a RAiD and mint the new path with the ANDS Service
+    Update the description and content path of a RAiD and mint the new path with the ANDS Service
     :param event:
     :param context:
     :return: RAiD object
@@ -288,6 +288,7 @@ def update_content_path_handler(event, context):
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
         body = json.loads(event["body"])
         new_content_path = body['contentPath']
+        new_description = body['description']
     except ValueError as e:
         logger.error('Unable to capture RAiD or content path: {}'.format(e))
         return web_helpers.generate_web_body_response(
@@ -296,10 +297,10 @@ def update_content_path_handler(event, context):
             event
         )
     except KeyError as e:
-        logger.error('Unable to capture RAiD or content path: {}'.format(e))
+        logger.error('Unable to capture description or content path: {}'.format(e))
         return web_helpers.generate_web_body_response(
             '400',
-            {'message': "A 'contentPath' URL string must be provided in the body of the request."},
+            {'message': "A 'description' and 'contentPath' URL string must be provided in the body of the request."},
             event
         )
 
@@ -325,30 +326,32 @@ def update_content_path_handler(event, context):
         if "contentIndex" not in raid_item:
             raid_item["contentIndex"] = "1"
 
-        # Mints ANDS handle
-        if environment == settings.DEMO_ENVIRONMENT:
-            ands_url_path = "{}modifyValueByIndex?handle={}&value={}index={}".format(os.environ["DEMO_ANDS_SERVICE"],
-                                                                                     raid_item['handle'],
-                                                                                     new_content_path,
-                                                                                     raid_item['contentIndex'])
-
-        elif environment == settings.LIVE_ENVIRONMENT:
-            ands_url_path = "{}modifyValueByIndex?handle={}&value={}index={}".format(os.environ["ANDS_SERVICE"],
-                                                                                     raid_item['handle'],
-                                                                                     new_content_path,
-                                                                                     raid_item['contentIndex'])
-
-        ands_mint = ands_helpers.ands_handle_request(ands_url_path, os.environ["ANDS_APP_ID"], "raid", "raid.org.au")
+        # # Mints ANDS handle  # TODO
+        # if environment == settings.DEMO_ENVIRONMENT:
+        #     ands_url_path = "{}modifyValueByIndex?handle={}&value={}index={}".format(os.environ["DEMO_ANDS_SERVICE"],
+        #                                                                              raid_item['handle'],
+        #                                                                              new_content_path,
+        #                                                                              raid_item['contentIndex'])
+        #
+        # elif environment == settings.LIVE_ENVIRONMENT:
+        #     ands_url_path = "{}modifyValueByIndex?handle={}&value={}index={}".format(os.environ["ANDS_SERVICE"],
+        #                                                                              raid_item['handle'],
+        #                                                                              new_content_path,
+        #                                                                              raid_item['contentIndex'])
+        #
+        # ands_mint = ands_helpers.ands_handle_request(ands_url_path, os.environ["ANDS_APP_ID"], "raid", "raid.org.au")
 
         # Update content path and index
         update_response = raid_table.update_item(
             Key={
                 'handle': raid_handle
             },
-            UpdateExpression="set contentPath = :c, contentIndex = :c",
+            UpdateExpression="set description = :d, contentPath = :c, contentIndex = :i",
             ExpressionAttributeValues={
+                ':d': new_description,
                 ':c': new_content_path,
-                ':i': ands_mint["contentIndex"]
+                # ':i': ands_mint["contentIndex"]  # TODO
+                ':i': "1"
             },
             ReturnValues="ALL_NEW"
         )

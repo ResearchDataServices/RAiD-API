@@ -212,7 +212,6 @@ paths:
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         type: mock
-
   /auth:
     post:
       summary: "Authenticate a JWT token and get the base64 decoded object"
@@ -334,7 +333,7 @@ paths:
       - in: "body"
         required: false
         name: "body"
-        description: "Minting path and optional parameters that are added to the RAiD. 'meta' can take any valid 
+        description: "Minting path and optional parameters that are added to the RAiD. 'meta' can take any valid
         JSON object."
         schema:
           $ref: "#/definitions/RAiDCreateModel"
@@ -428,38 +427,6 @@ paths:
         uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidFunction}/invocations
         httpMethod: POST
         type: aws_proxy
-    options:
-      tags:
-      - "CORS"
-      consumes:
-      - application/json
-      produces:
-      - application/json
-      responses:
-        200:
-          description: 200 response
-          schema:
-            $ref: "#/definitions/Empty"
-          headers:
-            Access-Control-Allow-Origin:
-              type: string
-            Access-Control-Allow-Methods:
-              type: string
-            Access-Control-Allow-Headers:
-              type: string
-      x-amazon-apigateway-integration:
-        responses:
-          default:
-            statusCode: 200
-            responseParameters:
-              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-        passthroughBehavior: when_no_match
-        requestTemplates:
-          application/json: "{\"statusCode\": 200}"
-        type: mock
-  /RAiD/{raidId}/handle:
     put:
       summary: "Update the content path of a RAiD and mint the new path with the ANDS Service"
       tags:
@@ -481,7 +448,7 @@ paths:
         name: "body"
         description: "New content url path to mint with ANDS"
         schema:
-            $ref: "#/definitions/MintRAiDModel"
+            $ref: "#/definitions/UpdateRAiDModel"
       responses:
         200:
           description: "200 response"
@@ -498,7 +465,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.UpdateRaidContentPathFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.UpdateRaidFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -1074,6 +1041,21 @@ definitions:
             provider:
               type: "string"
               description: "Name of provider"
+      institutions:
+        type: "array"
+        description: "(optional) Providers associated to the RAiD"
+        items:
+          type: "object"
+          properties:
+            startDate:
+              type: "string"
+              description: "Datetime the provider associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+            endDate:
+              type: "string"
+              description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+            institution:
+              type: "string"
+              description: "Name of Institution"
       meta:
         type: "object"
         description: "Object that acts as a document for optional metadata KeyValues"
@@ -1145,6 +1127,14 @@ definitions:
             description: "List of related RAiD handles"
             items:
               type: "string"
+  UpdateRAiDModel:
+    type: "object"
+    properties:
+      description:
+        type: "string"
+      contentPath:
+        type: "string"
+        description: "URL path minted with ANDS"
   MintRAiDModel:
     type: "object"
     properties:

@@ -1,5 +1,5 @@
 # NOTE: Before using this template, replace the <<region>> and <<account>> fields
-#       in Lambda integration URI in the swagger file to region and accountId 
+#       in Lambda integration URI in the swagger file to region and accountId
 #       you are deploying to
 #
 # To deploy for the first time, and for each update,
@@ -70,7 +70,7 @@ Resources:
         CustomAuthorizerRole: !Ref CustomAuthorizerRole
         AuthenticateTokenFunction: !Ref AuthenticateToken
         CreateRaidFunction: !Ref CreateRaid
-        UpdateRaidContentPathFunction: !Ref UpdateRaidContentPath
+        UpdateRaidFunction: !Ref UpdateRaid
         GetRaidsFunction: !Ref GetRaids
         GetRaidFunction: !Ref GetRaid
         GetOwnerRaidsFunction: !Ref GetOwnerRaids
@@ -127,8 +127,8 @@ Resources:
         Statement:
         - Effect: Allow
           Action: [
-            "ec2:DescribeNetworkInterfaces", 
-            "ec2:CreateNetworkInterface", 
+            "ec2:DescribeNetworkInterfaces",
+            "ec2:CreateNetworkInterface",
             "ec2:DeleteNetworkInterface",
             "dynamodb:BatchGetItem",
             "dynamodb:BatchWriteItem",
@@ -145,7 +145,7 @@ Resources:
           Action: ["es:ESHttpPost"]
           Resource: ["*"]
       Roles: [!Ref CrudLambdaIAMRole]
-  
+
   ## Custom Authorizer
   CustomAuthorizerRole:
       Type: "AWS::IAM::Role"
@@ -165,7 +165,7 @@ Resources:
   CustomAuthorizerPolicy:
     Type: "AWS::IAM::Policy"
     DependsOn: [CustomAuthorizerRole]
-    Properties: 
+    Properties:
       PolicyName: AuthorizerPolicy
       PolicyDocument:
         Statement:
@@ -314,7 +314,7 @@ Resources:
           PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
           ANDS_SERVICE: !Ref AndsService
           DEMO_ANDS_SERVICE: !Ref DemoAndsService
-          ANDS_APP_ID: !Ref AndsAppId          
+          ANDS_APP_ID: !Ref AndsAppId
       Events:
         CreateRaidHandle:
           Type: Api
@@ -322,11 +322,11 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD
             Method: POST
-  UpdateRaidContentPath:
+  UpdateRaid:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: handlers.raid_handlers.update_content_path_handler
+      Handler: handlers.raid_handlers.update_raid
       Runtime: python2.7
       Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
@@ -339,13 +339,13 @@ Resources:
           PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
           ANDS_SERVICE: !Ref AndsService
           DEMO_ANDS_SERVICE: !Ref DemoAndsService
-          ANDS_APP_ID: !Ref AndsAppId    
+          ANDS_APP_ID: !Ref AndsAppId
       Events:
-        UpdateRaidContentPathHandle:
+        UpdateRaidHandle:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGatewayApi
-            Path: /RAiD/{raidId}/handle
+            Path: /RAiD/{raidId}
             Method: PUT
   GetRaid:
     Type: AWS::Serverless::Function
