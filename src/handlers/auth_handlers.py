@@ -94,8 +94,8 @@ def custom_authorisation_handler(event, context):
     elif decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["role"] == os.environ['INSTITUTION_ROLE']:
         policy.allow_method(auth.HttpVerb.GET, '/*')
         policy.allow_method(auth.HttpVerb.GET, '/RAiD/*')
-        policy.allow_method(auth.HttpVerb.GET, '/provider/*')
-        policy.allow_method(auth.HttpVerb.ALL, '/institution/*')
+        policy.allow_method(auth.HttpVerb.GET, '/providers/*')
+        policy.allow_method(auth.HttpVerb.ALL, '/institutions/*')
         context = {
             'provider': decoded["sub"],
             'grid': decoded["grid"],

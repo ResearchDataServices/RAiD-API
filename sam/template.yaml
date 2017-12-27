@@ -83,6 +83,8 @@ Resources:
         EndRaidInstitutionAssociationFunction: !Ref EndRaidInstitutionAssociation
         GetRaidPublicFunction: !Ref GetRaidPublic
         RedirectRaidContentPathFunction: !Ref RedirectRaidContentPath
+        GetProvidersFunction: !Ref GetProviders
+        GetInstitutionsFunction: !Ref GetInstitutions
   # IAM
   ## General
   LogsXrayLambdaPolicy:
@@ -415,6 +417,23 @@ Resources:
             Path: /owner/{raidId}
             Method: PUT
   ### Providers
+  GetProviders:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.provider_handlers.get_providers_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref MetadataTable
+      Events:
+        GetRaidProvidersHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /providers
+            Method: GET
   GetRaidProviders:
     Type: AWS::Serverless::Function
     Properties:
@@ -479,6 +498,23 @@ Resources:
             Path: /RAiD/{raidId}/providers
             Method: DELETE
   ### Institutions
+  GetInstitutions:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.institution_handlers.get_institutions_handler
+      Runtime: python2.7
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref MetadataTable
+      Events:
+        GetRaidProvidersHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /institutions
+            Method: GET
   GetRaidInstitutions:
     Type: AWS::Serverless::Function
     Properties:

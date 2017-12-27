@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 import datetime
@@ -12,6 +13,24 @@ import settings
 # Set Logging Level
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
+
+
+def get_institutions_handler(event, context):
+    """
+    Return providers in metadata
+    :param event:
+    :param context:
+    :return:
+    """
+
+    query_parameters = {
+        'IndexName': 'type',
+        'ProjectionExpression': "#n, grid, isni",
+        'ExpressionAttributeNames': {"#n": "name"},
+        'KeyConditionExpression': Key('type').eq(settings.INSTITUTION_ROLE)
+    }
+
+    return web_helpers.generate_table_list_response(event, query_parameters, os.environ["METADATA_TABLE"])
 
 
 def get_raid_institutions_handler(event, context):
