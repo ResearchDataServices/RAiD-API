@@ -9,6 +9,7 @@ import json
 import urllib
 from helpers import web_helpers
 from helpers import ands_helpers
+from helpers import raid_helpers
 import settings
 
 # Set Logging Level
@@ -102,11 +103,19 @@ def create_raid_handler(event, context):
             else:
                 raid_item['contentPath'] = settings.RAID_SITE_URL
 
-            if "description" in body:
-                raid_item['description'] = body["description"]
-
             if "meta" in body:
-                raid_item['meta'] = body["meta"]
+                raid_item['meta'] = body['meta']
+
+            else:
+                raid_item['meta'] = {}
+
+            # Auto-generate RAiD descriptive fields if they do not exist
+            if 'name' not in raid_item['meta']:
+                raid_item['meta'] = {'name': raid_helpers.generate_random_name()}
+
+            if 'description' not in raid_item['meta']:
+                raid_item['meta']['description'] = "RAiD created by '{}' at '{}'".format(
+                    event['requestContext']['authorizer']['provider'], now)
 
             if "startDate" in body:
                 try:
@@ -144,7 +153,9 @@ def create_raid_handler(event, context):
         service_item = {
             'provider': event['requestContext']['authorizer']['provider'],
             'handle': ands_handle,
-            'startDate': now
+            'startDate': now,
+            'name': raid_item['meta']['name']
+            # TODO Association Type for Owner
         }
 
         # Send Dynamo DB put for new association
@@ -289,6 +300,7 @@ def update_raid(event, context):
         body = json.loads(event["body"])
         new_content_path = body['contentPath']
         new_description = body['description']
+        name = body['name']
     except ValueError as e:
         logger.error('Unable to capture RAiD or content path: {}'.format(e))
         return web_helpers.generate_web_body_response(
@@ -300,7 +312,8 @@ def update_raid(event, context):
         logger.error('Unable to capture description or content path: {}'.format(e))
         return web_helpers.generate_web_body_response(
             '400',
-            {'message': "A 'description' and 'contentPath' URL string must be provided in the body of the request."},
+            {'message': "A 'name' 'description' and 'contentPath' URL string must be provided in the body of the "
+                        "request."},
             event
         )
 
@@ -346,8 +359,12 @@ def update_raid(event, context):
             Key={
                 'handle': raid_handle
             },
-            UpdateExpression="set description = :d, contentPath = :c, contentIndex = :i",
+            UpdateExpression="set meta.#n = :n, meta.description = :d, contentPath = :c, contentIndex = :i",
+            ExpressionAttributeNames={
+                '#n': 'name'
+            },
             ExpressionAttributeValues={
+                ':n': name,
                 ':d': new_description,
                 ':c': new_content_path,
                 # ':i': ands_mint["contentIndex"]  # TODO

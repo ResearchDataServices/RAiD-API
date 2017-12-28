@@ -1264,26 +1264,28 @@ definitions:
       contentPath:
         type: "string"
         description: "URL path minted with ANDS"
-      description:
-        type: "string"
-        description: "Summary of the RAiD"
       startDate:
         type: "string"
         description: "RAiD start datetime (yyyy-MM-dd hh:mm:ss), which will default to the current datetime if none is supplied"
       meta:
         type: "object"
-        description: "Object that acts as a document for optional metadata KeyValues"
+        description: "(optional) Object that acts as a document for optional metadata KeyValues"
         properties:
-          RelatedRaids:
-            type: "array"
-            description: "List of related RAiD handles"
-            items:
-              type: "string"
+          name:
+            type: "string"
+            description: "A name alias for the RAiD"
+          description:
+            type: "string"
+            description: "A short description of the RAiD"
   UpdateRAiDModel:
     type: "object"
     properties:
+      name:
+        type: "string"
+        description: "A name alias for the RAiD that is stored in the metadata"
       description:
         type: "string"
+        description: "A short description of the RAiD that is stored in the metadata"
       contentPath:
         type: "string"
         description: "URL path minted with ANDS"
