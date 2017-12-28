@@ -579,15 +579,6 @@ Resources:
             Path: /RAiD/{raidId}/institutions
             Method: DELETE
   # Database
-  RAiDDemoDB:
-    Type: "AWS::CloudFormation::Stack"
-    Properties:
-      TemplateURL: database-template.yaml
-  RAiDLiveDB:
-    Type: "AWS::CloudFormation::Stack"
-    Properties:
-      TemplateURL: database-template.yaml
-
   ## Metadata table
   MetadataTable:
     Type: "AWS::DynamoDB::Table"
@@ -627,6 +618,7 @@ Resources:
   ## JWT token table
   TokenTable:
     Type: "AWS::DynamoDB::Table"
+    DependsOn: MetadataTable
     Properties:
       AttributeDefinitions:
         -
@@ -645,6 +637,17 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+  ## RAiD
+  RAiDDemoDB:
+    Type: "AWS::CloudFormation::Stack"
+    DependsOn: TokenTable
+    Properties:
+      TemplateURL: database-template.yaml
+  RAiDLiveDB:
+    Type: "AWS::CloudFormation::Stack"
+    DependsOn: RAiDDemoDB
+    Properties:
+      TemplateURL: database-template.yaml
 Outputs:
   RaidDemoDB:
     Value: !GetAtt RAiDDemoDB.Outputs.RaidDB
