@@ -1,7 +1,7 @@
 import sys
 import logging
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 import json
 import urllib
@@ -20,14 +20,22 @@ def get_owner_raids_handler(event, context):
     :param context:
     :return:
     """
+    provider = event['requestContext']['authorizer']['provider']
+
     query_parameters = {
-        'IndexName': 'OwnerIndex',
-        'KeyConditionExpression': Key('owner').eq(event['requestContext']['authorizer']['provider'])
+        'IndexName': 'StartDateIndex',
+        'ProjectionExpression': "#n, handle, startDate, endDate",
+        'ExpressionAttributeNames': {"#n": "name"},
+        'FilterExpression': Attr('role').exists() and Attr('role').eq('owner'),
+        'KeyConditionExpression': Key('provider').eq(provider)
     }
 
     return web_helpers.generate_table_list_response(
         event, query_parameters,
-        settings.get_environment_table(settings.RAID_TABLE, event['requestContext']['authorizer']['environment'])
+        settings.get_environment_table(
+            settings.PROVIDER_TABLE,
+            event['requestContext']['authorizer']['environment']
+        )
     )
 
 

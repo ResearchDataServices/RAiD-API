@@ -857,7 +857,7 @@ paths:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/OwnerRAiDsModel"
+            $ref: "#/definitions/RAiDsModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -1217,33 +1217,6 @@ definitions:
             description: "List of related RAiD handles"
             items:
               type: "string"
-  OwnerRAiDsModel:
-    type: "object"
-    properties:
-      count:
-        type: "string"
-        description: "Number of items returned"
-      items:
-        type: "array"
-        description: "(optional) Providers associated to the RAiD"
-        items:
-          type: "object"
-          properties:
-            owner:
-              type: "string"
-              description: "Provider that created the RAiD handle"
-            startDate:
-              type: "string"
-              description: "RAiD start datetime (yyyy-MM-dd hh:mm:ss), which will default to the current datetime if none is supplied"
-            creationDate:
-              type: "string"
-              description: "RAiD created datetime (yyyy-MM-dd hh:mm:ss)"
-            handle:
-              type: "string"
-              description: "Unique minted ANDS handle"
-      scannedCount:
-        type: "string"
-        description: "Total number of items that were scanned in the query"
   ProviderRAiDsModel:
     type: "object"
     properties:
@@ -1440,18 +1413,18 @@ definitions:
   AssociationModel:
     type: "object"
     properties:
+      name:
+        type: "string"
+        description: "Name/Alias of the RAiD"
+      handle:
+        type: "string"
+        description: "Unique minted ANDS handle"
       startDate:
         type: "string"
         description: "Datetime the entity associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
       endDate:
         type: "string"
         description: "(optional) Datetime the entity dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-      entityId:
-        type: "string"
-        description: "Name of provider or GRID of institution"
-      handle:
-        type: "string"
-        description: "Unique minted ANDS handle"
   EntitiesModel:
     type: "object"
     properties:

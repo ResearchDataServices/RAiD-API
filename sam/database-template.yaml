@@ -7,37 +7,13 @@ Resources:
         -
           AttributeName: "handle"
           AttributeType: "S"
-        -
-          AttributeName: "creationDate"
-          AttributeType: "S"
-        -
-          AttributeName: "owner"
-          AttributeType: "S"
       KeySchema:
         -
           AttributeName: "handle"
           KeyType: "HASH"
-      GlobalSecondaryIndexes:
-        -
-          IndexName: "OwnerIndex"
-          KeySchema:
-            -
-              AttributeName: "owner"
-              KeyType: "HASH"
-            -
-              AttributeName: "creationDate"
-              KeyType: "RANGE"
-          Projection:
-            ProjectionType: "INCLUDE"
-            NonKeyAttributes:
-              - "handle"
-              - "startDate"
-          ProvisionedThroughput:
-            ReadCapacityUnits: 5
-            WriteCapacityUnits: 5
       ProvisionedThroughput:
         ReadCapacityUnits: 5
-        WriteCapacityUnits: 5   
+        WriteCapacityUnits: 5
   ProviderIndexTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -59,7 +35,7 @@ Resources:
           AttributeName: handle
           KeyType: RANGE
       LocalSecondaryIndexes:
-        - 
+        -
           IndexName: StartDateIndex
           KeySchema:
             -
@@ -72,7 +48,9 @@ Resources:
               ProjectionType: "INCLUDE"
               NonKeyAttributes:
                 - "handle"
+                - "name"
                 - "endDate"
+                - "role"
       GlobalSecondaryIndexes:
         -
           IndexName: "HandleProviderIndex"
@@ -115,7 +93,7 @@ Resources:
           AttributeName: handle
           KeyType: RANGE
       LocalSecondaryIndexes:
-        - 
+        -
           IndexName: StartDateIndex
           KeySchema:
             -

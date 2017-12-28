@@ -3,7 +3,7 @@ import sys
 import logging
 import datetime
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 import json
 import urllib
@@ -19,7 +19,7 @@ logger.setLevel(logging.ERROR)
 
 def get_raids_handler(event, context):
     """
-    Return RAiDs associated to the provier or institution with optional parameters for filter and search options
+    Return RAiDs associated to the provider or institution with optional parameters for filter and search options
     :param event:
     :param context:
     :return:
@@ -31,6 +31,9 @@ def get_raids_handler(event, context):
         provider = event['requestContext']['authorizer']['provider']
         query_parameters = {
             'IndexName': 'StartDateIndex',
+            'ProjectionExpression': "#n, handle, startDate, endDate",
+            'ExpressionAttributeNames': {"#n": "name"},
+            'FilterExpression': Attr('role').not_exists() or Attr('role').ne('owner'),
             'KeyConditionExpression': Key('provider').eq(provider)
         }
 
@@ -154,8 +157,8 @@ def create_raid_handler(event, context):
             'provider': event['requestContext']['authorizer']['provider'],
             'handle': ands_handle,
             'startDate': now,
-            'name': raid_item['meta']['name']
-            # TODO Association Type for Owner
+            'name': raid_item['meta']['name'],
+            'role': 'owner'
         }
 
         # Send Dynamo DB put for new association
