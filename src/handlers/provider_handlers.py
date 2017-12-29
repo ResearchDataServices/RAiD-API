@@ -3,7 +3,7 @@ import sys
 import logging
 import datetime
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 import json
 import urllib
 from helpers import web_helpers
@@ -51,14 +51,16 @@ def get_raid_providers_handler(event, context):
             event
         )
 
-    query_parameters = {
-        'IndexName': 'HandleProviderIndex',
-        'KeyConditionExpression': Key('handle').eq(raid_handle)
+    provider_query_parameters = {
+        'IndexName': 'HandleTypeIndex',
+        'ProjectionExpression': "#n, startDate, endDate",
+        'ExpressionAttributeNames': {"#n": "name"},
+        'KeyConditionExpression': Key('handle-type').eq('{}-{}'.format(raid_handle, settings.SERVICE_ROLE))
     }
 
     return web_helpers.generate_table_list_response(
-        event, query_parameters,
-        settings.get_environment_table(settings.PROVIDER_TABLE, event['requestContext']['authorizer']['environment'])
+        event, provider_query_parameters,
+        settings.get_environment_table(settings.ASSOCIATION_TABLE, event['requestContext']['authorizer']['environment'])
     )
 
 
@@ -81,10 +83,12 @@ def create_raid_provider_association_handler(event, context):
         )
 
     try:
+        environment = event['requestContext']['authorizer']['environment']
+
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
         raid_table = dynamo_db.Table(
-            settings.get_environment_table(settings.RAID_TABLE, event['requestContext']['authorizer']['environment'])
+            settings.get_environment_table(settings.RAID_TABLE, environment)
         )
 
         # Check if RAiD exists
@@ -95,12 +99,8 @@ def create_raid_provider_association_handler(event, context):
                 'message': "Invalid RAiD handle provided in parameter path. "
                            "Ensure it is a valid RAiD handle URL encoded string"}, event)
 
-        # Insert association to provider index table
-        provider_index_table = dynamo_db.Table(
-            settings.get_environment_table(
-                settings.PROVIDER_TABLE,
-                event['requestContext']['authorizer']['environment'])
-        )
+        # Assign raid item to single item, since the result will be an array of one item
+        raid_item = query_response['Items'][0]
 
         # Interpret and validate request body
         body = json.loads(event["body"])
@@ -121,17 +121,29 @@ def create_raid_provider_association_handler(event, context):
             return web_helpers.generate_web_body_response('400', {
                 'message': "'provider' must be provided in your request body to create an association"}, event)
 
-        # Define RAiD item
+        # Define provider association item
         service_item = {
-            'provider': body['provider'],
             'handle': raid_handle,
-            'startDate': start_date
+            'startDate': start_date,
+            'name': body['provider'],
+            'raidName': raid_item['meta']['name'],
+            'type': settings.SERVICE_ROLE,
+            'handle-name': '{}-{}'.format(raid_handle, body['provider']),
+            'handle-type': '{}-{}'.format(raid_handle, settings.SERVICE_ROLE)
         }
 
-        # Send Dynamo DB put for new RAiD
-        provider_index_table.put_item(Item=service_item)
+        # Send Dynamo DB put for new association
+        association_index_table = dynamo_db.Table(
+            settings.get_environment_table(
+                settings.ASSOCIATION_TABLE, environment
+            )
+        )
+        association_index_table.put_item(Item=service_item)
 
-        return web_helpers.generate_web_body_response('200', service_item, event)
+        return web_helpers.generate_web_body_response('200', {
+                        'provider': service_item['name'],
+                        'startDate': service_item['startDate']
+                    }, event)
 
     except:
         logger.error('Unable to associate a provider to a RAiD: {}'.format(sys.exc_info()[0]))
@@ -158,14 +170,11 @@ def end_raid_provider_association_handler(event, context):
         )
 
     try:
+        environment = event['requestContext']['authorizer']['environment']
+
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(
-            settings.get_environment_table(
-                settings.RAID_TABLE,
-                event['requestContext']['authorizer']['environment']
-            )
-        )
+        raid_table = dynamo_db.Table(settings.get_environment_table(settings.RAID_TABLE, environment))
 
         # Check if RAiD exists
         query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
@@ -174,14 +183,6 @@ def end_raid_provider_association_handler(event, context):
             return web_helpers.generate_web_body_response('400', {
                 'message': "Invalid RAiD handle provided in parameter path. "
                            "Ensure it is a valid RAiD handle URL encoded string"}, event)
-
-        # Insert association to provider index table
-        provider_index_table = dynamo_db.Table(
-            settings.get_environment_table(
-                settings.PROVIDER_TABLE,
-                event['requestContext']['authorizer']['environment']
-            )
-        )
 
         # Interpret and validate request body
         body = json.loads(event["body"])
@@ -201,10 +202,27 @@ def end_raid_provider_association_handler(event, context):
             return web_helpers.generate_web_body_response('400', {
                 'message': "'provider' must be provided in your request body to end an association"}, event)
 
-        # Update provider association
-        update_response = provider_index_table.update_item(
+        # Update DynamoDB put to end association
+        association_index_table = dynamo_db.Table(
+            settings.get_environment_table(
+                settings.ASSOCIATION_TABLE, environment
+            )
+        )
+
+        existing_provider_query_parameters = {
+            'IndexName': 'HandleNameIndex',
+            'ProjectionExpression': "startDate, endDate",
+            'FilterExpression': Attr('endDate').not_exists(),
+            'KeyConditionExpression': Key('handle-name').eq('{}-{}'.format(raid_handle, body['provider']))
+        }
+
+        provider_query_response = association_index_table.query(**existing_provider_query_parameters)
+        existing_provider = provider_query_response["Items"][0]
+
+        # Get existing item
+        update_response = association_index_table.update_item(
             Key={
-                'provider': body['provider'],
+                'startDate': existing_provider['startDate'],
                 'handle': raid_handle
             },
             UpdateExpression="set endDate = :e",
@@ -214,7 +232,12 @@ def end_raid_provider_association_handler(event, context):
             ReturnValues="ALL_NEW"
         )
 
-        return web_helpers.generate_web_body_response('200', update_response["Attributes"], event)
+        return web_helpers.generate_web_body_response('200', {
+            'provider': body['provider'],
+            'startDate': existing_provider['startDate'],
+            'endDate': end_date
+        }, event)
+
     except:
         logger.error('Unable to end a provider to a RAiD association: {}'.format(sys.exc_info()[0]))
         return web_helpers.generate_web_body_response('500', {

@@ -3,7 +3,7 @@ import sys
 import logging
 import datetime
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 import json
 import urllib
 from helpers import web_helpers
@@ -48,15 +48,18 @@ def get_raid_institutions_handler(event, context):
         return web_helpers.generate_web_body_response('400', {
             'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"}, event)
 
-    query_parameters = {
-        'IndexName': 'HandleGridIndex',
-        'KeyConditionExpression': Key('handle').eq(raid_handle)
+    institution_query_parameters = {
+        'IndexName': 'HandleTypeIndex',
+        'ProjectionExpression': "#n, startDate, endDate",
+        'ExpressionAttributeNames': {"#n": "name"},
+        'KeyConditionExpression': Key('handle-type').eq('{}-{}'.format(
+            raid_handle, settings.INSTITUTION_ROLE))
     }
 
     return web_helpers.generate_table_list_response(
-        event, query_parameters,
+        event, institution_query_parameters,
         settings.get_environment_table(
-            settings.INSTITUTION_TABLE,
+            settings.ASSOCIATION_TABLE,
             event['requestContext']['authorizer']['environment'])
     )
 
@@ -76,10 +79,12 @@ def create_raid_institution_association_handler(event, context):
             'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"}, event)
 
     try:
+        environment = event['requestContext']['authorizer']['environment']
+
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
         raid_table = dynamo_db.Table(
-            settings.get_environment_table(settings.RAID_TABLE, event['requestContext']['authorizer']['environment'])
+            settings.get_environment_table(settings.RAID_TABLE, environment)
         )
 
         # Check if RAiD exists
@@ -90,12 +95,8 @@ def create_raid_institution_association_handler(event, context):
                 'message': "Invalid RAiD handle provided in parameter path. "
                            "Ensure it is a valid RAiD handle URL encoded string"}, event)
 
-        # Insert association to institution index table
-        institution_index_table = dynamo_db.Table(
-            settings.get_environment_table(
-                settings.INSTITUTION_TABLE,
-                event['requestContext']['authorizer']['environment'])
-        )
+        # Assign raid item to single item, since the result will be an array of one item
+        raid_item = query_response['Items'][0]
 
         # Interpret and validate request body
         body = json.loads(event["body"])
@@ -112,21 +113,35 @@ def create_raid_institution_association_handler(event, context):
             # Get current datetime
             start_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        if "grid" not in body:
+        if "institution" not in body:
             return web_helpers.generate_web_body_response('400', {
-                'message': "'grid' must be provided in your request body to create an association"}, event)
+                'message': "'institution' must be provided in your request body to create an association"}, event)
 
-        # Define RAiD item
+        # Define institution item
         institution_item = {
-            'grid': body['grid'],
             'handle': raid_handle,
-            'startDate': start_date
+            'startDate': start_date,
+            'name': body['institution'],
+            'raidName': raid_item['meta']['name'],
+            'type': settings.INSTITUTION_ROLE,
+            'handle-name': '{}-{}'.format(raid_handle, body['institution']),
+            'handle-type': '{}-{}'.format(raid_handle, settings.INSTITUTION_ROLE)
         }
 
-        # Send Dynamo DB put for new RAiD
-        institution_index_table.put_item(Item=institution_item)
+        # Send Dynamo DB put for new RAiD association
 
-        return web_helpers.generate_web_body_response('200', institution_item, event)
+        # Send Dynamo DB put for new association
+        association_index_table = dynamo_db.Table(
+            settings.get_environment_table(
+                settings.ASSOCIATION_TABLE, environment
+            )
+        )
+        association_index_table.put_item(Item=institution_item)
+
+        return web_helpers.generate_web_body_response('200', {
+                        'institution': institution_item['name'],
+                        'startDate': institution_item['startDate']
+                    }, event)
 
     except:
         logger.error('Unable to create an institution to a RAiD association: {}'.format(sys.exc_info()[0]))
@@ -150,6 +165,8 @@ def end_raid_institution_association_handler(event, context):  # TODO
             'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"}, event)
 
     try:
+        environment = event['requestContext']['authorizer']['environment']
+
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
         raid_table = dynamo_db.Table(
@@ -163,13 +180,6 @@ def end_raid_institution_association_handler(event, context):  # TODO
             return web_helpers.generate_web_body_response('400', {
                 'message': "Invalid RAiD handle provided in parameter path. "
                            "Ensure it is a valid RAiD handle URL encoded string"}, event)
-
-        # Insert association to institution index table
-        institution_index_table = dynamo_db.Table(
-            settings.get_environment_table(
-                settings.INSTITUTION_TABLE,
-                event['requestContext']['authorizer']['environment'])
-        )
 
         # Interpret and validate request body
         body = json.loads(event["body"])
@@ -185,14 +195,31 @@ def end_raid_institution_association_handler(event, context):  # TODO
             # Get current datetime
             end_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        if "grid" not in body:
+        if "institution" not in body:
             return web_helpers.generate_web_body_response('400', {
-                'message': "'grid' must be provided in your request body to end an association"}, event)
+                'message': "'institution' must be provided in your request body to end an association"}, event)
 
-        # Update institution association
-        update_response = institution_index_table.update_item(
+        # Update DynamoDB put to end association
+        association_index_table = dynamo_db.Table(
+            settings.get_environment_table(
+                settings.ASSOCIATION_TABLE, environment
+            )
+        )
+
+        existing_institution_query_parameters = {
+            'IndexName': 'HandleNameIndex',
+            'ProjectionExpression': "startDate, endDate",
+            'FilterExpression': Attr('endDate').not_exists(),
+            'KeyConditionExpression': Key('handle-name').eq('{}-{}'.format(raid_handle, body['institution']))
+        }
+
+        institution_query_response = association_index_table.query(**existing_institution_query_parameters)
+        existing_institution = institution_query_response["Items"][0]
+
+        # Get existing item
+        update_response = association_index_table.update_item(
             Key={
-                'grid': body['grid'],
+                'startDate': existing_institution['startDate'],
                 'handle': raid_handle
             },
             UpdateExpression="set endDate = :e",
@@ -202,7 +229,11 @@ def end_raid_institution_association_handler(event, context):  # TODO
             ReturnValues="ALL_NEW"
         )
 
-        return web_helpers.generate_web_body_response('200', update_response["Attributes"], event)
+        return web_helpers.generate_web_body_response('200', {
+            'institution': body['institution'],
+            'startDate': existing_institution['startDate'],
+            'endDate': end_date
+        }, event)
     except:
         logger.error('Unable to end a institution to a RAiD association: {}'.format(sys.exc_info()[0]))
         return web_helpers.generate_web_body_response('500', {

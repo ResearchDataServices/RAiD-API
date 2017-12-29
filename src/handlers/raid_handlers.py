@@ -24,52 +24,29 @@ def get_raids_handler(event, context):
     :param context:
     :return:
     """
-    # Get authenticated user type
-    user_role = event['requestContext']['authorizer']['role']
+    provider = event['requestContext']['authorizer']['provider']
 
-    if user_role == 'service':
-        provider = event['requestContext']['authorizer']['provider']
-        query_parameters = {
-            'IndexName': 'StartDateIndex',
-            'ProjectionExpression': "#n, handle, startDate, endDate",
-            'ExpressionAttributeNames': {"#n": "name"},
-            'FilterExpression': Attr('role').not_exists() or Attr('role').ne('owner'),
-            'KeyConditionExpression': Key('provider').eq(provider)
-        }
+    query_parameters = {
+        'IndexName': 'NameIndex',
+        'ProjectionExpression': "raidName, handle, startDate, endDate, #r",
+        'ExpressionAttributeNames': {"#r": "role"},
+        'KeyConditionExpression': Key('name').eq(provider)
+    }
 
-        # Replace names dictionary
-        replacement_dictionary = {'provider': 'entityId'}
+    try:
+        if event["queryStringParameters"]["owner"] == 'False' or event["queryStringParameters"]["owner"] == 'false':
+                query_parameters["FilterExpression"] = Attr('role').not_exists() or Attr('role').ne('owner')
 
-        return web_helpers.generate_table_list_response(
-            event, query_parameters,
-            settings.get_environment_table(
-                settings.PROVIDER_TABLE,
-                event['requestContext']['authorizer']['environment']
-            ),
-            replacement_dictionary
-        )
+    except (KeyError, TypeError):
+        query_parameters["FilterExpression"] = Attr('role').not_exists() or Attr('role').ne('owner')
 
-    elif user_role == 'institution':
-        institution_grid = event['requestContext']['authorizer']['grid']
-        query_parameters = {
-            'IndexName': 'StartDateIndex',
-            'KeyConditionExpression': Key('grid').eq(institution_grid)
-        }
+    except ValueError as e:
+        logger.error('Incorrect parameter type formatting: {}'.format(e))
+        return web_helpers.generate_web_body_response('400', {'message': "Incorrect parameter type formatting."}, event)
 
-        # Replace names dictionary
-        replacement_dictionary = {'grid': 'entityId'}
-
-        return web_helpers.generate_table_list_response(
-            event, query_parameters,
-            settings.get_environment_table(
-                settings.INSTITUTION_TABLE,
-                event['requestContext']['authorizer']['environment']
-            ),
-            replacement_dictionary)
-
-    return web_helpers.generate_web_body_response(
-        '400',
-        {'message': 'Unable to get RAiDs due to unknown user type: "{}".'.format(user_role)}
+    return web_helpers.generate_table_list_response(
+        event, query_parameters,
+        settings.get_environment_table(settings.ASSOCIATION_TABLE, event['requestContext']['authorizer']['environment'])
     )
 
 
@@ -83,10 +60,11 @@ def create_raid_handler(event, context):
     try:
         environment = event['requestContext']['authorizer']['environment']
 
+        owner = event['requestContext']['authorizer']['provider']
+
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
         raid_table = dynamo_db.Table(settings.get_environment_table(settings.RAID_TABLE, environment))
-        provider_index_table = dynamo_db.Table(settings.get_environment_table(settings.PROVIDER_TABLE, environment))
 
         # Get current datetime
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -94,7 +72,7 @@ def create_raid_handler(event, context):
         # Define Initial RAiD item
         raid_item = {
             'creationDate': now,
-            'owner': event['requestContext']['authorizer']['provider']
+            'owner': owner
         }
 
         # Interpret and validate request body
@@ -117,8 +95,7 @@ def create_raid_handler(event, context):
                 raid_item['meta'] = {'name': raid_helpers.generate_random_name()}
 
             if 'description' not in raid_item['meta']:
-                raid_item['meta']['description'] = "RAiD created by '{}' at '{}'".format(
-                    event['requestContext']['authorizer']['provider'], now)
+                raid_item['meta']['description'] = "RAiD created by '{}' at '{}'".format(owner, now)
 
             if "startDate" in body:
                 try:
@@ -154,15 +131,24 @@ def create_raid_handler(event, context):
 
         # Define provider association item
         service_item = {
-            'provider': event['requestContext']['authorizer']['provider'],
             'handle': ands_handle,
             'startDate': now,
-            'name': raid_item['meta']['name'],
-            'role': 'owner'
+            'name': owner,
+            'raidName': raid_item['meta']['name'],
+            'role': 'owner',
+            'type': settings.SERVICE_ROLE,
+            'name-role': '{}-{}'.format(owner, 'owner'),
+            'handle-name': '{}-{}'.format(ands_handle, owner),
+            'handle-type': '{}-{}'.format(ands_handle, settings.SERVICE_ROLE)
         }
 
         # Send Dynamo DB put for new association
-        provider_index_table.put_item(Item=service_item)
+        association_index_table = dynamo_db.Table(
+            settings.get_environment_table(
+                settings.ASSOCIATION_TABLE, environment
+            )
+        )
+        association_index_table.put_item(Item=service_item)
 
         return web_helpers.generate_web_body_response(
             '200',
@@ -170,9 +156,8 @@ def create_raid_handler(event, context):
                 'raid': raid_item,
                 'providers': [
                     {
-                        'provider': service_item['provider'],
-                        'startDate': service_item['startDate'],
-                        'endDate': ''
+                        'provider': service_item['name'],
+                        'startDate': service_item['startDate']
                     }
                 ]
             },
@@ -208,10 +193,11 @@ def get_raid_handler(event, context):
             event
         )
     try:
+        environment = event['requestContext']['authorizer']['environment']
+
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
-        raid_table = dynamo_db.Table(
-            settings.get_environment_table(settings.RAID_TABLE, event['requestContext']['authorizer']['environment']))
+        raid_table = dynamo_db.Table(settings.get_environment_table(settings.RAID_TABLE, environment))
 
         # Check if RAiD exists
         query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
@@ -233,21 +219,21 @@ def get_raid_handler(event, context):
 
             # Load listed providers and insert into RAiD object if lazy load is off
             if "lazy_load" in parameters and (parameters["lazy_load"] == 'False' or parameters["lazy_load"] == 'false'):
-                # Get Provider list
-                provider_index_table = dynamo_db.Table(
-                    settings.get_environment_table(
-                        settings.PROVIDER_TABLE, event['requestContext']['authorizer']['environment']
-                    )
+                # Initialise RAiD association table object
+                association_index_table = dynamo_db.Table(
+                    settings.get_environment_table(settings.ASSOCIATION_TABLE, environment)
                 )
 
+                # Get Provider list
+
                 provider_query_parameters = {
-                    'IndexName': 'HandleProviderIndex',
-                    'KeyConditionExpression': Key('handle').eq(raid_handle)
+                    'IndexName': 'HandleTypeIndex',
+                    'ProjectionExpression': "#n, startDate, endDate",
+                    'ExpressionAttributeNames': {"#n": "name"},
+                    'KeyConditionExpression': Key('handle-type').eq('{}-{}'.format(raid_handle, settings.SERVICE_ROLE))
                 }
 
-                # Query table using parameters given and built to return a list of RAiDs the owner is attached too
-                provider_query_response = provider_index_table.query(**provider_query_parameters)
-
+                provider_query_response = association_index_table.query(**provider_query_parameters)
                 providers = provider_query_response["Items"]
 
                 """
@@ -263,26 +249,22 @@ def get_raid_handler(event, context):
                 raid_item["providers"] = providers
 
                 # Get institution list
-                institution_index_table = dynamo_db.Table(
-                    settings.get_environment_table(
-                        settings.INSTITUTION_TABLE,
-                        event['requestContext']['authorizer']['environment']
-                    )
-                )
-
-                query_parameters = {
-                    'IndexName': 'HandleGridIndex',
-                    'KeyConditionExpression': Key('handle').eq(raid_handle)
+                institution_query_parameters = {
+                    'IndexName': 'HandleTypeIndex',
+                    'ProjectionExpression': "#n, startDate, endDate",
+                    'ExpressionAttributeNames': {"#n": "name"},
+                    'KeyConditionExpression': Key('handle-type').eq('{}-{}'.format(
+                        raid_handle, settings.INSTITUTION_ROLE))
                 }
 
-                # Query table using parameters given and built to return a list of RAiDs the owner is attached too
-                institution_query_response = institution_index_table.query(**query_parameters)
+                institution_query_response = association_index_table.query(**institution_query_parameters)
                 raid_item["institutions"] = institution_query_response["Items"]
 
         return web_helpers.generate_web_body_response('200', raid_item, event)
 
-    except:
+    except Exception as e:
         logger.error('Unable to get RAiD: {}'.format(sys.exc_info()[0]))
+        logger.error(str(e))
         return web_helpers.generate_web_body_response(
             '500',
             {'message': "Unable to fetch RAiD due to error. Please check structure of the parameters."},

@@ -283,10 +283,9 @@ Resources:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
           RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
-          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
-          INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
-          INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+
       Events:
         GetProviderRaidsHandle:
           Type: Api
@@ -312,11 +311,11 @@ Resources:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
           RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
-          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
           ANDS_SERVICE: !Ref AndsService
           DEMO_ANDS_SERVICE: !Ref DemoAndsService
           ANDS_APP_ID: !Ref AndsAppId
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         CreateRaidHandle:
           Type: Api
@@ -337,8 +336,8 @@ Resources:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
           RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
-          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
           ANDS_SERVICE: !Ref AndsService
           DEMO_ANDS_SERVICE: !Ref DemoAndsService
           ANDS_APP_ID: !Ref AndsAppId
@@ -361,10 +360,8 @@ Resources:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
           RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
-          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
-          INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
-          INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         GetRaidHandle:
           Type: Api
@@ -385,9 +382,9 @@ Resources:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
           RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
-          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         GetOwnerRaidsHandle:
           Type: Api
@@ -407,8 +404,8 @@ Resources:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
           RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
-          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         UpdateRaidOwnerHandle:
           Type: Api
@@ -446,8 +443,8 @@ Resources:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
           RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
-          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         GetRaidProvidersHandle:
           Type: Api
@@ -467,8 +464,8 @@ Resources:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
           RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
-          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         CreateRaidProviderAssociationHandle:
           Type: Api
@@ -488,8 +485,8 @@ Resources:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
           RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          PROVIDER_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
-          PROVIDER_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         EndRaidProviderAssociationHandle:
           Type: Api
@@ -527,8 +524,8 @@ Resources:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
           RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
-          INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         GetRaidInstitutionsHandle:
           Type: Api
@@ -548,8 +545,8 @@ Resources:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
           RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
-          INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         CreateRaidInstitutionAssociationHandle:
           Type: Api
@@ -569,8 +566,8 @@ Resources:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
           RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
           RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          INSTITUTION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
-          INSTITUTION_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         EndRaidInstitutionAssociationHandle:
           Type: Api
@@ -651,16 +648,12 @@ Resources:
 Outputs:
   RaidDemoDB:
     Value: !GetAtt RAiDDemoDB.Outputs.RaidDB
-  RaidDemoProviderDB:
-    Value: !GetAtt RAiDDemoDB.Outputs.RaidProviderDB
-  RaidDemoInstitutionDB:
-    Value: !GetAtt RAiDDemoDB.Outputs.RaidInstitutionDB
   RaidLiveDB:
     Value: !GetAtt RAiDLiveDB.Outputs.RaidDB
-  RaidLiveProviderDB:
-    Value: !GetAtt RAiDLiveDB.Outputs.RaidProviderDB
-  RaidLiveInstitutionDB:
-    Value: !GetAtt RAiDLiveDB.Outputs.RaidInstitutionDB
+  RAiDAssociationDemoDB:
+    Value: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+  RAiDAssociationLiveDB:
+    Value: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
   MetadataDB:
     Value: !Ref MetadataTable
   TokenDB:

@@ -286,6 +286,11 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: "owner"
+        in: "query"
+        required: false
+        type: "boolean"
+        description: "Include RAiD owned"
       - name: "limit"
         in: "query"
         required: false

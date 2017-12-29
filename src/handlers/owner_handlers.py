@@ -23,17 +23,15 @@ def get_owner_raids_handler(event, context):
     provider = event['requestContext']['authorizer']['provider']
 
     query_parameters = {
-        'IndexName': 'StartDateIndex',
-        'ProjectionExpression': "#n, handle, startDate, endDate",
-        'ExpressionAttributeNames': {"#n": "name"},
-        'FilterExpression': Attr('role').exists() and Attr('role').eq('owner'),
-        'KeyConditionExpression': Key('provider').eq(provider)
+        'IndexName': 'NameRoleIndex',
+        'ProjectionExpression': "raidName, handle, startDate, endDate",
+        'KeyConditionExpression': Key('name-role').eq("{}-{}".format(provider, 'owner'))
     }
 
     return web_helpers.generate_table_list_response(
         event, query_parameters,
         settings.get_environment_table(
-            settings.PROVIDER_TABLE,
+            settings.ASSOCIATION_TABLE,
             event['requestContext']['authorizer']['environment']
         )
     )

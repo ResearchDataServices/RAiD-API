@@ -14,124 +14,112 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
-  ProviderIndexTable:
+  AssociationIndexTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
       AttributeDefinitions:
-        -
-          AttributeName: "provider"
-          AttributeType: "S"
         -
           AttributeName: "handle"
           AttributeType: "S"
         -
           AttributeName: "startDate"
           AttributeType: "S"
-      KeySchema:
         -
-          AttributeName: "provider"
-          KeyType: "HASH"
-        -
-          AttributeName: handle
-          KeyType: RANGE
-      LocalSecondaryIndexes:
-        -
-          IndexName: StartDateIndex
-          KeySchema:
-            -
-              AttributeName: provider
-              KeyType: HASH
-            -
-              AttributeName: startDate
-              KeyType: RANGE
-          Projection:
-              ProjectionType: "INCLUDE"
-              NonKeyAttributes:
-                - "handle"
-                - "name"
-                - "endDate"
-                - "role"
-      GlobalSecondaryIndexes:
-        -
-          IndexName: "HandleProviderIndex"
-          KeySchema:
-            -
-              AttributeName: "handle"
-              KeyType: "HASH"
-            -
-              AttributeName: "provider"
-              KeyType: "RANGE"
-          Projection:
-            ProjectionType: "INCLUDE"
-            NonKeyAttributes:
-              - "startDate"
-              - "endDate"
-          ProvisionedThroughput:
-            ReadCapacityUnits: 5
-            WriteCapacityUnits: 5
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-  InstitutionIndexTable:
-    Type: "AWS::DynamoDB::Table"
-    Properties:
-      AttributeDefinitions:
-        -
-          AttributeName: "grid"
+          AttributeName: "name"
           AttributeType: "S"
+        -
+          AttributeName: "name-role"
+          AttributeType: "S"
+        -
+          AttributeName: "handle-name"
+          AttributeType: "S"
+        -
+          AttributeName: "handle-type"
+          AttributeType: "S"
+
+      KeySchema:
         -
           AttributeName: "handle"
-          AttributeType: "S"
-        -
-          AttributeName: "startDate"
-          AttributeType: "S"
-      KeySchema:
-        -
-          AttributeName: "grid"
           KeyType: "HASH"
         -
-          AttributeName: handle
+          AttributeName: startDate
           KeyType: RANGE
-      LocalSecondaryIndexes:
-        -
-          IndexName: StartDateIndex
-          KeySchema:
-            -
-              AttributeName: grid
-              KeyType: HASH
-            -
-              AttributeName: startDate
-              KeyType: RANGE
-          Projection:
-              ProjectionType: "INCLUDE"
-              NonKeyAttributes:
-                - "handle"
-                - "endDate"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
       GlobalSecondaryIndexes:
         -
-          IndexName: "HandleGridIndex"
+          IndexName: "NameIndex"  # Get associated RAiDs of a user
           KeySchema:
             -
-              AttributeName: "handle"
+              AttributeName: "name"
               KeyType: "HASH"
             -
-              AttributeName: "grid"
+              AttributeName: "startDate"
               KeyType: "RANGE"
           Projection:
             ProjectionType: "INCLUDE"
             NonKeyAttributes:
-              - "startDate"
+              - "endDate"
+              - "handle"
+              - "raidName"
+              - "role"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        -
+          IndexName: "NameRoleIndex"  # Special associations of a user to a RAiD, example: finding RAiDs a user owns
+          KeySchema:
+            -
+              AttributeName: "name-role"
+              KeyType: "HASH"
+            -
+              AttributeName: "startDate"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "endDate"
+              - "handle"
+              - "raidName"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        -
+          IndexName: "HandleNameIndex"  #  Find an assocation of user and a RAiD. Can be used for permission checking.
+          KeySchema:
+            -
+              AttributeName: "handle-name"
+              KeyType: "HASH"
+            -
+              AttributeName: "startDate"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
               - "endDate"
           ProvisionedThroughput:
             ReadCapacityUnits: 5
             WriteCapacityUnits: 5
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+        -
+          IndexName: "HandleTypeIndex"  #  Find and split associations of a RAiD by a type of user ('service' or 'instution')
+          KeySchema:
+            -
+              AttributeName: "handle-type"
+              KeyType: "HASH"
+            -
+              AttributeName: "startDate"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "name"
+              - "endDate"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
 Outputs:
   RaidDB:
     Value: !Ref 'RAiDTable'
-  RaidProviderDB:
-    Value: !Ref 'ProviderIndexTable'
-  RaidInstitutionDB:
-    Value: !Ref 'InstitutionIndexTable'
+  RAiDAssociationDB:
+    Value: !Ref 'AssociationIndexTable'
