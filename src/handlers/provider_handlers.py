@@ -117,18 +117,18 @@ def create_raid_provider_association_handler(event, context):
             # Get current datetime
             start_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        if "provider" not in body:
+        if "name" not in body:
             return web_helpers.generate_web_body_response('400', {
-                'message': "'provider' must be provided in your request body to create an association"}, event)
+                'message': "'name' must be provided in your request body to create an association"}, event)
 
         # Define provider association item
         service_item = {
             'handle': raid_handle,
             'startDate': start_date,
-            'name': body['provider'],
+            'name': body['name'],
             'raidName': raid_item['meta']['name'],
             'type': settings.SERVICE_ROLE,
-            'handle-name': '{}-{}'.format(raid_handle, body['provider']),
+            'handle-name': '{}-{}'.format(raid_handle, body['name']),
             'handle-type': '{}-{}'.format(raid_handle, settings.SERVICE_ROLE)
         }
 
@@ -141,7 +141,7 @@ def create_raid_provider_association_handler(event, context):
         association_index_table.put_item(Item=service_item)
 
         return web_helpers.generate_web_body_response('200', {
-                        'provider': service_item['name'],
+                        'name': service_item['name'],
                         'startDate': service_item['startDate']
                     }, event)
 
@@ -198,9 +198,9 @@ def end_raid_provider_association_handler(event, context):
             # Get current datetime
             end_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        if "provider" not in body:
+        if "name" not in body:
             return web_helpers.generate_web_body_response('400', {
-                'message': "'provider' must be provided in your request body to end an association"}, event)
+                'message': "'name' must be provided in your request body to end an association"}, event)
 
         # Update DynamoDB put to end association
         association_index_table = dynamo_db.Table(
@@ -213,7 +213,7 @@ def end_raid_provider_association_handler(event, context):
             'IndexName': 'HandleNameIndex',
             'ProjectionExpression': "startDate, endDate",
             'FilterExpression': Attr('endDate').not_exists(),
-            'KeyConditionExpression': Key('handle-name').eq('{}-{}'.format(raid_handle, body['provider']))
+            'KeyConditionExpression': Key('handle-name').eq('{}-{}'.format(raid_handle, body['name']))
         }
 
         provider_query_response = association_index_table.query(**existing_provider_query_parameters)
@@ -233,7 +233,7 @@ def end_raid_provider_association_handler(event, context):
         )
 
         return web_helpers.generate_web_body_response('200', {
-            'provider': body['provider'],
+            'name': body['name'],
             'startDate': existing_provider['startDate'],
             'endDate': end_date
         }, event)

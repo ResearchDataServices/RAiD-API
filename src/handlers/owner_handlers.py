@@ -47,7 +47,7 @@ def update_raid_owner_handler(event, context):
     try:
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
         body = json.loads(event["body"])
-        new_owner = body['provider']
+        new_owner = body['name']
     except ValueError as e:
         logger.error('Unable to capture RAiD or content path: {}'.format(e))
         return web_helpers.generate_web_body_response(
@@ -105,6 +105,8 @@ def update_raid_owner_handler(event, context):
             },
             ReturnValues="ALL_NEW"
         )
+
+        # Change association of current owner TODO
 
         return web_helpers.generate_web_body_response('200', update_response["Attributes"], event)
 

@@ -57,7 +57,9 @@ Parameters:
     Description: "Comma seperated security group ids that have inbound/outbound access to ANDS handle minting service"
   ElasticsearchHost:
     Type: String
-
+Globals:
+  Function:
+    Runtime: python2.7
 Resources:
   # API
   ApiGatewayApi:
@@ -190,7 +192,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.auth_handlers.custom_authorisation_handler
-      Runtime: python2.7
       Role: !GetAtt CustomAuthorizerRole.Arn
       Environment:
         Variables:
@@ -212,7 +213,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.auth_handlers.authenticate_token_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -237,7 +237,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.raid_public_handlers.get_raid_public_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -256,7 +255,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.raid_public_handlers.redirect_raid_path_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -276,7 +274,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.raid_handlers.get_raids_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -298,7 +295,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.raid_handlers.create_raid_handler
-      Runtime: python2.7
       Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
       VpcConfig:
@@ -328,9 +324,13 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.raid_handlers.update_raid
-      Runtime: python2.7
       Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
+      VpcConfig:
+        SecurityGroupIds:
+          Ref: AndsSecurityGroups
+        SubnetIds:
+          Ref: AndsSubnets
       Environment:
         Variables:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
@@ -353,7 +353,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.raid_handlers.get_raid_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -375,7 +374,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.owner_handlers.get_owner_raids_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -397,7 +395,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.owner_handlers..update_raid_owner_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -419,7 +416,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.provider_handlers.get_providers_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -436,7 +432,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.provider_handlers.get_raid_providers_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -457,7 +452,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.provider_handlers.create_raid_provider_association_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -478,7 +472,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.provider_handlers.end_raid_provider_association_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -500,7 +493,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.institution_handlers.get_institutions_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -517,7 +509,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.institution_handlers.get_raid_institutions_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -538,7 +529,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.institution_handlers.create_raid_institution_association_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:
@@ -559,7 +549,6 @@ Resources:
     Properties:
       CodeUri: ../src
       Handler: handlers.institution_handlers.end_raid_institution_association_handler
-      Runtime: python2.7
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:

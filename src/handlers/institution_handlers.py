@@ -113,18 +113,18 @@ def create_raid_institution_association_handler(event, context):
             # Get current datetime
             start_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        if "institution" not in body:
+        if "name" not in body:
             return web_helpers.generate_web_body_response('400', {
-                'message': "'institution' must be provided in your request body to create an association"}, event)
+                'message': "'name' must be provided in your request body to create an association"}, event)
 
         # Define institution item
         institution_item = {
             'handle': raid_handle,
             'startDate': start_date,
-            'name': body['institution'],
+            'name': body['name'],
             'raidName': raid_item['meta']['name'],
             'type': settings.INSTITUTION_ROLE,
-            'handle-name': '{}-{}'.format(raid_handle, body['institution']),
+            'handle-name': '{}-{}'.format(raid_handle, body['name']),
             'handle-type': '{}-{}'.format(raid_handle, settings.INSTITUTION_ROLE)
         }
 
@@ -139,7 +139,7 @@ def create_raid_institution_association_handler(event, context):
         association_index_table.put_item(Item=institution_item)
 
         return web_helpers.generate_web_body_response('200', {
-                        'institution': institution_item['name'],
+                        'name': institution_item['name'],
                         'startDate': institution_item['startDate']
                     }, event)
 
@@ -195,9 +195,9 @@ def end_raid_institution_association_handler(event, context):  # TODO
             # Get current datetime
             end_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        if "institution" not in body:
+        if "name" not in body:
             return web_helpers.generate_web_body_response('400', {
-                'message': "'institution' must be provided in your request body to end an association"}, event)
+                'message': "'name' must be provided in your request body to end an association"}, event)
 
         # Update DynamoDB put to end association
         association_index_table = dynamo_db.Table(
@@ -210,7 +210,7 @@ def end_raid_institution_association_handler(event, context):  # TODO
             'IndexName': 'HandleNameIndex',
             'ProjectionExpression': "startDate, endDate",
             'FilterExpression': Attr('endDate').not_exists(),
-            'KeyConditionExpression': Key('handle-name').eq('{}-{}'.format(raid_handle, body['institution']))
+            'KeyConditionExpression': Key('handle-name').eq('{}-{}'.format(raid_handle, body['name']))
         }
 
         institution_query_response = association_index_table.query(**existing_institution_query_parameters)
@@ -230,7 +230,7 @@ def end_raid_institution_association_handler(event, context):  # TODO
         )
 
         return web_helpers.generate_web_body_response('200', {
-            'institution': body['institution'],
+            'name': body['name'],
             'startDate': existing_institution['startDate'],
             'endDate': end_date
         }, event)
