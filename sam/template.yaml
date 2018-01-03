@@ -394,7 +394,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
-      Handler: handlers.owner_handlers..update_raid_owner_handler
+      Handler: handlers.owner_handlers.update_raid_owner_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
         Variables:

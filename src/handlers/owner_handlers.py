@@ -99,7 +99,10 @@ def update_raid_owner_handler(event, context):
             Key={
                 'handle': raid_handle
             },
-            UpdateExpression="set owner = :o",
+            UpdateExpression="set #o = :o",
+            ExpressionAttributeNames={
+                '#o': 'owner'
+            },
             ExpressionAttributeValues={
                 ':o': new_owner
             },
