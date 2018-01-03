@@ -135,7 +135,7 @@ def create_raid_handler(event, context):
         # Define provider association item
         service_item = {
             'handle': ands_handle,
-            'startDate': now,
+            'startDate': raid_item['startDate'],
             'name': owner,
             'raidName': raid_item['meta']['name'],
             'role': 'owner',
@@ -284,7 +284,7 @@ def update_raid(event, context):
         body = json.loads(event["body"])
         new_content_path = body['contentPath']
         new_description = body['description']
-        name = body['name']
+        new_name = body['name']
     except ValueError as e:
         logger.error('Unable to capture RAiD or content path: {}'.format(e))
         return web_helpers.generate_web_body_response(
@@ -341,7 +341,7 @@ def update_raid(event, context):
                     '#n': 'name'
                 },
                 ExpressionAttributeValues={
-                    ':n': name,
+                    ':n': new_name,
                     ':d': new_description,
                     ':c': new_content_path,
                     ':i': ands_mint["contentIndex"]
@@ -360,11 +360,60 @@ def update_raid(event, context):
                     '#n': 'name'
                 },
                 ExpressionAttributeValues={
-                    ':n': name,
+                    ':n': new_name,
                     ':d': new_description
                 },
                 ReturnValues="ALL_NEW"
             )
+
+        # Update name on all associations
+        if 'name' not in raid_item['meta'] or new_name != raid_item['meta']['name']:
+            association_index_table = dynamo_db.Table(
+                settings.get_environment_table(
+                    settings.ASSOCIATION_TABLE, environment
+                )
+            )
+
+            association_query_parameters = {
+                'ProjectionExpression': "startDate",
+                'KeyConditionExpression': Key('handle').eq(raid_handle)
+            }
+
+            # Query table using parameters given and built to return a list of RAiDs the owner is attached too
+            query_response = association_index_table.query(**association_query_parameters)
+
+            for item in query_response['Items']:
+                association_index_table.update_item(
+                    Key={
+                        'handle': raid_handle,
+                        'startDate': item['startDate']
+                    },
+                    UpdateExpression="set #n = :n",
+                    ExpressionAttributeNames={
+                        '#n': 'raidName'
+                    },
+                    ExpressionAttributeValues={
+                        ':n': new_name
+                    }
+                )
+
+            while 'LastEvaluatedKey' in query_response:
+                association_query_parameters['ExclusiveStartKey'] = query_response['LastEvaluatedKey']
+                query_response = association_index_table.query(**association_query_parameters)
+                for item in query_response['Items']:
+                    association_index_table.update_item(
+                        Key={
+                            'handle': raid_handle,
+                            'startDate': item['startDate']
+                        },
+                        UpdateExpression="set #n = :n",
+                        ExpressionAttributeNames={
+                            '#n': 'raidName'
+                        },
+                        ExpressionAttributeValues={
+                            ':n': new_name
+                        }
+                    )
 
         return web_helpers.generate_web_body_response('200', update_response["Attributes"], event)
 
