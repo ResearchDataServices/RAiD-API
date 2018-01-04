@@ -1,5 +1,6 @@
 import sys
 import logging
+import datetime
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
@@ -25,6 +26,7 @@ def get_owner_raids_handler(event, context):
     query_parameters = {
         'IndexName': 'NameRoleIndex',
         'ProjectionExpression': "raidName, handle, startDate, endDate",
+        'FilterExpression': Attr('endDate').not_exists(),
         'KeyConditionExpression': Key('name-role').eq("{}-{}".format(provider, 'owner'))
     }
 
@@ -62,12 +64,22 @@ def update_raid_owner_handler(event, context):
             'message': "An 'owner' must be provided in the body of the request."}, event)
 
     try:
-        # Initialise DynamoDB
+        # Get current datetime and environment
+        current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        environment = event['requestContext']['authorizer']['environment']
+
+        # Initialise DynamoDB Tables
         dynamo_db = boto3.resource('dynamodb')
         raid_table = dynamo_db.Table(
             settings.get_environment_table(
                 settings.RAID_TABLE,
-                event['requestContext']['authorizer']['environment']
+                environment
+            )
+        )
+
+        association_index_table = dynamo_db.Table(
+            settings.get_environment_table(
+                settings.ASSOCIATION_TABLE, environment
             )
         )
 
@@ -92,10 +104,57 @@ def update_raid_owner_handler(event, context):
                 '403', {'message': "Only the current RAiD owner can modify ownership"}, event
             )
 
-        # Check if new owner exists # TODO
+        # Check if new owner exists TODO
+
+        # Change association of current owner
+        existing_provider_query_parameters = {
+            'IndexName': 'HandleNameIndex',
+            'ProjectionExpression': "startDate, endDate",
+            'FilterExpression': Attr('endDate').not_exists(),
+            'KeyConditionExpression': Key('handle-name').eq('{}-{}'.format(raid_handle, raid_item["owner"]))
+        }
+
+        provider_query_response = association_index_table.query(**existing_provider_query_parameters)
+        existing_provider = provider_query_response["Items"][0]
+
+        # Remove indexed previous owner
+        association_index_table.delete_item(
+            Key={
+                'startDate': existing_provider['startDate'],
+                'handle': raid_handle
+            },
+            ReturnValues='ALL_OLD'
+        )
+
+        # Create new associations
+        previous_owner_item = {
+            'handle': raid_handle,
+            'startDate': existing_provider['startDate'],
+            'name': raid_item["owner"],
+            'raidName': raid_item['meta']['name'],
+            'type': settings.SERVICE_ROLE,
+            'handle-name': '{}-{}'.format(raid_handle, raid_item["owner"]),
+            'handle-type': '{}-{}'.format(raid_handle, settings.SERVICE_ROLE)
+        }
+
+        association_index_table.put_item(Item=previous_owner_item)
+
+        new_owner_item = {
+            'handle': raid_handle,
+            'startDate': current_datetime,
+            'name': new_owner,
+            'raidName': raid_item['meta']['name'],
+            'type': settings.SERVICE_ROLE,
+            'handle-name': '{}-{}'.format(raid_handle, new_owner),
+            'handle-type': '{}-{}'.format(raid_handle, settings.SERVICE_ROLE),
+            'role': 'owner',
+            'name-role': '{}-{}'.format(new_owner, 'owner'),
+        }
+
+        association_index_table.put_item(Item=new_owner_item)
 
         # Update the RAiD in the Database
-        update_response = raid_table.update_item(
+        raid_table.update_item(
             Key={
                 'handle': raid_handle
             },
@@ -105,13 +164,17 @@ def update_raid_owner_handler(event, context):
             },
             ExpressionAttributeValues={
                 ':o': new_owner
-            },
-            ReturnValues="ALL_NEW"
+            }
         )
 
-        # Change association of current owner TODO
-
-        return web_helpers.generate_web_body_response('200', update_response["Attributes"], event)
+        return web_helpers.generate_web_body_response(
+            '200',
+            {
+                'handle': raid_handle,
+                'owner': new_owner,
+            },
+            event
+        )
 
     except ClientError as e:
         logger.error('Unable to update RAiD owner: {}'.format(e))

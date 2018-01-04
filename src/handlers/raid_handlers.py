@@ -24,21 +24,25 @@ def get_raids_handler(event, context):
     :param context:
     :return:
     """
+    logger.error(json.dumps(event))
     provider = event['requestContext']['authorizer']['provider']
 
     query_parameters = {
         'IndexName': 'NameIndex',
         'ProjectionExpression': "raidName, handle, startDate, endDate, #r",
         'ExpressionAttributeNames': {"#r": "role"},
+        'FilterExpression': Attr('endDate').not_exists(),
         'KeyConditionExpression': Key('name').eq(provider)
     }
 
     try:
         if event["queryStringParameters"]["owner"] == 'False' or event["queryStringParameters"]["owner"] == 'false':
-                query_parameters["FilterExpression"] = Attr('role').not_exists() or Attr('role').ne('owner')
+                query_parameters["FilterExpression"] = Attr('endDate').not_exists() \
+                                                       and (Attr('role').not_exists() or Attr('role').ne('owner'))
 
     except (KeyError, TypeError):
-        query_parameters["FilterExpression"] = Attr('role').not_exists() or Attr('role').ne('owner')
+        query_parameters["FilterExpression"] = Attr('endDate').not_exists() \
+                                               and (Attr('role').not_exists() or Attr('role').ne('owner'))
 
     except ValueError as e:
         logger.error('Incorrect parameter type formatting: {}'.format(e))

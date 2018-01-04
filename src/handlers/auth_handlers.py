@@ -3,9 +3,9 @@ import json
 import urlparse
 import sys
 import logging
-import boto3
 import auth
 from helpers import web_helpers
+import settings
 
 
 # Set Logging Level
@@ -78,7 +78,7 @@ def custom_authorisation_handler(event, context):
     policy.region = tmp[3]
     policy.stage = api_gateway_arn_tmp[1]
 
-    if decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["role"] == os.environ['PROVIDER_ROLE']:
+    if decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["role"] == settings.SERVICE_ROLE:
         # Self signed provider users can use all HTTP methods
         policy.allow_all_methods()
         context = {
@@ -91,14 +91,14 @@ def custom_authorisation_handler(event, context):
         else:
             context["environment"] = "demo"
 
-    elif decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["role"] == os.environ['INSTITUTION_ROLE']:
+    elif decoded["iss"] == os.environ['JWT_ISSUER_SELF'] and decoded["role"] == settings.INSTITUTION_ROLE:
         policy.allow_method(auth.HttpVerb.GET, '/*')
         policy.allow_method(auth.HttpVerb.GET, '/RAiD/*')
         policy.allow_method(auth.HttpVerb.GET, '/providers/*')
         policy.allow_method(auth.HttpVerb.ALL, '/institutions/*')
         context = {
             'provider': decoded["sub"],
-            'grid': decoded["grid"],
+            #'grid': decoded["grid"], TODO
             'role': decoded["role"],
         }
 
