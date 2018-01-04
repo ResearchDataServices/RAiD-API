@@ -23,6 +23,8 @@ def get_providers_handler(event, context):
     :return:
     """
 
+    user = event['requestContext']['authorizer']['provider']
+
     query_parameters = {
         'IndexName': 'type',
         'ProjectionExpression': "#n, grid, isni",
@@ -30,7 +32,8 @@ def get_providers_handler(event, context):
         'KeyConditionExpression': Key('type').eq(settings.SERVICE_ROLE)
     }
 
-    return web_helpers.generate_table_list_response(event, query_parameters, os.environ["METADATA_TABLE"])
+    return web_helpers.generate_table_list_response(
+        event, query_parameters, os.environ["METADATA_TABLE"], remove_dictionary={'name': user})
 
 
 def get_raid_providers_handler(event, context):

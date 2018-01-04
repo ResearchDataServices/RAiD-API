@@ -85,13 +85,14 @@ def generate_web_body_response(status_code, body, event=None):
     }
 
 
-def generate_table_list_response(event, query_parameters, table, replacement_dictionary=None):
+def generate_table_list_response(event, query_parameters, table, replacement_dictionary=None, remove_dictionary=None):
     """
     A generic method for Dynamo DB queries that return a list of items.
     :param event: Dictionary of values provided from the invoking API Gateway
     :param query_parameters: Dictionary of DynamoDB parameters unique to the calling method
     :param table: String representing the name of the DynamoDB table
     :param replacement_dictionary: Dictionary of new key names to replace current DyanmoDB name
+    :param remove_dictionary: Dictionary of new key names to be not included in results
     :return:
     """
     try:
@@ -135,13 +136,19 @@ def generate_table_list_response(event, query_parameters, table, replacement_dic
                         # Remove the original key/value pair and replace with the new key name
                         item[replacement_dictionary[key]] = item.pop(key)
 
+        # Remove values
+        if remove_dictionary:
+            for key, value in remove_dictionary.items():
+                query_response["Items"][:] = [d for d in query_response["Items"] if d.get(key) != value]
+
         if 'LastEvaluatedKey' in query_response:
             return_body['lastEvaluatedKey'] = base64.urlsafe_b64encode(json.dumps(query_response["LastEvaluatedKey"]))
 
         return generate_web_body_response('200', return_body, event)
 
-    except:
+    except Exception as e:
         logger.error('Unable to generate a DynamoDB list response: {}'.format(sys.exc_info()[0]))
+        logger.error(str(e))
         return generate_web_body_response('500',
                                           {'message': "Unable to perform request due to error. Please check structure"
                                                       " of the parameters."},
