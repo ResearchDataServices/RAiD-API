@@ -1,12 +1,12 @@
 import sys
 import logging
-import datetime
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 import json
 import urllib
 from helpers import web_helpers
+from helpers import db
 import settings
 
 # Set Logging Level
@@ -64,8 +64,7 @@ def update_raid_owner_handler(event, context):
             'message': "An 'owner' must be provided in the body of the request."}, event)
 
     try:
-        # Get current datetime and environment
-        current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # Get current datetime
         environment = event['requestContext']['authorizer']['environment']
 
         # Initialise DynamoDB Tables
@@ -104,54 +103,11 @@ def update_raid_owner_handler(event, context):
                 '403', {'message': "Only the current RAiD owner can modify ownership"}, event
             )
 
-        # Check if new owner exists TODO
+        # Change association of the current owner to a normal provider
+        db.end_provider_ownership(association_index_table, raid_handle, raid_item["owner"], raid_item['meta']['name'])
 
-        # Change association of current owner
-        existing_provider_query_parameters = {
-            'IndexName': 'HandleNameIndex',
-            'ProjectionExpression': "startDate, endDate",
-            'FilterExpression': Attr('endDate').not_exists(),
-            'KeyConditionExpression': Key('handle-name').eq('{}-{}'.format(raid_handle, raid_item["owner"]))
-        }
-
-        provider_query_response = association_index_table.query(**existing_provider_query_parameters)
-        existing_provider = provider_query_response["Items"][0]
-
-        # Remove indexed previous owner
-        association_index_table.delete_item(
-            Key={
-                'startDate': existing_provider['startDate'],
-                'handle': raid_handle
-            },
-            ReturnValues='ALL_OLD'
-        )
-
-        # Create new associations
-        previous_owner_item = {
-            'handle': raid_handle,
-            'startDate': existing_provider['startDate'],
-            'name': raid_item["owner"],
-            'raidName': raid_item['meta']['name'],
-            'type': settings.SERVICE_ROLE,
-            'handle-name': '{}-{}'.format(raid_handle, raid_item["owner"]),
-            'handle-type': '{}-{}'.format(raid_handle, settings.SERVICE_ROLE)
-        }
-
-        association_index_table.put_item(Item=previous_owner_item)
-
-        new_owner_item = {
-            'handle': raid_handle,
-            'startDate': current_datetime,
-            'name': new_owner,
-            'raidName': raid_item['meta']['name'],
-            'type': settings.SERVICE_ROLE,
-            'handle-name': '{}-{}'.format(raid_handle, new_owner),
-            'handle-type': '{}-{}'.format(raid_handle, settings.SERVICE_ROLE),
-            'role': 'owner',
-            'name-role': '{}-{}'.format(new_owner, 'owner'),
-        }
-
-        association_index_table.put_item(Item=new_owner_item)
+        # Create new provider owner or promote existing one
+        db.create_provider_ownership(association_index_table, raid_handle, new_owner, raid_item['meta']['name'])
 
         # Update the RAiD in the Database
         raid_table.update_item(
@@ -178,9 +134,11 @@ def update_raid_owner_handler(event, context):
 
     except ClientError as e:
         logger.error('Unable to update RAiD owner: {}'.format(e))
+        logger.error(str(e))
         return web_helpers.generate_web_body_response('500', {'message': "Unable to update RAiD owner."}, event)
-    except:
+    except Exception as e:
         logger.error('Unable to update RAiD owner: {}'.format(sys.exc_info()[0]))
+        logger.error(str(e))
         return web_helpers.generate_web_body_response(
             '400',
             {'message': "Unable to perform request due to an error. Please check structure of the body."},
