@@ -1,6 +1,6 @@
-import datetime
 from boto3.dynamodb.conditions import Key, Attr
 import settings
+from helpers import raid_helpers
 
 
 def end_provider_ownership(table, handle, owner_name, raid_name):
@@ -56,7 +56,7 @@ def create_provider_ownership(table, handle, new_owner_name, raid_name):
     :return:
     """
     # Get current datetime
-    association_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    association_datetime = raid_helpers.get_current_datetime()
 
     # Check if new owner exists and end normal association
     existing_provider_query_parameters = {

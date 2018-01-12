@@ -7,6 +7,7 @@ from boto3.dynamodb.conditions import Key, Attr
 import json
 import urllib
 from helpers import web_helpers
+from helpers import raid_helpers
 import settings
 
 
@@ -118,7 +119,7 @@ def create_raid_provider_association_handler(event, context):
 
         else:
             # Get current datetime
-            start_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            start_date = raid_helpers.get_current_datetime()
 
         if "name" not in body:
             return web_helpers.generate_web_body_response('400', {
@@ -199,7 +200,7 @@ def end_raid_provider_association_handler(event, context):
                     'message': "Incorrect date format, should be yyyy-MM-dd hh:mm:ss"}, event)
         else:
             # Get current datetime
-            end_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            end_date = raid_helpers.get_current_datetime()
 
         if "name" not in body:
             return web_helpers.generate_web_body_response('400', {

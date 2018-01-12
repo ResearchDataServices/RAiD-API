@@ -71,7 +71,7 @@ def create_raid_handler(event, context):
         raid_table = dynamo_db.Table(settings.get_environment_table(settings.RAID_TABLE, environment))
 
         # Get current datetime
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now = raid_helpers.get_current_datetime()
 
         # Define Initial RAiD item
         raid_item = {

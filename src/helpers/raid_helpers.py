@@ -1,4 +1,6 @@
 import random
+import datetime
+import pytz
 
 ANIMAL_NAMES = [
     'Aardvark', 'Albatross', 'Alligator', 'Alpaca', 'Ant', 'Anteater', 'Antelope', 'Ape', 'Armadillo', 'Donkey',
@@ -53,3 +55,13 @@ def generate_random_name():
     :return:
     """
     return '{} {}'.format(random.choice(CSS_COLOR_NAMES), random.choice(ANIMAL_NAMES))
+
+
+def get_current_datetime():
+    """
+    Return current stripped Date and Time
+    :return:
+    """
+    utc_now = pytz.utc.localize(datetime.datetime.utcnow())
+    pst_now = utc_now.astimezone(pytz.timezone("Australia/Brisbane"))
+    return pst_now.strftime("%Y-%m-%d %H:%M:%S")

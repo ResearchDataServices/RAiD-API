@@ -64,7 +64,7 @@ def update_raid_owner_handler(event, context):
             'message': "An 'owner' must be provided in the body of the request."}, event)
 
     try:
-        # Get current datetime
+        # Get current environment
         environment = event['requestContext']['authorizer']['environment']
 
         # Initialise DynamoDB Tables
