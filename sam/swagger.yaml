@@ -3,7 +3,7 @@
 swagger: "2.0"
 info:
   title: RAiD API
-  version: "1.0.1"
+  version: "1.1.0"
   description: "The Data LifeCycle Framework (DLCF – www.dlc.edu.au ) has been initiated by five primary  organisations; Australian Access Federation (AAF), Australia’s Academic and Research Network (AARNet), Australian National Data Service (ANDS), National eResearch Collaboration Tools and Resources (NeCTAR) and Research Data Services (RDS).\n\n The DLCF is a nationwide effort to connect research resources and activities such that researchers can make the best use of existing national, state-based, local, and commercial eResearch tools. It aims to provide a simple path to reliable provenance, more effective collaboration across organisations and assist researchers to position themselves to address the growing potential of increasingly open data.\n\n The DLCF will connect critical elements and points in time of the data journey from grant approval through to project finalisation, results publication and archiving. It will leverage existing eResearch investment to provide a flexible and dynamic national framework supporting research.\n\n The Resource and Activity Persistent identifier(RAiD) is the first of the enabling technologies required for the DLCF. This specification document is for the development of the RAiD service and supporting features. Learn more about the RAiD project by visiting the website (https://www.raid.org.au/)."
 tags:
 - name: "Auth"
@@ -40,7 +40,7 @@ paths:
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
             responseTemplates:
-              application/json: "{\"version\": \"1.0-Alpha\"}"
+              application/json: "{\"version\": \"1.1.0\"}"
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         passthroughBehavior: "when_no_match"
