@@ -5,7 +5,7 @@ host: <<api_url>>
 basePath: /v1
 info:
   title: RAiD API
-  version: "1.0-Alpha"
+  version: "1.1.0"
   description: "The Data LifeCycle Framework (DLCF – www.dlc.edu.au ) has been initiated by five primary  organisations; Australian Access Federation (AAF), Australia’s Academic and Research Network (AARNet), Australian National Data Service (ANDS), National eResearch Collaboration Tools and Resources (NeCTAR) and Research Data Services (RDS).\n\n The DLCF is a nationwide effort to connect research resources and activities such that researchers can make the best use of existing national, state-based, local, and commercial eResearch tools. It aims to provide a simple path to reliable provenance, more effective collaboration across organisations and assist researchers to position themselves to address the growing potential of increasingly open data.\n\n The DLCF will connect critical elements and points in time of the data journey from grant approval through to project finalisation, results publication and archiving. It will leverage existing eResearch investment to provide a flexible and dynamic national framework supporting research.\n\n The Resource and Activity Persistent identifier(RAiD) is the first of the enabling technologies required for the DLCF. This specification document is for the development of the RAiD service and supporting features. Learn more about the RAiD project by visiting the website (https://www.raid.org.au/)."
 tags:
 - name: "Auth"
@@ -42,7 +42,7 @@ paths:
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
             responseTemplates:
-              application/json: "{\"version\": \"1.0-Alpha\"}"
+              application/json: "{\"version\": \"1.1.0\"}"
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         passthroughBehavior: "when_no_match"
@@ -214,7 +214,6 @@ paths:
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         type: mock
-
   /auth:
     post:
       summary: "Authenticate a JWT token and get the base64 decoded object"
@@ -289,6 +288,11 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: "owner"
+        in: "query"
+        required: false
+        type: "boolean"
+        description: "Include RAiDs owned"
       - name: "limit"
         in: "query"
         required: false
@@ -336,8 +340,7 @@ paths:
       - in: "body"
         required: false
         name: "body"
-        description: "Minting path and optional parameters that are added to the RAiD. 'meta' can take any valid 
-        JSON object."
+        description: "Minting path and other optional parameters that are stored in the RAiD. 'meta' can take any valid JSON object with a 'name' and 'description inside recommended."
         schema:
           $ref: "#/definitions/RAiDCreateModel"
       responses:
@@ -430,38 +433,6 @@ paths:
         uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidFunction}/invocations
         httpMethod: POST
         type: aws_proxy
-    options:
-      tags:
-      - "CORS"
-      consumes:
-      - application/json
-      produces:
-      - application/json
-      responses:
-        200:
-          description: 200 response
-          schema:
-            $ref: "#/definitions/Empty"
-          headers:
-            Access-Control-Allow-Origin:
-              type: string
-            Access-Control-Allow-Methods:
-              type: string
-            Access-Control-Allow-Headers:
-              type: string
-      x-amazon-apigateway-integration:
-        responses:
-          default:
-            statusCode: 200
-            responseParameters:
-              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-        passthroughBehavior: when_no_match
-        requestTemplates:
-          application/json: "{\"statusCode\": 200}"
-        type: mock
-  /RAiD/{raidId}/handle:
     put:
       summary: "Update the content path of a RAiD and mint the new path with the ANDS Service"
       tags:
@@ -483,7 +454,7 @@ paths:
         name: "body"
         description: "New content url path to mint with ANDS"
         schema:
-            $ref: "#/definitions/MintRAiDModel"
+            $ref: "#/definitions/UpdateRAiDModel"
       responses:
         200:
           description: "200 response"
@@ -500,7 +471,7 @@ paths:
             statusCode: 200
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.UpdateRaidContentPathFunction}/invocations
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.UpdateRaidFunction}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
         type: aws_proxy
@@ -605,12 +576,12 @@ paths:
         name: "body"
         description: "Optional parameters that are added when a provider joins a RAiD"
         schema:
-          $ref: "#/definitions/CreateInstitutionAssociationModel"
+          $ref: "#/definitions/CreateAssociationModel"
       responses:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/InstitutionAssociationModel"
+            $ref: "#/definitions/AssociatedEntityModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -647,12 +618,12 @@ paths:
         name: "body"
         description: "Optional parameters that are used when removing a provider"
         schema:
-          $ref: "#/definitions/EndInstitutionAssociationModel"
+          $ref: "#/definitions/EndEntityAssociationModel"
       responses:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/InstitutionAssociationModel"
+            $ref: "#/definitions/AssociatedEntityModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -769,12 +740,12 @@ paths:
         name: "body"
         description: "Optional parameters that are added when a provider joins a RAiD"
         schema:
-          $ref: "#/definitions/CreateProviderAssociationModel"
+          $ref: "#/definitions/CreateAssociationModel"
       responses:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/ProviderAssociationModel"
+            $ref: "#/definitions/AssociatedEntityModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -811,12 +782,12 @@ paths:
         name: "body"
         description: "Optional parameters that are used when removing a provider"
         schema:
-          $ref: "#/definitions/EndProviderAssociationModel"
+          $ref: "#/definitions/EndEntityAssociationModel"
       responses:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/ProviderAssociationModel"
+            $ref: "#/definitions/AssociatedEntityModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -892,7 +863,7 @@ paths:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/OwnerRAiDsModel"
+            $ref: "#/definitions/RAiDsModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -1013,6 +984,158 @@ paths:
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         type: mock
+  /providers:
+    get:
+      summary: "Return a list of providers registered with RAiD"
+      tags:
+      - "Provider"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "limit"
+        in: "query"
+        required: false
+        type: "integer"
+        description: "The maximum number of items to return"
+      - name: "ascending"
+        in: "query"
+        required: false
+        type: "boolean"
+        description: "Order list by in ascending order (most recently created first)"
+      - name: "exclusiveStartKey"
+        in: "query"
+        required: false
+        type: "string"
+        description: "Key of the last item returned in a previous query to be used for large lists and pagination"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/EntitiesModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - CustomAuthorizerJwt: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetProvidersFunction}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
+  /institutions:
+    get:
+      summary: "Return a list of institutions registered with RAiD"
+      tags:
+      - "Institution"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "limit"
+        in: "query"
+        required: false
+        type: "integer"
+        description: "The maximum number of items to return"
+      - name: "ascending"
+        in: "query"
+        required: false
+        type: "boolean"
+        description: "Order list by in ascending order (most recently created first)"
+      - name: "exclusiveStartKey"
+        in: "query"
+        required: false
+        type: "string"
+        description: "Key of the last item returned in a previous query to be used for large lists and pagination"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/EntitiesModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - CustomAuthorizerJwt: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetInstitutionsFunction}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
 
 securityDefinitions:
   CustomAuthorizerJwt:
@@ -1036,7 +1159,7 @@ definitions:
     properties:
       version:
         type: "string"
-        example: "3.0-Alpha"
+        example: "1.1.0"
     description: "API Version Summary"
   RAiDModel:
     type: "object"
@@ -1044,30 +1167,31 @@ definitions:
       owner:
         type: "string"
         description: "Provider that created the RAiD handle"
-        example: "RDS"
+        example: "TechConnect"
       startDate:
         type: "string"
         description: "RAiD start datetime (yyyy-MM-dd hh:mm:ss), which will default to the current datetime if none is supplied"
-        example: "2017-09-11 06:07:39"
+        example: "2017-09-20 12:00:00"
       endDate:
         type: "string"
         description: "(optional) RAiD end Datetime (yyyy-MM-dd hh:mm:ss)"
-        example: "2020-12-20 00:00:00"
+        example: "2018-12-20 00:00:00"
       creationDate:
         type: "string"
         description: "RAiD created datetime (yyyy-MM-dd hh:mm:ss)"
-        example: "2017-09-11 06:07:39"
+        example: "2017-09-20 12:00:00"
       handle:
         type: "string"
         description: "Unique minted ANDS handle"
         example: "10378.1/1590349"
-      description:
-        type: "string"
-        description: "Summary of the RAiD"
       contentPath:
         type: "string"
         description: "URL path minted with ANDS"
-        example: "http://myorganisation.org.au/contentlocation"
+        example: "https://google.com"
+      contentIndex:
+        type: "string"
+        description: "Index of URL path ANDS handle"
+        example: "1"
       providers:
         type: "array"
         description: "(optional) Providers associated to the RAiD"
@@ -1082,266 +1206,200 @@ definitions:
               type: "string"
               description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
               example: "2018-12-20 00:00:00"
-            provider:
+            name:
               type: "string"
               description: "Name of provider"
-              example: "RDS"
-      meta:
-        type: "object"
-        description: "Object that acts as a document for optional metadata KeyValues"
-        properties:
-          RelatedRaids:
-            type: "array"
-            description: "List of related RAiD handles"
-            items:
-              example: "10378.1/1590363"
-              type: "string"
-  OwnerRAiDsModel:
-    type: "object"
-    properties:
-      count:
-        type: "string"
-        description: "Number of items returned"
-        example: "30"
-      items:
+              example: "TechConnect"
+      institutions:
         type: "array"
         description: "(optional) Providers associated to the RAiD"
         items:
           type: "object"
           properties:
-            owner:
-              type: "string"
-              description: "Provider that created the RAiD handle"
-              example: "RDS"
             startDate:
               type: "string"
-              description: "RAiD start datetime (yyyy-MM-dd hh:mm:ss), which will default to the current datetime if none is supplied"
-              example: "2017-09-11 06:07:39"
-            creationDate:
+              description: "Datetime the provider associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+              example: "2017-09-20 12:00:00"
+            endDate:
               type: "string"
-              description: "RAiD created datetime (yyyy-MM-dd hh:mm:ss)"
-              example: "2017-09-11 06:07:39"
-            handle:
+              description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+              example: "2018-12-20 00:00:00"
+            name:
               type: "string"
-              description: "Unique minted ANDS handle"
-              example: "10378.1/1590349"
-      scannedCount:
-        type: "string"
-        description: "Total number of items that were scanned in the query"
-        example: "30"
-
-  RAiDCreateModel:
-    type: "object"
-    properties:
-      contentPath:
-        type: "string"
-        description: "URL path minted with ANDS"
-        example: "http://myorganisation.org.au/contentlocation"
-      description:
-        type: "string"
-        description: "Summary of the RAiD"
-      startDate:
-        type: "string"
-        description: "RAiD start datetime (yyyy-MM-dd hh:mm:ss), which will default to the current datetime if none is supplied"
-        example: "2017-09-11 06:07:39"
+              description: "Name of Institution"
+              example: "TechConnect"
       meta:
         type: "object"
-        description: "Object that acts as a document for optional metadata KeyValues"
+        description: "(optional) Object that acts as a document for optional metadata KeyValues"
         properties:
-          RelatedRaids:
-            type: "array"
-            description: "List of related RAiD handles"
-            items:
-              example: "10378.1/1590363"
-              type: "string"
-  MintRAiDModel:
-    type: "object"
-    properties:
-      contentPath:
-        type: "string"
-        description: "URL path minted with ANDS"
-        example: "http://myorganisation.org.au/contentlocation"
-  ProviderAssociationModel:
-    type: "object"
-    properties:
-      startDate:
-        type: "string"
-        description: "Datetime the provider associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-        example: "2017-09-20 12:00:00"
-      endDate:
-        type: "string"
-        description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-        example: "2018-12-20 00:00:00"
-      provider:
-        type: "string"
-        description: "Name of provider"
-        example: "RDS"
-      handle:
-        type: "string"
-        description: "Unique minted ANDS handle"
-        example: "10378.1/1590349"
-  CreateProviderAssociationModel:
-    type: "object"
-    properties:
-      startDate:
-        type: "string"
-        description: "Datetime the provider associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-        example: "2017-09-20 12:00:00"
-      provider:
-        type: "string"
-        description: "Name of provider"
-        example: "AAF"
-  EndProviderAssociationModel:
-    type: "object"
-    properties:
-      endDate:
-        type: "string"
-        description: "Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-        example: "2018-12-20 00:00:00"
-      provider:
-        type: "string"
-        description: "Name of provider"
-        example: "AAF"
-  OwnerAssociationModel:
-    type: "object"
-    properties:
-      provider:
-        type: "string"
-        description: "Name of provider"
-        example: "AAF"
-
-  CreateInstitutionAssociationModel:
-    type: "object"
-    properties:
-      startDate:
-        type: "string"
-        description: "Datetime the institution associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-        example: "2017-09-20 12:00:00"
-      grid:
-        type: "string"
-        description: "GRID (Global Research Identifier Database) of the Institution"
-        example: "grid.1003.2"
-  EndInstitutionAssociationModel:
-    type: "object"
-    properties:
-      endDate:
-        type: "string"
-        description: "Datetime the institution dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-        example: "2018-12-20 00:00:00"
-      grid:
-        type: "string"
-        description: "GRID (Global Research Identifier Database) of the Institution"
-        example: "grid.1003.2"
-  InstitutionAssociationModel:
-    type: "object"
-    properties:
-      startDate:
-        type: "string"
-        description: "Datetime the provider associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-        example: "2017-09-20 12:00:00"
-      endDate:
-        type: "string"
-        description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-        example: "2018-12-20 00:00:00"
-      grid:
-        type: "string"
-        description: "GRID (Global Research Identifier Database) of the Institution"
-        example: "grid.1003.2"
-      handle:
-        type: "string"
-        description: "Unique minted ANDS handle"
-        example: "10378.1/1590349"
-  RAiDPublicModel:
-    type: "object"
-    properties:
-      creationDate:
-        type: "string"
-        description: "RAiD created datetime (yyyy-MM-dd hh:mm:ss)"
-        example: "2017-09-11 06:07:39"
-      handle:
-        type: "string"
-        description: "Unique minted ANDS handle"
-        example: "10378.1/1590349"
-      contentPath:
-        type: "string"
-        description: "URL path minted with ANDS"
-        example: "http://myorganisation.org.au/contentlocation"
-  RAiDAuthModel:
-    type: "object"
-    properties:
-      token:
-        type: "string"
-        description: "JSON Web Token"
-        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
-  RAiDAuthResponseModel:
-    type: "object"
-    properties:
-      sub:
-        type: "string"
-        description: "Subject of the JWT (Standard field)"
-        example: "TechConnect"
-      iss:
-        type: "string"
-        description: "Principal that issued the JWT (Standard field)"
-        example: "https://www.raid.org.au"
-      environment:
-        type: "string"
-        description: "RAiD environment token is linked to (Custom field)"
-        example: "demo"
-      role:
-        type: "string"
-        description: "RAiD user type token is linked to (Custom field); 'service' or 'institution'"
-        example: "service"
-      exp:
-        type: "string"
-        description: "Expiration time on or after which the JWT must not be accepted for processing (Standard field)"
-        example: "1570924800"
-      iat:
-        type: "string"
-        description: "Time at which the JWT was issued (Standard field)"
-        example: "1507866567"
-      aud:
-        type: "string"
-        description: "Where the JWT is intended for (Standard field)"
-        example: "https://api.raid.org.au"
+          name:
+            type: "string"
+            description: "A name alias for the RAiD"
+          description:
+            type: "string"
+            description: "A short description of the RAiD"
   ProviderRAiDsModel:
     type: "object"
     properties:
       count:
         type: "string"
         description: "Number of items returned"
-        example: "30"
+        example: "10"
       items:
         type: "array"
         description: "(optional) Providers associated to the RAiD"
         items:
-          $ref: "#/definitions/ProviderAssociationModel"
+          $ref: "#/definitions/AssociatedEntityModel"
       scannedCount:
         type: "string"
         description: "Total number of items that were scanned in the query"
-        example: "30"
+        example: "10"
+  RAiDCreateModel:
+    type: "object"
+    properties:
+      contentPath:
+        type: "string"
+        description: "URL path minted with ANDS"
+        example: "https://google.com"
+      startDate:
+        type: "string"
+        description: "RAiD start datetime (yyyy-MM-dd hh:mm:ss), which will default to the current datetime if none is supplied"
+        example: "2017-09-20 12:00:00"
+      meta:
+        type: "object"
+        description: "(optional) Object that acts as a document for optional metadata KeyValues"
+        properties:
+          name:
+            type: "string"
+            description: "A name alias for the RAiD"
+          description:
+            type: "string"
+            description: "A short description of the RAiD"
+  UpdateRAiDModel:
+    type: "object"
+    properties:
+      name:
+        type: "string"
+        description: "A name alias for the RAiD that is stored in the metadata"
+      description:
+        type: "string"
+        description: "A short description of the RAiD that is stored in the metadata"
+      contentPath:
+        type: "string"
+        description: "URL path minted with ANDS"
+        example: "https://google.com"
+  AssociatedEntityModel:
+    type: "object"
+    properties:
+      startDate:
+        type: "string"
+        description: "Datetime the provider associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+        example: "2017-09-20 12:00:00"
+      endDate:
+        type: "string"
+        description: "(optional) Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+        example: "2018-12-20 00:00:00"
+      name:
+        type: "string"
+        description: "Name of entity"
+        example: "TechConnect"
+  CreateAssociationModel:
+    type: "object"
+    properties:
+      startDate:
+        type: "string"
+        description: "Datetime the provider associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+        example: "2017-09-20 12:00:00"
+      name:
+        type: "string"
+        description: "Name of the entity"
+        example: "TechConnect"
+  EndEntityAssociationModel:
+    type: "object"
+    properties:
+      endDate:
+        type: "string"
+        description: "Datetime the provider dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+        example: "2018-12-20 00:00:00"
+      name:
+        type: "string"
+        description: "Name of the entity"
+        example: "TechConnect"
+  OwnerAssociationModel:
+    type: "object"
+    properties:
+      name:
+        type: "string"
+        description: "Name of the entity"
+        example: "TechConnect"
   InstitutionRAiDsModel:
     type: "object"
     properties:
       count:
         type: "string"
         description: "Number of items returned"
-        example: "30"
+        example: "10"
       items:
         type: "array"
         description: "(optional) Institutions associated to the RAiD"
         items:
-          $ref: "#/definitions/InstitutionAssociationModel"
+          $ref: "#/definitions/AssociatedEntityModel"
       scannedCount:
         type: "string"
         description: "Total number of items that were scanned in the query"
-        example: "30"
+        example: "10"
+  RAiDPublicModel:
+    type: "object"
+    properties:
+      creationDate:
+        type: "string"
+        description: "RAiD created datetime (yyyy-MM-dd hh:mm:ss)"
+        example: "2017-09-20 12:00:00"
+      handle:
+        type: "string"
+        description: "Unique minted ANDS handle"
+        example: "10378.1/1590349"
+      contentPath:
+        type: "string"
+        description: "URL path minted with ANDS"
+        example: "https://google.com"
+  RAiDAuthModel:
+    type: "object"
+    properties:
+      token:
+        type: "string"
+        description: "JSON Web Token"
+  RAiDAuthResponseModel:
+    type: "object"
+    properties:
+      sub:
+        type: "string"
+        description: "Subject of the JWT (Standard field)"
+      iss:
+        type: "string"
+        description: "Principal that issued the JWT (Standard field)"
+      environment:
+        type: "string"
+        description: "RAiD environment token is linked to (Custom field)"
+      role:
+        type: "string"
+        description: "RAiD user type token is linked to (Custom field); 'service' or 'institution'"
+      exp:
+        type: "string"
+        description: "Expiration time on or after which the JWT must not be accepted for processing (Standard field)"
+      iat:
+        type: "string"
+        description: "Time at which the JWT was issued (Standard field)"
+      aud:
+        type: "string"
+        description: "Where the JWT is intended for (Standard field)"
   RAiDsModel:
     type: "object"
     properties:
       count:
         type: "string"
         description: "Number of items returned"
+        example: "10"
       items:
         type: "array"
         description: "(optional) Providers associated to the RAiD"
@@ -1350,9 +1408,17 @@ definitions:
       scannedCount:
         type: "string"
         description: "Total number of items that were scanned in the query"
+        example: "10"
   AssociationModel:
     type: "object"
     properties:
+      raidName:
+        type: "string"
+        description: "Name/Alias of the RAiD"
+      handle:
+        type: "string"
+        description: "Unique minted ANDS handle"
+        example: "10378.1/1590349"
       startDate:
         type: "string"
         description: "Datetime the entity associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
@@ -1361,11 +1427,31 @@ definitions:
         type: "string"
         description: "(optional) Datetime the entity dissociated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
         example: "2018-12-20 00:00:00"
-      entityId:
+  EntitiesModel:
+    type: "object"
+    properties:
+      count:
         type: "string"
-        description: "Name of provider or GRID of institution"
-        example: "RDS@UQ"
-      handle:
+        description: "Number of items returned"
+        example: "10"
+      items:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            name:
+              type: "string"
+              description: "Provider that created the RAiD handle"
+              example: "University of Queensland"
+            grid:
+              type: "string"
+              description: "GRID (Global Research Identifier Database) of the Institution"
+              example: "grid.1003.2"
+            isni:
+              type: "string"
+              description: "International Standard Name Identifier (ISO 27729)"
+              example: "0000 0000 9320 7537"
+      scannedCount:
         type: "string"
-        description: "Unique minted ANDS handle"
-        example: "10378.1/1590349"
+        description: "Total number of items that were scanned in the query"
+        example: "10"
