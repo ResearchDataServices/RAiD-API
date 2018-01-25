@@ -1,0 +1,125 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  RAiDTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "handle"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "handle"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  AssociationIndexTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "handle"
+          AttributeType: "S"
+        -
+          AttributeName: "startDate"
+          AttributeType: "S"
+        -
+          AttributeName: "name"
+          AttributeType: "S"
+        -
+          AttributeName: "name-role"
+          AttributeType: "S"
+        -
+          AttributeName: "handle-name"
+          AttributeType: "S"
+        -
+          AttributeName: "handle-type"
+          AttributeType: "S"
+
+      KeySchema:
+        -
+          AttributeName: "handle"
+          KeyType: "HASH"
+        -
+          AttributeName: startDate
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "NameIndex"  # Get associated RAiDs of a user
+          KeySchema:
+            -
+              AttributeName: "name"
+              KeyType: "HASH"
+            -
+              AttributeName: "startDate"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "endDate"
+              - "handle"
+              - "raidName"
+              - "role"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        -
+          IndexName: "NameRoleIndex"  # Special associations of a user to a RAiD, example: finding RAiDs a user owns
+          KeySchema:
+            -
+              AttributeName: "name-role"
+              KeyType: "HASH"
+            -
+              AttributeName: "startDate"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "endDate"
+              - "handle"
+              - "raidName"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        -
+          IndexName: "HandleNameIndex"  #  Find an assocation of user and a RAiD. Can be used for permission checking.
+          KeySchema:
+            -
+              AttributeName: "handle-name"
+              KeyType: "HASH"
+            -
+              AttributeName: "startDate"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "endDate"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        -
+          IndexName: "HandleTypeIndex"  #  Find and split associations of a RAiD by a type of user ('service' or 'instution')
+          KeySchema:
+            -
+              AttributeName: "handle-type"
+              KeyType: "HASH"
+            -
+              AttributeName: "startDate"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "name"
+              - "endDate"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+Outputs:
+  RaidDB:
+    Value: !Ref 'RAiDTable'
+  RAiDAssociationDB:
+    Value: !Ref 'AssociationIndexTable'

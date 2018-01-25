@@ -1,0 +1,649 @@
+# NOTE: Before using this template, replace the <<region>> and <<account>> fields
+#       in Lambda integration URI in the swagger file to region and accountId
+#       you are deploying to
+#
+# To deploy for the first time, and for each update,
+# run both of the following commands in order:
+#
+# aws cloudformation package \
+# --template-file template.yaml \
+# --output-template-file template-out.yaml \
+# --s3-bucket <your-s3-bucket-name>
+#
+# aws cloudformation deploy \=
+# --template-file <path-to-file>/template-out.yaml \
+# --stack-name <STACK_NAME>  \
+# --parameter-overrides JwtSecret=<<jwt-secret>> AndsService=<<ands_service>> DemoAndsService=<<ands_service>> AndsAppId=<<app_id>> AndsSubnets=<<subnet1,subnet2>> AndsSecurityGroups=<<sg1,sg1>> ElasticsearchHost=<<....ap-southeast-2.es.amazonaws.com>>\
+# --capabilities CAPABILITY_IAM
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: RAiD AWS resources
+Parameters:
+  Tracing:
+    Type: String
+    Default: Active
+    AllowedValues:
+      - Active
+      - PassThrough
+  JwtIssuerSelf:
+    Type: String
+    Default: https://www.raid.org.au
+  JwtIssuerThirdParty:
+    Type: String
+    Default: https://rapid.aaf.edu.au
+  JwtAudience:
+    Type: String
+    Default: https://api.raid.org.au
+  JwtSecret:
+    Type: String
+  ProviderRole:
+    Type: String
+    Default: service
+  InstitutionRole:
+    Type: String
+    Default: institution
+  AndsService:
+    Type: String
+  DemoAndsService:
+    Type: String
+  AndsAppId:
+    Type: String
+  AndsSubnets:
+    Type: CommaDelimitedList
+    Description: "Comma seperated subnet ids that have access to ANDS handle minting service"
+  AndsSecurityGroups:
+    Type: CommaDelimitedList
+    Description: "Comma seperated security group ids that have inbound/outbound access to ANDS handle minting service"
+  ElasticsearchHost:
+    Type: String
+Globals:
+  Function:
+    Runtime: python2.7
+Resources:
+  # API
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionUri: swagger.yaml
+      StageName: v1
+      Variables:
+        CustomAuthorizer: !Ref CustomAuthorizer
+        CustomAuthorizerRole: !Ref CustomAuthorizerRole
+        AuthenticateTokenFunction: !Ref AuthenticateToken
+        CreateRaidFunction: !Ref CreateRaid
+        UpdateRaidFunction: !Ref UpdateRaid
+        GetRaidsFunction: !Ref GetRaids
+        GetRaidFunction: !Ref GetRaid
+        GetOwnerRaidsFunction: !Ref GetOwnerRaids
+        UpdateRaidOwnerFunction: !Ref UpdateRaidOwner
+        GetRaidProvidersFunction: !Ref GetRaidProviders
+        CreateRaidProviderAssociationFunction: !Ref CreateRaidProviderAssociation
+        EndRaidProviderAssociationFunction: !Ref EndRaidProviderAssociation
+        GetRaidInstitutionsFunction: !Ref GetRaidInstitutions
+        CreateRaidInstitutionAssociationFunction: !Ref CreateRaidInstitutionAssociation
+        EndRaidInstitutionAssociationFunction: !Ref EndRaidInstitutionAssociation
+        GetRaidPublicFunction: !Ref GetRaidPublic
+        RedirectRaidContentPathFunction: !Ref RedirectRaidContentPath
+        GetProvidersFunction: !Ref GetProviders
+        GetInstitutionsFunction: !Ref GetInstitutions
+  # IAM
+  ## General
+  LogsXrayLambdaPolicy:
+    Type: "AWS::IAM::Policy"
+    DependsOn: [CustomAuthorizerRole, CrudLambdaIAMRole]
+    Properties:
+      PolicyName: GeneralLambdaPolicy
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action: [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents",
+            "xray:PutTraceSegments",
+            "xray:PutTelemetryRecords"
+          ]
+          Resource: ["*"]
+      Roles: [!Ref CustomAuthorizerRole, !Ref CrudLambdaIAMRole]
+
+  CrudLambdaIAMRole:
+      Type: "AWS::IAM::Role"
+      Properties:
+          Path: "/"
+          AssumeRolePolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "sts:AssumeRole"
+                Principal:
+                  Service:
+                    - "lambda.amazonaws.com"
+                    - "apigateway.amazonaws.com"
+  CrudLambdaPolicy:
+    Type: "AWS::IAM::Policy"
+    DependsOn: [CrudLambdaIAMRole]
+    Properties:
+      PolicyName: CrudLambdaPolicy
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action: [
+            "ec2:DescribeNetworkInterfaces",
+            "ec2:CreateNetworkInterface",
+            "ec2:DeleteNetworkInterface",
+            "dynamodb:BatchGetItem",
+            "dynamodb:BatchWriteItem",
+            "dynamodb:DeleteItem",
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+            "dynamodb:Query",
+            "dynamodb:Scan",
+            "dynamodb:UpdateItem"
+
+          ]
+          Resource: ["*"]
+        - Effect: Allow
+          Action: ["es:ESHttpPost"]
+          Resource: ["*"]
+      Roles: [!Ref CrudLambdaIAMRole]
+
+  ## Custom Authorizer
+  CustomAuthorizerRole:
+      Type: "AWS::IAM::Role"
+      Properties:
+          Path: "/"
+          AssumeRolePolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "sts:AssumeRole"
+                Principal:
+                  Service:
+                    - "lambda.amazonaws.com"
+                    - "apigateway.amazonaws.com"
+  CustomAuthorizerPolicy:
+    Type: "AWS::IAM::Policy"
+    DependsOn: [CustomAuthorizerRole]
+    Properties:
+      PolicyName: AuthorizerPolicy
+      PolicyDocument:
+        Statement:
+        -
+          Effect: Allow
+          Action: [
+            "lambda:InvokeFunction",
+            "lambda:CreateEventSourceMapping",
+            "s3:GetObject",
+            "s3:GetObjectVersion",
+            "s3:GetBucketVersioning"
+          ]
+          Resource: "*"
+      Roles: [!Ref CustomAuthorizerRole]
+
+  # Serverless
+  ## Custom Authorizer
+  CustomAuthorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.auth_handlers.custom_authorisation_handler
+      Role: !GetAtt CustomAuthorizerRole.Arn
+      Environment:
+        Variables:
+          JWT_ISSUER_SELF:
+            Ref: JwtIssuerSelf
+          JWT_ISSUER_3RD_PARTY:
+            Ref: JwtIssuerThirdParty
+          JWT_AUDIENCE:
+            Ref: JwtAudience
+          JWT_SECRET:
+            Ref: JwtSecret
+          PROVIDER_ROLE:
+            Ref: ProviderRole
+          INSTITUTION_ROLE:
+            Ref: InstitutionRole
+  ## Authenticate Token
+  AuthenticateToken:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.auth_handlers.authenticate_token_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          JWT_ISSUER_SELF:
+            Ref: JwtIssuerSelf
+          JWT_ISSUER_3RD_PARTY:
+            Ref: JwtIssuerThirdParty
+          JWT_AUDIENCE:
+            Ref: JwtAudience
+          JWT_SECRET:
+            Ref: JwtSecret
+      Events:
+        AuthenticateTokenHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /auth
+            Method: POST
+  ## RAiD Public
+  GetRaidPublic:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.raid_public_handlers.get_raid_public_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+      Events:
+        GetRaidHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /handle/{raidId}
+            Method: GET
+  RedirectRaidContentPath:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.raid_public_handlers.redirect_raid_path_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+      Events:
+        GetRaidHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /handle/{raidId}/redirect
+            Method: GET
+  ## RAiD
+  GetRaids:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.raid_handlers.get_raids_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+
+      Events:
+        GetProviderRaidsHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD
+            Method: GET
+  CreateRaid:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.raid_handlers.create_raid_handler
+      Timeout: 30
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      VpcConfig:
+        SecurityGroupIds:
+          Ref: AndsSecurityGroups
+        SubnetIds:
+          Ref: AndsSubnets
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          ANDS_SERVICE: !Ref AndsService
+          DEMO_ANDS_SERVICE: !Ref DemoAndsService
+          ANDS_APP_ID: !Ref AndsAppId
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+      Events:
+        CreateRaidHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD
+            Method: POST
+  UpdateRaid:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.raid_handlers.update_raid
+      Timeout: 30
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      VpcConfig:
+        SecurityGroupIds:
+          Ref: AndsSecurityGroups
+        SubnetIds:
+          Ref: AndsSubnets
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+          ANDS_SERVICE: !Ref AndsService
+          DEMO_ANDS_SERVICE: !Ref DemoAndsService
+          ANDS_APP_ID: !Ref AndsAppId
+      Events:
+        UpdateRaidHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}
+            Method: PUT
+  GetRaid:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.raid_handlers.get_raid_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+      Events:
+        GetRaidHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}
+            Method: GET
+  ### Owner
+  GetOwnerRaids:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.owner_handlers.get_owner_raids_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+      Events:
+        GetOwnerRaidsHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /owner
+            Method: GET
+  UpdateRaidOwner:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.owner_handlers.update_raid_owner_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+      Events:
+        UpdateRaidOwnerHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /owner/{raidId}
+            Method: PUT
+  ### Providers
+  GetProviders:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.provider_handlers.get_providers_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref MetadataTable
+      Events:
+        GetRaidProvidersHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /providers
+            Method: GET
+  GetRaidProviders:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.provider_handlers.get_raid_providers_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+      Events:
+        GetRaidProvidersHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/providers
+            Method: GET
+  CreateRaidProviderAssociation:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.provider_handlers.create_raid_provider_association_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+      Events:
+        CreateRaidProviderAssociationHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/providers
+            Method: POST
+  EndRaidProviderAssociation:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.provider_handlers.end_raid_provider_association_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+      Events:
+        EndRaidProviderAssociationHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/providers
+            Method: DELETE
+  ### Institutions
+  GetInstitutions:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.institution_handlers.get_institutions_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref MetadataTable
+      Events:
+        GetRaidProvidersHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /institutions
+            Method: GET
+  GetRaidInstitutions:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.institution_handlers.get_raid_institutions_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+      Events:
+        GetRaidInstitutionsHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/institutions
+            Method: GET
+  CreateRaidInstitutionAssociation:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.institution_handlers.create_raid_institution_association_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+      Events:
+        CreateRaidInstitutionAssociationHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/institutions
+            Method: POST
+  EndRaidInstitutionAssociation:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: handlers.institution_handlers.end_raid_institution_association_handler
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
+          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+      Events:
+        EndRaidInstitutionAssociationHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/institutions
+            Method: DELETE
+  # Database
+  ## Metadata table
+  MetadataTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "name"
+          AttributeType: "S"
+        -
+          AttributeName: "type"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "name"
+          KeyType: "HASH"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "type"
+          KeySchema:
+            -
+              AttributeName: "type"
+              KeyType: "HASH"
+            -
+              AttributeName: "name"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "INCLUDE"
+            NonKeyAttributes:
+              - "grid"
+              - "isni"
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  ## JWT token table
+  TokenTable:
+    Type: "AWS::DynamoDB::Table"
+    DependsOn: MetadataTable
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "name"
+          AttributeType: "S"
+        -
+          AttributeName: "dateCreated"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "name"
+          KeyType: "HASH"
+        -
+          AttributeName: "dateCreated"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  ## RAiD
+  RAiDDemoDB:
+    Type: "AWS::CloudFormation::Stack"
+    DependsOn: TokenTable
+    Properties:
+      TemplateURL: database-template.yaml
+  RAiDLiveDB:
+    Type: "AWS::CloudFormation::Stack"
+    DependsOn: RAiDDemoDB
+    Properties:
+      TemplateURL: database-template.yaml
+Outputs:
+  RaidDemoDB:
+    Value: !GetAtt RAiDDemoDB.Outputs.RaidDB
+  RaidLiveDB:
+    Value: !GetAtt RAiDLiveDB.Outputs.RaidDB
+  RAiDAssociationDemoDB:
+    Value: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+  RAiDAssociationLiveDB:
+    Value: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+  MetadataDB:
+    Value: !Ref MetadataTable
+  TokenDB:
+    Value: !Ref TokenTable
