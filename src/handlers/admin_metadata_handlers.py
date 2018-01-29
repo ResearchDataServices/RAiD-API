@@ -36,10 +36,10 @@ def create_metadata_handler(event, context):
             "adminContactEmailAddress": body["adminContactEmailAddress"]
         }
 
-        if 'isni' in body:
+        if 'isni' in body and body['isni']:
             item['isni'] = body['isni']
 
-        if 'grid' in body:
+        if 'grid' in body and body['grid']:
             item['grid'] = body['grid']
 
         # Initialise DynamoDB
@@ -90,11 +90,11 @@ def update_metadata_handler(event, context):
             update_values_list.append("adminContactEmailAddress = :a")
             expression_attribute_values[':a'] = body['adminContactEmailAddress']
 
-        if 'isni' in body:
+        if 'isni' in body and body['isni']:
             update_values_list.append("isni = :i")
             expression_attribute_values[':i'] = body['isni']
 
-        if 'grid' in body:
+        if 'grid' in body and body['grid']:
             update_values_list.append("grid = :g")
             expression_attribute_values[':g'] = body['grid']
 
