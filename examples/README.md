@@ -5,10 +5,10 @@
 - [Validating an API Token](#validating-an-api-token)
 - [Creating a RAiD](#creating-a-raid)
 - [Viewing a RAiD](#viewing-a-raid)
-- [Listing RAiDs you own](#Listing-raids-you-own)
-- [Listing RAiDs you are associated to](#listing-raids-you-are-associated-to)
+- [Listing RAiDs you own](#listing-raids-you-own)
+- [Listing RAiDs you are associated to](#listing-all-raids-you-are-associated-to)
 - [Viewing a RAiD (Public)](#viewing-a-raid-public)
-- [Redirecting to a RAiDs content path (Public)](#redirecting-to-a-raids-content-path)
+- [Redirecting to a RAiDs content path (Public)](#redirecting-to-a-raids-content-path-public)
 
 ### Getting Started
 ###### API Playground
