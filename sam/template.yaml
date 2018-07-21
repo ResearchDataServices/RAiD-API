@@ -13,7 +13,13 @@
 # aws cloudformation deploy \=
 # --template-file <path-to-file>/template-out.yaml \
 # --stack-name <STACK_NAME>  \
-# --parameter-overrides JwtSecret=<<jwt-secret>> AndsService=<<ands_service>> DemoAndsService=<<ands_service>> AndsAppId=<<app_id>> AndsSubnets=<<subnet1,subnet2>> AndsSecurityGroups=<<sg1,sg1>> ElasticsearchHost=<<....ap-southeast-2.es.amazonaws.com>>\
+# --parameter-overrides JwtSecret=<<jwt-secret>> \
+#       AndsService=<<ands_service>> \
+#       DemoAndsService=<<ands_service>> \
+#       AndsAppId=<<app_id>> \
+#       AndsSubnets=<<subnet1,subnet2>> \
+#       AndsSecurityGroups=<<sg1,sg1>> \
+#       ElasticsearchHost=<<....ap-southeast-2.es.amazonaws.com>> \
 # --capabilities CAPABILITY_IAM
 ---
 AWSTemplateFormatVersion: '2010-09-09'
@@ -49,12 +55,8 @@ Parameters:
     Type: String
   AndsAppId:
     Type: String
-  AndsSubnets:
-    Type: CommaDelimitedList
-    Description: "Comma seperated subnet ids that have access to ANDS handle minting service"
-  AndsSecurityGroups:
-    Type: CommaDelimitedList
-    Description: "Comma seperated security group ids that have inbound/outbound access to ANDS handle minting service"
+  AndsSecret:
+    Type: String
   ElasticsearchHost:
     Type: String
 Globals:
@@ -190,7 +192,7 @@ Resources:
   CustomAuthorizer:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.auth_handlers.custom_authorisation_handler
       Role: !GetAtt CustomAuthorizerRole.Arn
       Environment:
@@ -211,7 +213,7 @@ Resources:
   AuthenticateToken:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.auth_handlers.authenticate_token_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -235,7 +237,7 @@ Resources:
   GetRaidPublic:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.raid_public_handlers.get_raid_public_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -253,7 +255,7 @@ Resources:
   RedirectRaidContentPath:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.raid_public_handlers.redirect_raid_path_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -272,7 +274,7 @@ Resources:
   GetRaids:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.raid_handlers.get_raids_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -293,15 +295,10 @@ Resources:
   CreateRaid:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.raid_handlers.create_raid_handler
       Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      VpcConfig:
-        SecurityGroupIds:
-          Ref: AndsSecurityGroups
-        SubnetIds:
-          Ref: AndsSubnets
       Environment:
         Variables:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
@@ -310,8 +307,10 @@ Resources:
           ANDS_SERVICE: !Ref AndsService
           DEMO_ANDS_SERVICE: !Ref DemoAndsService
           ANDS_APP_ID: !Ref AndsAppId
+          ANDS_SECRET: !Ref AndsSecret
           ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
           ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+      Tracing: Active
       Events:
         CreateRaidHandle:
           Type: Api
@@ -319,18 +318,17 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD
             Method: POST
+        RunHotTimer:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
   UpdateRaid:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.raid_handlers.update_raid
       Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      VpcConfig:
-        SecurityGroupIds:
-          Ref: AndsSecurityGroups
-        SubnetIds:
-          Ref: AndsSubnets
       Environment:
         Variables:
           ELASTICSEARCH_HOST: !Ref ElasticsearchHost
@@ -341,6 +339,8 @@ Resources:
           ANDS_SERVICE: !Ref AndsService
           DEMO_ANDS_SERVICE: !Ref DemoAndsService
           ANDS_APP_ID: !Ref AndsAppId
+          ANDS_SECRET: !Ref AndsSecret
+      Tracing: Active
       Events:
         UpdateRaidHandle:
           Type: Api
@@ -348,10 +348,14 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD/{raidId}
             Method: PUT
+        RunHotTimer:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
   GetRaid:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.raid_handlers.get_raid_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -372,7 +376,7 @@ Resources:
   GetOwnerRaids:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.owner_handlers.get_owner_raids_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -393,7 +397,7 @@ Resources:
   UpdateRaidOwner:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.owner_handlers.update_raid_owner_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -414,7 +418,7 @@ Resources:
   GetProviders:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.provider_handlers.get_providers_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -430,7 +434,7 @@ Resources:
   GetRaidProviders:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.provider_handlers.get_raid_providers_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -450,7 +454,7 @@ Resources:
   CreateRaidProviderAssociation:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.provider_handlers.create_raid_provider_association_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -470,7 +474,7 @@ Resources:
   EndRaidProviderAssociation:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.provider_handlers.end_raid_provider_association_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -491,7 +495,7 @@ Resources:
   GetInstitutions:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.institution_handlers.get_institutions_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -507,7 +511,7 @@ Resources:
   GetRaidInstitutions:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.institution_handlers.get_raid_institutions_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -527,7 +531,7 @@ Resources:
   CreateRaidInstitutionAssociation:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.institution_handlers.create_raid_institution_association_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -547,7 +551,7 @@ Resources:
   EndRaidInstitutionAssociation:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../src
+      CodeUri: ../build
       Handler: handlers.institution_handlers.end_raid_institution_association_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:

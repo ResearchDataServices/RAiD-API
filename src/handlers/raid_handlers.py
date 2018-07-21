@@ -14,7 +14,7 @@ import settings
 
 # Set Logging Level
 logger = logging.getLogger()
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 
 
 def get_raids_handler(event, context):
@@ -125,7 +125,13 @@ def create_raid_handler(event, context):
         elif environment == settings.LIVE_ENVIRONMENT:
             ands_url_path = "{}mint?type=URL&value={}".format(os.environ["ANDS_SERVICE"], raid_item['contentPath'])
 
-        ands_mint = ands_helpers.ands_handle_request(ands_url_path, os.environ["ANDS_APP_ID"], "raid", "raid.org.au")
+        ands_mint = ands_helpers.ands_handle_request(
+            ands_url_path,
+            os.environ["ANDS_APP_ID"],
+            "raid",
+            "raid.org.au",
+            os.environ["ANDS_SECRET"],
+        )
 
         ands_handle = ands_mint["handle"]
 
@@ -171,8 +177,8 @@ def create_raid_handler(event, context):
         return web_helpers.generate_web_body_response('500', {
             'message': "Unable to create a RAiD as ANDS was unable to mint the content path."}, event)
 
-    except:
-        logger.error('Unable to create RAiD: {}'.format(sys.exc_info()[0]))
+    except Exception as e:
+        logger.error('Unable to create RAiD: {}'.format(e))
         return web_helpers.generate_web_body_response('400', {
             'message': "Unable to perform request due to error. Please check structure of the body."}, event)
 
@@ -333,7 +339,13 @@ def update_raid(event, context):
                 ands_url_path = "{}modifyValueByIndex?handle={}&value={}&index={}".format(
                     os.environ["ANDS_SERVICE"], raid_item['handle'], new_content_path, raid_item['contentIndex'])
 
-            ands_mint = ands_helpers.ands_handle_request(ands_url_path, os.environ["ANDS_APP_ID"], "raid", "raid.org.au")
+            ands_mint = ands_helpers.ands_handle_request(
+                ands_url_path,
+                os.environ["ANDS_APP_ID"],
+                "raid",
+                "raid.org.au",
+                os.environ["ANDS_SECRET"],
+            )
 
             # Update content path and index
             update_response = raid_table.update_item(

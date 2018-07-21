@@ -87,6 +87,7 @@ aws cloudformation deploy --template-file template-out.yaml \
 --stack-name RAiD --parameter-overrides \
 JwtSecret=YOUR_SECRET \
 AndsAppId=ANDS_APP_ID \
+AndsSecret=ANDS_SECRET \
 AndsSubnets=SUBNET_ID \
 AndsSecurityGroups=SECURITY_GROUP \
 ElasticsearchHost=ES_URL \

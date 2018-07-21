@@ -93,7 +93,7 @@ ENV/
 .ropeproject
 
 # Build Artifacts
-*.tmp
+tmp/
 artifacts/
 admin/deployment
 *template-out.yaml
