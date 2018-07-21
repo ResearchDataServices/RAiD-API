@@ -25,6 +25,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 Description: RAiD AWS resources
+
 Parameters:
   Tracing:
     Type: String
@@ -59,9 +60,40 @@ Parameters:
     Type: String
   ElasticsearchHost:
     Type: String
+
 Globals:
   Function:
     Runtime: python2.7
+    Environment:
+      Variables:
+        JWT_ISSUER_SELF:
+          Ref: JwtIssuerSelf
+        JWT_ISSUER_3RD_PARTY:
+          Ref: JwtIssuerThirdParty
+        JWT_AUDIENCE:
+          Ref: JwtAudience
+        JWT_SECRET:
+          Ref: JwtSecret
+        PROVIDER_ROLE:
+          Ref: ProviderRole
+        INSTITUTION_ROLE:
+          Ref: InstitutionRole
+        ELASTICSEARCH_HOST:
+          Ref: ElasticsearchHost
+        ANDS_SERVICE:
+          Ref: AndsService
+        DEMO_ANDS_SERVICE:
+          Ref: DemoAndsService
+        ANDS_APP_ID:
+          Ref: AndsAppId
+        ANDS_SECRET:
+          Ref: AndsSecret
+        RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
+        RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
+        ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
+        ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
+        METADATA_TABLE: !Ref MetadataTable
+
 Resources:
   # API
   ApiGatewayApi:
@@ -195,20 +227,7 @@ Resources:
       CodeUri: ../build
       Handler: handlers.auth_handlers.custom_authorisation_handler
       Role: !GetAtt CustomAuthorizerRole.Arn
-      Environment:
-        Variables:
-          JWT_ISSUER_SELF:
-            Ref: JwtIssuerSelf
-          JWT_ISSUER_3RD_PARTY:
-            Ref: JwtIssuerThirdParty
-          JWT_AUDIENCE:
-            Ref: JwtAudience
-          JWT_SECRET:
-            Ref: JwtSecret
-          PROVIDER_ROLE:
-            Ref: ProviderRole
-          INSTITUTION_ROLE:
-            Ref: InstitutionRole
+
   ## Authenticate Token
   AuthenticateToken:
     Type: AWS::Serverless::Function
@@ -216,16 +235,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.auth_handlers.authenticate_token_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          JWT_ISSUER_SELF:
-            Ref: JwtIssuerSelf
-          JWT_ISSUER_3RD_PARTY:
-            Ref: JwtIssuerThirdParty
-          JWT_AUDIENCE:
-            Ref: JwtAudience
-          JWT_SECRET:
-            Ref: JwtSecret
       Events:
         AuthenticateTokenHandle:
           Type: Api
@@ -240,11 +249,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.raid_public_handlers.get_raid_public_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
       Events:
         GetRaidHandle:
           Type: Api
@@ -258,11 +262,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.raid_public_handlers.redirect_raid_path_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
       Events:
         GetRaidHandle:
           Type: Api
@@ -277,14 +276,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.raid_handlers.get_raids_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
-          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
-
       Events:
         GetProviderRaidsHandle:
           Type: Api
@@ -299,17 +290,6 @@ Resources:
       Handler: handlers.raid_handlers.create_raid_handler
       Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          ANDS_SERVICE: !Ref AndsService
-          DEMO_ANDS_SERVICE: !Ref DemoAndsService
-          ANDS_APP_ID: !Ref AndsAppId
-          ANDS_SECRET: !Ref AndsSecret
-          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
-          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Tracing: Active
       Events:
         CreateRaidHandle:
@@ -329,17 +309,6 @@ Resources:
       Handler: handlers.raid_handlers.update_raid
       Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
-          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
-          ANDS_SERVICE: !Ref AndsService
-          DEMO_ANDS_SERVICE: !Ref DemoAndsService
-          ANDS_APP_ID: !Ref AndsAppId
-          ANDS_SECRET: !Ref AndsSecret
       Tracing: Active
       Events:
         UpdateRaidHandle:
@@ -358,13 +327,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.raid_handlers.get_raid_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
-          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         GetRaidHandle:
           Type: Api
@@ -379,14 +341,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.owner_handlers.get_owner_raids_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
-          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         GetOwnerRaidsHandle:
           Type: Api
@@ -400,13 +354,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.owner_handlers.update_raid_owner_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
-          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         UpdateRaidOwnerHandle:
           Type: Api
@@ -421,9 +368,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.provider_handlers.get_providers_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          METADATA_TABLE: !Ref MetadataTable
       Events:
         GetRaidProvidersHandle:
           Type: Api
@@ -437,13 +381,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.provider_handlers.get_raid_providers_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
-          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         GetRaidProvidersHandle:
           Type: Api
@@ -457,13 +394,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.provider_handlers.create_raid_provider_association_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
-          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         CreateRaidProviderAssociationHandle:
           Type: Api
@@ -477,13 +407,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.provider_handlers.end_raid_provider_association_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
-          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         EndRaidProviderAssociationHandle:
           Type: Api
@@ -498,9 +421,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.institution_handlers.get_institutions_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          METADATA_TABLE: !Ref MetadataTable
       Events:
         GetRaidProvidersHandle:
           Type: Api
@@ -514,13 +434,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.institution_handlers.get_raid_institutions_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
-          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         GetRaidInstitutionsHandle:
           Type: Api
@@ -534,13 +447,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.institution_handlers.create_raid_institution_association_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
-          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         CreateRaidInstitutionAssociationHandle:
           Type: Api
@@ -554,13 +460,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.institution_handlers.end_raid_institution_association_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Environment:
-        Variables:
-          ELASTICSEARCH_HOST: !Ref ElasticsearchHost
-          RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
-          RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
-          ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
-          ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
       Events:
         EndRaidInstitutionAssociationHandle:
           Type: Api
