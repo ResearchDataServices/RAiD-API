@@ -75,6 +75,7 @@ Globals:
   Function:
     Runtime: python2.7
     Timeout: 30
+    MemorySize: 512
     Environment:
       Variables:
         JWT_ISSUER_SELF:
@@ -307,6 +308,7 @@ Resources:
       CodeUri: ../build
       Handler: handlers.raid_handlers.create_raid_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
+      MemorySize: 1024
       VpcConfig: # Get past ANDS IP Whitelisting
         SecurityGroupIds:
           Ref: AndsSecurityGroups
@@ -502,6 +504,7 @@ Resources:
       Timeout: 300
       Handler: handlers.ands_handlers.create_ands_handles_from_event
       Role: !GetAtt CrudLambdaIAMRole.Arn
+      MemorySize: 1024
       VpcConfig: # Get past ANDS IP Whitelisting
         SecurityGroupIds:
           Ref: AndsSecurityGroups
