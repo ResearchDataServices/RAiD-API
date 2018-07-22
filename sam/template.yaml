@@ -67,7 +67,7 @@ Parameters:
     Type: CommaDelimitedList
     Description: "Comma seperated security group ids that have inbound/outbound access to ANDS handle minting service"
   HandleAlarmThreshold:
-    Type: Number
+    Type: String
     Default: 20
     Description: "The minimum safe queue depth threshold before more ANDS Handles should be minted"
 
@@ -139,6 +139,20 @@ Resources:
         GetInstitutionsFunction: !Ref GetInstitutions
   # IAM
   ## General
+  AwsLambdaNetworkPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+        PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+                - Effect: Allow
+                  Action: [
+                    "ec2:DescribeNetworkInterfaces",
+                    "ec2:CreateNetworkInterface",
+                    "ec2:DeleteNetworkInterface",
+                  ]
+                  Resource: '*'
+
   LogsXrayLambdaPolicy:
     Type: "AWS::IAM::Policy"
     DependsOn: [CustomAuthorizerRole, CrudLambdaIAMRole]
@@ -495,6 +509,38 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD/{raidId}/institutions
             Method: DELETE
+
+  # RAiD Table DynamoDB monitor that can update the content path with ANDS
+  RaidDynamoDBProcessStream:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../build
+      Timeout: 300
+      Handler: handlers.db_streams.raid_table_dynamodb_stream_event
+      MemorySize: 1024
+      Policies: !Ref AwsLambdaNetworkPolicy
+      Environment:
+        Variables:
+          DEMO_RAID_STREAM_ARN: !GetAtt RAiDDemoDB.Outputs.RaidDBStreamArn
+          RAID_STREAM_ARN: !GetAtt RAiDLiveDB.Outputs.RaidDBStreamArn
+      VpcConfig: # Get past ANDS IP Whitelisting
+        SecurityGroupIds:
+          Ref: AndsSecurityGroups
+        SubnetIds:
+          Ref: AndsSubnets
+      Events:
+        RaidDemoTableStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt RAiDDemoDB.Outputs.RaidDBStreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 50
+        RaidTableStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt RAiDLiveDB.Outputs.RaidDBStreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 50
 
   # ANDS Handle Creator, storing in SQS and DynamoDB
   CreateAndsHandles:

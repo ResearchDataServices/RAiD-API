@@ -15,7 +15,7 @@ import settings
 
 # Set Logging Level
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.ERROR)
 
 # AWS X-Ray Config
 libs_to_patch = ('boto3', 'requests')
