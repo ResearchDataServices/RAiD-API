@@ -7,6 +7,7 @@ from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 import json
 import urllib
+from aws_xray_sdk.core import patch
 from helpers import web_helpers
 from helpers import ands_helpers
 from helpers import raid_helpers
@@ -15,6 +16,10 @@ import settings
 # Set Logging Level
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+# AWS X-Ray Config
+libs_to_patch = ('boto3', 'requests')
+patch(libs_to_patch)
 
 
 def get_raids_handler(event, context):
