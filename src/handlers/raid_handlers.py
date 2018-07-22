@@ -333,58 +333,22 @@ def update_raid(event, context):
         # Assign raid item to single item, since the result will be an array of one item
         raid_item = query_response['Items'][0]
 
-        # Mints ANDS handle
-        if new_content_path != raid_item["contentPath"]:
-            if environment == settings.DEMO_ENVIRONMENT:
-                ands_url_path = "{}modifyValueByIndex?handle={}&value={}&index={}".format(
-                    os.environ["DEMO_ANDS_SERVICE"], raid_item['handle'], new_content_path, raid_item['contentIndex'])
-
-            elif environment == settings.LIVE_ENVIRONMENT:
-                ands_url_path = "{}modifyValueByIndex?handle={}&value={}&index={}".format(
-                    os.environ["ANDS_SERVICE"], raid_item['handle'], new_content_path, raid_item['contentIndex'])
-
-            ands_mint = ands_helpers.ands_handle_request(
-                ands_url_path,
-                os.environ["ANDS_APP_ID"],
-                "raid",
-                "raid.org.au",
-                os.environ["ANDS_SECRET"],
-            )
-
-            # Update content path and index
-            update_response = raid_table.update_item(
-                Key={
-                    'handle': raid_handle
-                },
-                UpdateExpression="set meta.#n = :n, meta.description = :d, contentPath = :c, contentIndex = :i",
-                ExpressionAttributeNames={
-                    '#n': 'name'
-                },
-                ExpressionAttributeValues={
-                    ':n': new_name,
-                    ':d': new_description,
-                    ':c': new_content_path,
-                    ':i': ands_mint["contentIndex"]
-                },
-                ReturnValues="ALL_NEW"
-            )
-
-        else:
-            # Update content path and index
-            update_response = raid_table.update_item(
-                Key={
-                    'handle': raid_handle
-                },
-                UpdateExpression="set meta.#n = :n, meta.description = :d",
-                ExpressionAttributeNames={
-                    '#n': 'name'
-                },
-                ExpressionAttributeValues={
-                    ':n': new_name,
-                    ':d': new_description
-                },
-                ReturnValues="ALL_NEW"
-            )
+        # Update name, content path and index
+        update_response = raid_table.update_item(
+            Key={
+                'handle': raid_handle
+            },
+            UpdateExpression="set meta.#n = :n, meta.description = :d, contentPath = :c",
+            ExpressionAttributeNames={
+                '#n': 'name'
+            },
+            ExpressionAttributeValues={
+                ':n': new_name,
+                ':c': new_content_path,
+                ':d': new_description
+            },
+            ReturnValues="ALL_NEW"
+        )
 
         # Update name on all associations
         if 'name' not in raid_item['meta'] or new_name != raid_item['meta']['name']:
