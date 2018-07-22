@@ -80,13 +80,13 @@ def create_raid_handler(event, context):
         }
 
         # Interpret and validate request body
-        if event["body"]:
+        if 'body' in event and event["body"]:
             body = json.loads(event["body"])
             # Check for provided content path to mint
             if "contentPath" in body:
-                raid_item['contentPath'] = body["contentPath"]
+                content_path = body["contentPath"]
             else:
-                raid_item['contentPath'] = settings.RAID_SITE_URL
+                content_path = settings.RAID_SITE_URL
 
             if "meta" in body:
                 raid_item['meta'] = body['meta']
@@ -116,33 +116,32 @@ def create_raid_handler(event, context):
             else:
                 raid_item['startDate'] = now
         else:
-            raid_item['contentPath'] = settings.RAID_SITE_URL
+            content_path = settings.RAID_SITE_URL
             raid_item['startDate'] = now
 
-        # Mints ANDS handle
-        if environment == settings.DEMO_ENVIRONMENT:
-            ands_url_path = "{}mint?type=URL&value={}".format(os.environ["DEMO_ANDS_SERVICE"], raid_item['contentPath'])
-        elif environment == settings.LIVE_ENVIRONMENT:
-            ands_url_path = "{}mint?type=URL&value={}".format(os.environ["ANDS_SERVICE"], raid_item['contentPath'])
+        # Set content path
+        raid_item['contentPath'] = content_path
 
-        ands_mint = ands_helpers.ands_handle_request(
-            ands_url_path,
+        # Get ANDS handle and content index
+        ands_handle, ands_content_index = ands_helpers.get_new_ands_handle(
+            environment,
+            os.environ["ANDS_HANDLES_QUEUE"],
+            os.environ["DEMO_ANDS_HANDLES_QUEUE"],
+            os.environ["ANDS_SERVICE"],
+            os.environ["DEMO_ANDS_SERVICE"],
+            content_path,
             os.environ["ANDS_APP_ID"],
-            "raid",
-            "raid.org.au",
-            os.environ["ANDS_SECRET"],
+            os.environ["ANDS_SECRET"]
         )
-
-        ands_handle = ands_mint["handle"]
 
         # Insert minted handle into raid item
         raid_item['handle'] = ands_handle
-        raid_item['contentIndex'] = ands_mint["contentIndex"]
+        raid_item['contentIndex'] = ands_content_index
 
         # Send Dynamo DB put for new RAiD
         raid_table.put_item(Item=raid_item)
 
-        # Define provider association item
+        # Define provider association item  # TODO move to DynamoDB Stream
         service_item = {
             'handle': ands_handle,
             'startDate': raid_item['startDate'],
@@ -161,7 +160,7 @@ def create_raid_handler(event, context):
                 settings.ASSOCIATION_TABLE, environment
             )
         )
-        association_index_table.put_item(Item=service_item)
+        association_index_table.put_item(Item=service_item)  # TODO move to DynamoDB Stream
 
         raid_item['providers'] = [
                     {

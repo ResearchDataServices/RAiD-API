@@ -60,10 +60,21 @@ Parameters:
     Type: String
   ElasticsearchHost:
     Type: String
+  AndsSubnets:
+    Type: CommaDelimitedList
+    Description: "Comma seperated subnet ids that have access to ANDS handle minting service"
+  AndsSecurityGroups:
+    Type: CommaDelimitedList
+    Description: "Comma seperated security group ids that have inbound/outbound access to ANDS handle minting service"
+  HandleAlarmThreshold:
+    Type: Number
+    Default: 20
+    Description: "The minimum safe queue depth threshold before more ANDS Handles should be minted"
 
 Globals:
   Function:
     Runtime: python2.7
+    Timeout: 30
     Environment:
       Variables:
         JWT_ISSUER_SELF:
@@ -93,6 +104,10 @@ Globals:
         ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
         ASSOCIATION_TABLE: !GetAtt RAiDLiveDB.Outputs.RAiDAssociationDB
         METADATA_TABLE: !Ref MetadataTable
+        ANDS_HANDLES_QUEUE: !Ref AndsHandlesQueue
+        DEMO_ANDS_HANDLES_QUEUE: !Ref DemoAndsHandlesQueue
+        ANDS_HANDLE_ALARM_TOPIC: !Ref AndsHandleAlarmTopic
+        DEMO_ANDS_HANDLE_ALARM_TOPIC: !Ref DemoAndsHandleAlarmTopic
 
 Resources:
   # API
@@ -175,8 +190,11 @@ Resources:
             "dynamodb:PutItem",
             "dynamodb:Query",
             "dynamodb:Scan",
-            "dynamodb:UpdateItem"
-
+            "dynamodb:UpdateItem",
+            "sqs:ReceiveMessage",
+            "sqs:DeleteMessage",
+            "sqs:GetQueueAttributes",
+            "sqs:SendMessage"
           ]
           Resource: ["*"]
         - Effect: Allow
@@ -288,8 +306,12 @@ Resources:
     Properties:
       CodeUri: ../build
       Handler: handlers.raid_handlers.create_raid_handler
-      Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
+      VpcConfig: # Get past ANDS IP Whitelisting
+        SecurityGroupIds:
+          Ref: AndsSecurityGroups
+        SubnetIds:
+          Ref: AndsSubnets
       Tracing: Active
       Events:
         CreateRaidHandle:
@@ -307,8 +329,12 @@ Resources:
     Properties:
       CodeUri: ../build
       Handler: handlers.raid_handlers.update_raid
-      Timeout: 30
       Role: !GetAtt CrudLambdaIAMRole.Arn
+      VpcConfig: # Get past ANDS IP Whitelisting
+        SecurityGroupIds:
+          Ref: AndsSecurityGroups
+        SubnetIds:
+          Ref: AndsSubnets
       Tracing: Active
       Events:
         UpdateRaidHandle:
@@ -467,7 +493,109 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD/{raidId}/institutions
             Method: DELETE
+
+  # ANDS Handle Creator, storing in SQS and DynamoDB
+  CreateAndsHandles:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../build
+      Timeout: 300
+      Handler: handlers.ands_handlers.create_ands_handles_from_event
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      VpcConfig: # Get past ANDS IP Whitelisting
+        SecurityGroupIds:
+          Ref: AndsSecurityGroups
+        SubnetIds:
+          Ref: AndsSubnets
+      Events:
+        AndsHandleAlarm:
+          Type: SNS
+          Properties:
+            Topic: !Ref AndsHandleAlarmTopic
+        DemoAndsHandleAlarm:
+          Type: SNS
+          Properties:
+            Topic: !Ref DemoAndsHandleAlarmTopic
+
+  # Queues
+  AndsHandlesQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600  # 14 days
+  DemoAndsHandlesQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600  # 14 days
+
+  # Alarms and Notifications
+  AndsHandleAlarmTopic:
+    Type: AWS::SNS::Topic
+
+  AndsHandleQueueDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "Alarm if queue depth gets below N messages"
+      Namespace: "AWS/SQS"
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value : { "Fn::GetAtt" : [ "AndsHandlesQueue", "QueueName"] }
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold:
+        Ref: HandleAlarmThreshold
+      ComparisonOperator: LessThanOrEqualToThreshold
+      AlarmActions:
+        - Ref: AndsHandleAlarmTopic
+
+  DemoAndsHandleAlarmTopic:
+    Type: AWS::SNS::Topic
+
+  DemoAndsHandleQueueDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "Alarm if queue depth gets below N messages"
+      Namespace: "AWS/SQS"
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value : { "Fn::GetAtt" : [ "DemoAndsHandlesQueue", "QueueName"] }
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold:
+        Ref: HandleAlarmThreshold
+      ComparisonOperator: LessThanOrEqualToThreshold
+      AlarmActions:
+        - Ref: DemoAndsHandleAlarmTopic
+
   # Database
+  ## Unused Handles table
+  AndsHandlesTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      AttributeDefinitions:
+        -
+          AttributeName: "environment"
+          AttributeType: "S"
+        -
+          AttributeName: "handle"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "environment"
+          KeyType: "HASH"
+        -
+          AttributeName: "handle"
+          KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
   ## Metadata table
   MetadataTable:
     Type: "AWS::DynamoDB::Table"
