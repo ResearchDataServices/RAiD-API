@@ -39,6 +39,8 @@ def raid_table_dynamodb_stream_event(event, context):
                     table_attributes['contentIndex']
                 )
 
+                ands_secret = os.environ["ANDS_DEMO_SECRET"]
+
             elif record['eventSourceARN'] == os.environ['RAID_STREAM_ARN']:
                 ands_url_path = "{}modifyValueByIndex?handle={}&value={}&index={}".format(
                     os.environ["ANDS_SERVICE"],
@@ -46,6 +48,8 @@ def raid_table_dynamodb_stream_event(event, context):
                     table_attributes['contentPath'],
                     table_attributes['contentIndex']
                 )
+
+                ands_secret = os.environ["ANDS_SECRET"]
 
             else:
                 logger.info('Unknown DynamoDB Stream')
@@ -69,7 +73,7 @@ def raid_table_dynamodb_stream_event(event, context):
                     os.environ["ANDS_APP_ID"],
                     "raid",
                     "raid.org.au",
-                    os.environ["ANDS_SECRET"],
+                    ands_secret,
                 )
 
                 logger.info(json.dumps(ands_mint))
@@ -90,7 +94,7 @@ def raid_table_dynamodb_stream_event(event, context):
                         os.environ["ANDS_APP_ID"],
                         "raid",
                         "raid.org.au",
-                        os.environ["ANDS_SECRET"],
+                        ands_secret,
                     )
 
                     logger.info(json.dumps(ands_mint))

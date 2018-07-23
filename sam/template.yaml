@@ -17,9 +17,10 @@
 #       AndsService=<<ands_service>> \
 #       DemoAndsService=<<ands_service>> \
 #       AndsAppId=<<app_id>> \
-#       AndsSubnets=<<subnet1,subnet2>> \
 #       AndsSecurityGroups=<<sg1,sg1>> \
 #       ElasticsearchHost=<<....ap-southeast-2.es.amazonaws.com>> \
+#       AndsSecret=<<>> \
+#       AndsDemoSecret=<<>> \
 # --capabilities CAPABILITY_IAM
 ---
 AWSTemplateFormatVersion: '2010-09-09'
@@ -58,17 +59,13 @@ Parameters:
     Type: String
   AndsSecret:
     Type: String
+  AndsDemoSecret:
+    Type: String
   ElasticsearchHost:
     Type: String
-  AndsSubnets:
-    Type: CommaDelimitedList
-    Description: "Comma seperated subnet ids that have access to ANDS handle minting service"
-  AndsSecurityGroups:
-    Type: CommaDelimitedList
-    Description: "Comma seperated security group ids that have inbound/outbound access to ANDS handle minting service"
   HandleAlarmThreshold:
     Type: String
-    Default: 20
+    Default: 80
     Description: "The minimum safe queue depth threshold before more ANDS Handles should be minted"
 
 Globals:
@@ -100,6 +97,8 @@ Globals:
           Ref: AndsAppId
         ANDS_SECRET:
           Ref: AndsSecret
+        ANDS_DEMO_SECRET:
+          Ref: AndsDemoSecret
         RAID_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidDB
         RAID_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidDB
         ASSOCIATION_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RAiDAssociationDB
@@ -323,11 +322,6 @@ Resources:
       Handler: handlers.raid_handlers.create_raid_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       MemorySize: 1024
-      VpcConfig: # Get past ANDS IP Whitelisting
-        SecurityGroupIds:
-          Ref: AndsSecurityGroups
-        SubnetIds:
-          Ref: AndsSubnets
       Tracing: Active
       Events:
         CreateRaidHandle:
@@ -346,11 +340,6 @@ Resources:
       CodeUri: ../build
       Handler: handlers.raid_handlers.update_raid
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      VpcConfig: # Get past ANDS IP Whitelisting
-        SecurityGroupIds:
-          Ref: AndsSecurityGroups
-        SubnetIds:
-          Ref: AndsSubnets
       Tracing: Active
       Events:
         UpdateRaidHandle:
@@ -523,11 +512,6 @@ Resources:
         Variables:
           DEMO_RAID_STREAM_ARN: !GetAtt RAiDDemoDB.Outputs.RaidDBStreamArn
           RAID_STREAM_ARN: !GetAtt RAiDLiveDB.Outputs.RaidDBStreamArn
-      VpcConfig: # Get past ANDS IP Whitelisting
-        SecurityGroupIds:
-          Ref: AndsSecurityGroups
-        SubnetIds:
-          Ref: AndsSubnets
       Events:
         RaidDemoTableStream:
           Type: DynamoDB
@@ -551,11 +535,6 @@ Resources:
       Handler: handlers.ands_handlers.create_ands_handles_from_event
       Role: !GetAtt CrudLambdaIAMRole.Arn
       MemorySize: 1024
-      VpcConfig: # Get past ANDS IP Whitelisting
-        SecurityGroupIds:
-          Ref: AndsSecurityGroups
-        SubnetIds:
-          Ref: AndsSubnets
       Events:
         AndsHandleAlarm:
           Type: SNS

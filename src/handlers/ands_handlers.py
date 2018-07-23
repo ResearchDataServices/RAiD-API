@@ -10,7 +10,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Maxium amount of handles needed in a queue
-DEFAULT_HANDLE_THRESHOLD = 20
+DEFAULT_HANDLE_THRESHOLD = 80
 
 
 def create_ands_handles_from_event(event, context):
@@ -34,12 +34,14 @@ def create_ands_handles_from_event(event, context):
                     logger.info('ANDS Handle Queue below threshold...')
                     queue = os.environ["ANDS_HANDLES_QUEUE"]
                     service_url = os.environ["ANDS_SERVICE"]
+                    ands_secret = os.environ["ANDS_SECRET"]
 
                 # Demo ANDS Handle Alarm
                 elif record['Sns']['TopicArn'] == os.environ['DEMO_ANDS_HANDLE_ALARM_TOPIC']:
                     logger.info('DEMO_ANDS Handle Queue below threshold...')
                     queue = os.environ["DEMO_ANDS_HANDLES_QUEUE"]
                     service_url = os.environ["DEMO_ANDS_SERVICE"]
+                    ands_secret = os.environ["ANDS_DEMO_SECRET"]
 
                 else:
                     raise Exception('Unknown SNS Alarm event')
@@ -64,7 +66,7 @@ def create_ands_handles_from_event(event, context):
                         os.environ["ANDS_APP_ID"],
                         "raid",
                         "raid.org.au",
-                        os.environ["ANDS_SECRET"],
+                        ands_secret,
                     )
 
                     # Send new ANDS handle to SQS

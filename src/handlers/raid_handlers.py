@@ -66,6 +66,9 @@ def create_raid_handler(event, context):
     :param context:
     :return: RAiD object
     """
+    if 'requestContext' not in event:
+        return {"message": "Warming Lambda container"}
+
     try:
         environment = event['requestContext']['authorizer']['environment']
 
@@ -127,6 +130,12 @@ def create_raid_handler(event, context):
         # Set content path
         raid_item['contentPath'] = content_path
 
+        # Get correct ANDS Shared Secret
+        if environment == settings.DEMO_ENVIRONMENT:
+            ands_secret = os.environ["ANDS_DEMO_SECRET"]
+        elif environment == settings.LIVE_ENVIRONMENT:
+            ands_secret = os.environ["ANDS_SECRET"]
+
         # Get ANDS handle and content index
         ands_handle, ands_content_index = ands_helpers.get_new_ands_handle(
             environment,
@@ -136,7 +145,7 @@ def create_raid_handler(event, context):
             os.environ["DEMO_ANDS_SERVICE"],
             content_path,
             os.environ["ANDS_APP_ID"],
-            os.environ["ANDS_SECRET"]
+            ands_secret
         )
 
         # Insert minted handle into raid item
@@ -292,6 +301,9 @@ def update_raid(event, context):
     :param context:
     :return: RAiD object
     """
+    if 'requestContext' not in event:
+        return {"message": "Warming Lambda container"}
+
     # Check for provided RAiD and content path to mint
     try:
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))

@@ -71,7 +71,7 @@ def ands_handle_request(url_path, app_id, identifier, auth_domain, shared_secret
     # Build Headers
     headers = {'Content-Type': 'application/xml'}
 
-    if shared_secret and ('https://demo.ands.org.au' not in url_path):  # Basic Authenticated call
+    if shared_secret:  # Basic Authenticated call
         # Create XML Body
         xml_data = build_basic_authorized_mint_body(identifier, auth_domain)
 
