@@ -7,6 +7,7 @@ from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 import json
 import urllib
+from aws_xray_sdk.core import patch
 from helpers import web_helpers
 from helpers import ands_helpers
 from helpers import raid_helpers
@@ -15,6 +16,10 @@ import settings
 # Set Logging Level
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
+
+# AWS X-Ray Config
+libs_to_patch = ('boto3', 'requests')
+patch(libs_to_patch)
 
 
 def get_raids_handler(event, context):
@@ -61,6 +66,9 @@ def create_raid_handler(event, context):
     :param context:
     :return: RAiD object
     """
+    if 'requestContext' not in event:
+        return {"message": "Warming Lambda container"}
+
     try:
         environment = event['requestContext']['authorizer']['environment']
 
@@ -80,13 +88,13 @@ def create_raid_handler(event, context):
         }
 
         # Interpret and validate request body
-        if event["body"]:
+        if 'body' in event and event["body"]:
             body = json.loads(event["body"])
             # Check for provided content path to mint
             if "contentPath" in body:
-                raid_item['contentPath'] = body["contentPath"]
+                content_path = body["contentPath"]
             else:
-                raid_item['contentPath'] = settings.RAID_SITE_URL
+                content_path = settings.RAID_SITE_URL
 
             if "meta" in body:
                 raid_item['meta'] = body['meta']
@@ -116,27 +124,38 @@ def create_raid_handler(event, context):
             else:
                 raid_item['startDate'] = now
         else:
-            raid_item['contentPath'] = settings.RAID_SITE_URL
+            content_path = settings.RAID_SITE_URL
             raid_item['startDate'] = now
 
-        # Mints ANDS handle
+        # Set content path
+        raid_item['contentPath'] = content_path
+
+        # Get correct ANDS Shared Secret
         if environment == settings.DEMO_ENVIRONMENT:
-            ands_url_path = "{}mint?type=URL&value={}".format(os.environ["DEMO_ANDS_SERVICE"], raid_item['contentPath'])
+            ands_secret = os.environ["ANDS_DEMO_SECRET"]
         elif environment == settings.LIVE_ENVIRONMENT:
-            ands_url_path = "{}mint?type=URL&value={}".format(os.environ["ANDS_SERVICE"], raid_item['contentPath'])
+            ands_secret = os.environ["ANDS_SECRET"]
 
-        ands_mint = ands_helpers.ands_handle_request(ands_url_path, os.environ["ANDS_APP_ID"], "raid", "raid.org.au")
-
-        ands_handle = ands_mint["handle"]
+        # Get ANDS handle and content index
+        ands_handle, ands_content_index = ands_helpers.get_new_ands_handle(
+            environment,
+            os.environ["ANDS_HANDLES_QUEUE"],
+            os.environ["DEMO_ANDS_HANDLES_QUEUE"],
+            os.environ["ANDS_SERVICE"],
+            os.environ["DEMO_ANDS_SERVICE"],
+            content_path,
+            os.environ["ANDS_APP_ID"],
+            ands_secret
+        )
 
         # Insert minted handle into raid item
         raid_item['handle'] = ands_handle
-        raid_item['contentIndex'] = ands_mint["contentIndex"]
+        raid_item['contentIndex'] = ands_content_index
 
         # Send Dynamo DB put for new RAiD
         raid_table.put_item(Item=raid_item)
 
-        # Define provider association item
+        # Define provider association item  # TODO move to DynamoDB Stream
         service_item = {
             'handle': ands_handle,
             'startDate': raid_item['startDate'],
@@ -155,7 +174,7 @@ def create_raid_handler(event, context):
                 settings.ASSOCIATION_TABLE, environment
             )
         )
-        association_index_table.put_item(Item=service_item)
+        association_index_table.put_item(Item=service_item)  # TODO move to DynamoDB Stream
 
         raid_item['providers'] = [
                     {
@@ -171,8 +190,8 @@ def create_raid_handler(event, context):
         return web_helpers.generate_web_body_response('500', {
             'message': "Unable to create a RAiD as ANDS was unable to mint the content path."}, event)
 
-    except:
-        logger.error('Unable to create RAiD: {}'.format(sys.exc_info()[0]))
+    except Exception as e:
+        logger.error('Unable to create RAiD: {}'.format(e))
         return web_helpers.generate_web_body_response('400', {
             'message': "Unable to perform request due to error. Please check structure of the body."}, event)
 
@@ -282,6 +301,9 @@ def update_raid(event, context):
     :param context:
     :return: RAiD object
     """
+    if 'requestContext' not in event:
+        return {"message": "Warming Lambda container"}
+
     # Check for provided RAiD and content path to mint
     try:
         raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
@@ -323,52 +345,22 @@ def update_raid(event, context):
         # Assign raid item to single item, since the result will be an array of one item
         raid_item = query_response['Items'][0]
 
-        # Mints ANDS handle
-        if new_content_path != raid_item["contentPath"]:
-            if environment == settings.DEMO_ENVIRONMENT:
-                ands_url_path = "{}modifyValueByIndex?handle={}&value={}&index={}".format(
-                    os.environ["DEMO_ANDS_SERVICE"], raid_item['handle'], new_content_path, raid_item['contentIndex'])
-
-            elif environment == settings.LIVE_ENVIRONMENT:
-                ands_url_path = "{}modifyValueByIndex?handle={}&value={}&index={}".format(
-                    os.environ["ANDS_SERVICE"], raid_item['handle'], new_content_path, raid_item['contentIndex'])
-
-            ands_mint = ands_helpers.ands_handle_request(ands_url_path, os.environ["ANDS_APP_ID"], "raid", "raid.org.au")
-
-            # Update content path and index
-            update_response = raid_table.update_item(
-                Key={
-                    'handle': raid_handle
-                },
-                UpdateExpression="set meta.#n = :n, meta.description = :d, contentPath = :c, contentIndex = :i",
-                ExpressionAttributeNames={
-                    '#n': 'name'
-                },
-                ExpressionAttributeValues={
-                    ':n': new_name,
-                    ':d': new_description,
-                    ':c': new_content_path,
-                    ':i': ands_mint["contentIndex"]
-                },
-                ReturnValues="ALL_NEW"
-            )
-
-        else:
-            # Update content path and index
-            update_response = raid_table.update_item(
-                Key={
-                    'handle': raid_handle
-                },
-                UpdateExpression="set meta.#n = :n, meta.description = :d",
-                ExpressionAttributeNames={
-                    '#n': 'name'
-                },
-                ExpressionAttributeValues={
-                    ':n': new_name,
-                    ':d': new_description
-                },
-                ReturnValues="ALL_NEW"
-            )
+        # Update name, content path and index
+        update_response = raid_table.update_item(
+            Key={
+                'handle': raid_handle
+            },
+            UpdateExpression="set meta.#n = :n, meta.description = :d, contentPath = :c",
+            ExpressionAttributeNames={
+                '#n': 'name'
+            },
+            ExpressionAttributeValues={
+                ':n': new_name,
+                ':c': new_content_path,
+                ':d': new_description
+            },
+            ReturnValues="ALL_NEW"
+        )
 
         # Update name on all associations
         if 'name' not in raid_item['meta'] or new_name != raid_item['meta']['name']:

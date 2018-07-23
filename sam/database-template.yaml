@@ -14,6 +14,8 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
   AssociationIndexTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -123,3 +125,8 @@ Outputs:
     Value: !Ref 'RAiDTable'
   RAiDAssociationDB:
     Value: !Ref 'AssociationIndexTable'
+  RaidDBStreamArn:
+    Value:
+      Fn::GetAtt:
+        - RAiDTable
+        - StreamArn
