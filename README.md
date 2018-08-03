@@ -96,4 +96,4 @@ ElasticsearchHost=ES_URL \
 
 ## License
 
-TBD
+MIT-Style akin to ORCiD. See LICENCE.txt for details.
