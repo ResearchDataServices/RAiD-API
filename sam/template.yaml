@@ -333,7 +333,7 @@ Resources:
         RunHotTimer:
           Type: Schedule
           Properties:
-            Schedule: rate(5 minutes)
+            Schedule: rate(1 minute)
   UpdateRaid:
     Type: AWS::Serverless::Function
     Properties:
@@ -351,7 +351,7 @@ Resources:
         RunHotTimer:
           Type: Schedule
           Properties:
-            Schedule: rate(5 minutes)
+            Schedule: rate(1 minute)
   GetRaid:
     Type: AWS::Serverless::Function
     Properties:

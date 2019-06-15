@@ -100,3 +100,5 @@ admin/deployment
 admin/site/node_modules
 admin/site/bower_components
 admin/site/dist
+sam/swagger.yaml-e
+Makefile
