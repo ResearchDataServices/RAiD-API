@@ -106,13 +106,66 @@ Resources:
               - "name"
               - "endDate"
 
+  ContributorsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        - AttributeName: "orcid"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "orcid"
+          KeyType: "HASH"
+
+  ContributorInvitationsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        - AttributeName: "email"
+          AttributeType: "S"
+        - AttributeName: "creationDate"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "email"
+          KeyType: "HASH"
+        - AttributeName: "creationDate"
+          KeyType: "RANGE"
+
+  RaidContributorsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        - AttributeName: "handle"
+          AttributeType: "S"
+        - AttributeName: "orcid-startDate" # A contributor can have multiple entries
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "handle"
+          KeyType: "HASH"
+        - AttributeName: "orcid-startDate"
+          KeyType: "RANGE"
+
 Outputs:
   RaidDB:
     Value: !Ref 'RAiDTable'
+
   RAiDAssociationDB:
     Value: !Ref 'AssociationIndexTable'
+
   RaidDBStreamArn:
     Value:
       Fn::GetAtt:
         - RAiDTable
         - StreamArn
+
+  ContributorsDB:
+    Value: !Ref 'ContributorsTable'
+
+  ContributorInvitationsDB:
+    Value: !Ref 'ContributorInvitationsTable'
+
+  RaidContributorsDB:
+    Value: !Ref 'RaidContributorsTable'
+
