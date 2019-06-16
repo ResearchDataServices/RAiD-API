@@ -104,7 +104,8 @@ def create_raid_institution_association_handler(event, context):
 
         if "startDate" in body:
             try:
-                start_date = datetime.datetime.strptime(body["startDate"], "%Y-%m-%d %H:%M:%S")
+                start_date = body["startDate"]
+                datetime.datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
             except ValueError as e:
                 logger.error('Unable to capture date: {}'.format(e))
                 return web_helpers.generate_web_body_response('400', {
