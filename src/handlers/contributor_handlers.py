@@ -16,6 +16,77 @@ logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
 
 
+def invite_contributor(event, context):
+    """
+    Invite a contributor to the RAiD service via email
+    :param event:
+    :param context:
+    :return: {"message": ""}
+    """
+    if 'requestContext' not in event:
+        return {"message": "Warming Lambda container"}
+
+    try:
+        environment = event['requestContext']['authorizer']['environment']
+
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+
+        # Interpret and validate request body
+        if 'body' in event and event["body"]:
+            body = json.loads(event["body"])
+
+            if 'email' not in body:
+                return web_helpers.generate_web_body_response(
+                    '400',
+                    {'message': 'Invalid request body: An "email" must be provided.'},
+                    event
+                )
+
+            # Create core contributor item for invitation or Orcid record processing
+            now = raid_helpers.get_current_datetime()  # Get current datetime
+            contributor_item = {'creationDate': now, 'email': body['email']}
+
+            contributor_invitation_table = dynamo_db.Table(
+                settings.get_environment_table(settings.CONTRIBUTOR_INVITATIONS_TABLE, environment)
+            )
+
+            # Check if there is an existing invitation
+            query_response = contributor_invitation_table.query(
+                KeyConditionExpression=Key('email').eq(body['email'])
+            )
+
+            if query_response["Count"] > 0:
+                return web_helpers.generate_web_body_response('400', {
+                    'message': "There is an existing invitation to this contributor."}, event)
+
+            # Save Invitation to Contributor Invitations Table
+            contributor_invitation_table.put_item(Item=contributor_item)
+
+            # TODO Send SES Email
+            return web_helpers.generate_web_body_response(
+                '200',
+                {'message': 'An email invite has been sent to the contributor.'},
+                event
+            )
+
+        else:
+            return web_helpers.generate_web_body_response(
+                '400',
+                {'message': 'Invalid request body: An "email" must be provided.'},
+                event
+
+            )
+
+    except Exception as e:
+        logger.error('Unable to add contributor: {}'.format(e))
+        return web_helpers.generate_web_body_response(
+            '400',
+            {'message': "Unable to invite contributor. Please check structure of the JSON body."},
+            event
+        )
+
+
 def add_contributor(event, context):
     """
     Add/Invite a contributor to a RAiD via email or an existing active Orcid user

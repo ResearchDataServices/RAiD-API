@@ -143,6 +143,7 @@ Resources:
         GetProvidersFunction: !Ref GetProviders
         GetInstitutionsFunction: !Ref GetInstitutions
         AddRaidContributorFunction: !Ref AddRaidContributor
+        InviteContributorFunction: !Ref InviteContributor
   # IAM
   ## General
   AwsLambdaNetworkPolicy:
@@ -507,6 +508,20 @@ Resources:
             Method: DELETE
 
   ### Contributors
+  InviteContributor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../build
+      Handler: handlers.contributor_handlers.invite_contributor
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Events:
+        AddRaidContributorHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /contributors
+            Method: POST
+
   AddRaidContributor:
     Type: AWS::Serverless::Function
     Properties:

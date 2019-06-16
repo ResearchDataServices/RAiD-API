@@ -835,9 +835,9 @@ paths:
         type: mock
   /RAiD/{raidId}/contributors:
     post:
-      summary: "Associate an institution to a RAiD and set a start date"
+      summary: "Add a contributor to a RAiD"
       tags:
-      - "contributor"
+      - "Contributor"
       x-amazon-apigateway-auth:
         type: aws_iam
       consumes:
@@ -1211,7 +1211,75 @@ paths:
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         type: mock
-
+  /contributors:
+    post:
+      summary: "Invite an Orcid user to the RAiD service"
+      tags:
+      - "Contributor"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      consumes:
+      - "application/json"
+      produces:
+      - application/json
+      parameters:
+      - in: "body"
+        required: false
+        name: "body"
+        description: "Email address of a Contributor"
+        schema:
+          $ref: '#/definitions/EmailModel'
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/MessageResponseModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - CustomAuthorizerJwt: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.InviteContributorFunction}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
 securityDefinitions:
   CustomAuthorizerJwt:
     type: "apiKey"
@@ -1494,6 +1562,12 @@ definitions:
       message:
         type: "string"
         description: "Descriptive message to describe the outcome of an API call."
+  EmailModel:
+    type: "object"
+    properties:
+      email:
+        type: "string"
+        description: "The email address to invite a an Orcid user to RAiD."
   InviteContributorEmailModel:
     type: "object"
     properties:
