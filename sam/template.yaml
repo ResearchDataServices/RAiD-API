@@ -108,6 +108,12 @@ Globals:
         DEMO_ANDS_HANDLES_QUEUE: !Ref DemoAndsHandlesQueue
         ANDS_HANDLE_ALARM_TOPIC: !Ref AndsHandleAlarmTopic
         DEMO_ANDS_HANDLE_ALARM_TOPIC: !Ref DemoAndsHandleAlarmTopic
+        CONTRIBUTORS_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.ContributorsDB
+        CONTRIBUTORS_TABLE: !GetAtt RAiDLiveDB.Outputs.ContributorsDB
+        CONTRIBUTOR_INVITATIONS_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.ContributorInvitationsDB
+        CONTRIBUTOR_INVITATIONS_TABLE: !GetAtt RAiDLiveDB.Outputs.ContributorInvitationsDB
+        RAID_CONTRIBUTORS_DEMO_TABLE: !GetAtt RAiDDemoDB.Outputs.RaidContributorsDB
+        RAID_CONTRIBUTORS_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidContributorsDB
 
 Resources:
   # API
@@ -136,6 +142,7 @@ Resources:
         RedirectRaidContentPathFunction: !Ref RedirectRaidContentPath
         GetProvidersFunction: !Ref GetProviders
         GetInstitutionsFunction: !Ref GetInstitutions
+        AddRaidContributorFunction: !Ref AddRaidContributor
   # IAM
   ## General
   AwsLambdaNetworkPolicy:
@@ -498,6 +505,25 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD/{raidId}/institutions
             Method: DELETE
+
+  ### Contributors
+  AddRaidContributor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../build
+      Handler: handlers.contributor_handlers.add_contributor
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ORCID_INTERACTION_QUEUE: !Ref OrcidInteractionQueue
+          DEMO_ORCID_INTERACTION_QUEUE: !Ref DemoOrcidInteractionQueue
+      Events:
+        AddRaidContributorHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/contributors
+            Method: POST
 
   # RAiD Table DynamoDB monitor that can update the content path with ANDS
   RaidDynamoDBProcessStream:

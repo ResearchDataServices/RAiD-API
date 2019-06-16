@@ -12,6 +12,7 @@ tags:
 - name: "Owner"
 - name: "Provider"
 - name: "Institution"
+- name: "Contributor"
 - name: "CORS"
 schemes:
 - https
@@ -832,6 +833,82 @@ paths:
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
         type: mock
+  /RAiD/{raidId}/contributors:
+    post:
+      summary: "Associate an institution to a RAiD and set a start date"
+      tags:
+      - "contributor"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      consumes:
+      - "application/json"
+      produces:
+      - application/json
+      parameters:
+      - name: raidId
+        in: path
+        required: true
+        type: string
+        description: "RAiD handle created by minting service. Example: 10378.1/1590366"
+      - in: "body"
+        required: false
+        name: "body"
+        description: "Email address or Orcid of a Contributor"
+        schema:
+          oneOf:
+            - $ref: '#/definitions/InviteContributorEmailModel'
+            - $ref: '#/definitions/InviteContributorOrcidModel'
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/MessageResponseModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - CustomAuthorizerJwt: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.AddRaidContributorFunction}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          description: 200 response
+          schema:
+            $ref: "#/definitions/Empty"
+          headers:
+            Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
   /owner:
     get:
       summary: "Return a list of RAiDs that are currently owned to the authenticated key"
@@ -1411,3 +1488,39 @@ definitions:
       scannedCount:
         type: "string"
         description: "Total number of items that were scanned in the query"
+  MessageResponseModel:
+    type: "object"
+    properties:
+      message:
+        type: "string"
+        description: "Descriptive message to describe the outcome of an API call."
+  InviteContributorEmailModel:
+    type: "object"
+    properties:
+      email:
+        type: "string"
+        description: "The email address to invite a RAiD Contributor."
+      startDate:
+        type: "string"
+        description: "Datetime the Contributor associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+      role:
+        type: "string"
+        description: "Project role of the Contributor"
+      description:
+        type: "string"
+        description: "Detailed description of the contributions"
+  InviteContributorOrcidModel:
+    type: "object"
+    properties:
+      orcid:
+        type: "string"
+        description: "The Orcid on an active RAiD Contributor."
+      startDate:
+        type: "string"
+        description: "Datetime the Contributor associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+      role:
+        type: "string"
+        description: "Project role of the Contributor"
+      description:
+        type: "string"
+        description: "Detailed description of the contributions"
