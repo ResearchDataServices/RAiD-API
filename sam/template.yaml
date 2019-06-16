@@ -545,15 +545,46 @@ Resources:
           Properties:
             Topic: !Ref DemoAndsHandleAlarmTopic
 
+  # Orcid Interactions
+  OrcidInteractionProcessor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../build
+      Handler: handlers.orcid_handlers.process_queue
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ORCID_INTERACTION_QUEUE: !GetAtt OrcidInteractionQueue.Arn
+          DEMO_ORCID_INTERACTION_QUEUE: !GetAtt DemoOrcidInteractionQueue.Arn
+
+      Events:
+        OrcidInteractionQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt OrcidInteractionQueue.Arn
+            BatchSize: 10
+        DemoOrcidInteractionQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt DemoOrcidInteractionQueue.Arn
+            BatchSize: 10
+
   # Queues
   AndsHandlesQueue:
     Type: AWS::SQS::Queue
     Properties:
       MessageRetentionPeriod: 1209600  # 14 days
+
   DemoAndsHandlesQueue:
     Type: AWS::SQS::Queue
     Properties:
       MessageRetentionPeriod: 1209600  # 14 days
+
+  OrcidInteractionQueue:
+    Type: AWS::SQS::Queue
+
+  DemoOrcidInteractionQueue:
+    Type: AWS::SQS::Queue
 
   # Alarms and Notifications
   AndsHandleAlarmTopic:

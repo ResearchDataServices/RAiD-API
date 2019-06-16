@@ -8,6 +8,8 @@ ASSOCIATION_TABLE = "ASSOCIATION_TABLE"
 DEMO_ENVIRONMENT = "demo"
 LIVE_ENVIRONMENT = "live"
 RAID_SITE_URL = "https://www.raid.org.au/"
+ORCID_API_BASE_URL = "https://orcid.org"
+ORCID_SANDBOX_API_BASE_URL = "https://sandbox.orcid.org"
 
 
 def get_environment_table(table_name, environment):
