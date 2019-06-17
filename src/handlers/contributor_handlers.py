@@ -358,14 +358,14 @@ def get_raid_contributors(event, context):
         # Assign raid item to single item, since the result will be an array of one item
         raid_item = query_response['Items'][0]
 
-        provider_query_parameters = {
+        contributors_query_parameters = {
             'ProjectionExpression': "#o, #d, #r, provider, endDate",
             'ExpressionAttributeNames': {"#o": "orcid-startDate", "#r": "role", "#d": "description"},
             'KeyConditionExpression': Key('handle').eq(raid_handle)
         }
 
         return web_helpers.generate_table_list_response(
-            event, provider_query_parameters,
+            event, contributors_query_parameters,
             settings.get_environment_table(
                 settings.RAID_CONTRIBUTORS_TABLE, event['requestContext']['authorizer']['environment']
             ),

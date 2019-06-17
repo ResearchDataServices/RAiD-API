@@ -1439,6 +1439,16 @@ definitions:
       contentIndex:
         type: "string"
         description: "Index of URL path ANDS handle"
+      meta:
+        type: "object"
+        description: "(optional) Object that acts as a document for optional metadata KeyValues"
+        properties:
+          name:
+            type: "string"
+            description: "A name alias for the RAiD"
+          description:
+            type: "string"
+            description: "A short description of the RAiD"
       providers:
         type: "array"
         description: "(optional) Providers associated to the RAiD"
@@ -1469,16 +1479,40 @@ definitions:
             name:
               type: "string"
               description: "Name of Institution"
-      meta:
-        type: "object"
-        description: "(optional) Object that acts as a document for optional metadata KeyValues"
-        properties:
-          name:
-            type: "string"
-            description: "A name alias for the RAiD"
-          description:
-            type: "string"
-            description: "A short description of the RAiD"
+      contributors:
+        type: "array"
+        description: "(optional) Contributor associated to the RAiD"
+        items:
+          type: "object"
+          properties:
+            startDate:
+              type: "string"
+              description: "Datetime the Contributor associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+            endDate:
+              type: "string"
+              description: "(optional) Datetime the provider Contributor with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+            orcid:
+              type: "string"
+              description: "Name of entity"
+            description:
+              type: "string"
+              description: "A description of their role on the project"
+            role:
+              type: "string"
+              description: "The title of their role on the project"
+            provider:
+              type: "string"
+              description: "The provider who added them as a contributor to the RAiD"
+            meta:
+              type: "object"
+              description: "(optional) Object that acts as a document for optional metadata KeyValues"
+              properties:
+                name:
+                  type: "string"
+                  description: "A name alias for the RAiD"
+                description:
+                  type: "string"
+                  description: "A short description of the RAiD"
   ProviderRAiDsModel:
     type: "object"
     properties:

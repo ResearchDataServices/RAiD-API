@@ -11,6 +11,7 @@ from aws_xray_sdk.core import patch
 from helpers import web_helpers
 from helpers import ands_helpers
 from helpers import raid_helpers
+from helpers import contributors_helpers
 import settings
 
 # Set Logging Level
@@ -281,6 +282,25 @@ def get_raid_handler(event, context):
 
                 institution_query_response = association_index_table.query(**institution_query_parameters)
                 raid_item["institutions"] = institution_query_response["Items"]
+
+                # Get contributors list
+                raid_contributors_table = dynamo_db.Table(
+                    settings.get_environment_table(settings.RAID_CONTRIBUTORS_TABLE, environment)
+                )
+
+                contributors_query_parameters = {
+                    'ProjectionExpression': "#o, #d, #r, provider, endDate",
+                    'ExpressionAttributeNames': {"#o": "orcid-startDate", "#r": "role", "#d": "description"},
+                    'KeyConditionExpression': Key('handle').eq(raid_handle)
+                }
+
+                contributors_query_response = raid_contributors_table.query(**contributors_query_parameters)
+
+                contributors = contributors_helpers.prettify_raid_contributors_list(
+                    contributors_query_response["Items"]
+                )
+
+                raid_item["contributors"] = contributors
 
         return web_helpers.generate_web_body_response('200', raid_item, event)
 
