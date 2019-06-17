@@ -10,6 +10,7 @@ import json
 import urllib
 from helpers import web_helpers
 from helpers import raid_helpers
+from helpers import contributors_helpers
 import settings
 
 # Set Logging Level
@@ -312,5 +313,69 @@ def add_contributor(event, context):
         return web_helpers.generate_web_body_response(
             '400',
             {'message': "Unable to add contributor. Please check structure of the JSON body."},
+            event
+        )
+
+
+def get_raid_contributors(event, context):
+    """
+    Get a list of contributors of a RAiD
+    :param event:
+    :param context:
+    :return: {"message": ""}
+    """
+    if 'requestContext' not in event:
+        return {"message": "Warming Lambda container"}
+
+    try:
+        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+
+    except:
+        logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))
+        return web_helpers.generate_web_body_response(
+            '400',
+            {'message': "Incorrect path parameter type formatting for RAiD handle. Ensure it is a URL encoded string"},
+            event
+        )
+
+    try:
+        environment = event['requestContext']['authorizer']['environment']
+        provider = event['requestContext']['authorizer']['provider']
+
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        raid_table = dynamo_db.Table(
+            settings.get_environment_table(settings.RAID_TABLE, environment)
+        )
+        # Check if RAiD exists
+        query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
+
+        if query_response["Count"] != 1:
+            return web_helpers.generate_web_body_response('400', {
+                'message': "Invalid RAiD handle provided in parameter path. "
+                           "Ensure it is a valid RAiD handle URL encoded string"}, event)
+
+        # Assign raid item to single item, since the result will be an array of one item
+        raid_item = query_response['Items'][0]
+
+        provider_query_parameters = {
+            'ProjectionExpression': "#o, #d, #r, provider, endDate",
+            'ExpressionAttributeNames': {"#o": "orcid-startDate", "#r": "role", "#d": "description"},
+            'KeyConditionExpression': Key('handle').eq(raid_handle)
+        }
+
+        return web_helpers.generate_table_list_response(
+            event, provider_query_parameters,
+            settings.get_environment_table(
+                settings.RAID_CONTRIBUTORS_TABLE, event['requestContext']['authorizer']['environment']
+            ),
+            transformation_method=contributors_helpers.prettify_raid_contributors_list
+        )
+
+    except Exception as e:
+        logger.error('Unable to add contributor: {}'.format(e))
+        return web_helpers.generate_web_body_response(
+            '500',
+            {'message': "Unable to get RAiD contributors.."},
             event
         )

@@ -85,7 +85,8 @@ def generate_web_body_response(status_code, body, event=None):
     }
 
 
-def generate_table_list_response(event, query_parameters, table, replacement_dictionary=None, remove_dictionary=None):
+def generate_table_list_response(event, query_parameters, table, replacement_dictionary=None, remove_dictionary=None,
+                                 transformation_method=None):
     """
     A generic method for Dynamo DB queries that return a list of items.
     :param event: Dictionary of values provided from the invoking API Gateway
@@ -93,6 +94,7 @@ def generate_table_list_response(event, query_parameters, table, replacement_dic
     :param table: String representing the name of the DynamoDB table
     :param replacement_dictionary: Dictionary of new key names to replace current DyanmoDB name
     :param remove_dictionary: Dictionary of new key names to be not included in results
+    :param transformation_method: A method that can be passed to perform additional transformations query list
     :return:
     """
     try:
@@ -140,6 +142,10 @@ def generate_table_list_response(event, query_parameters, table, replacement_dic
         if remove_dictionary:
             for key, value in remove_dictionary.items():
                 query_response["Items"][:] = [d for d in query_response["Items"] if d.get(key) != value]
+
+        # Perform transformation on DynamoDB items from the Query
+        if transformation_method:
+            return_body['items'] = transformation_method(query_response["Items"])
 
         if 'LastEvaluatedKey' in query_response:
             return_body['lastEvaluatedKey'] = base64.urlsafe_b64encode(json.dumps(query_response["LastEvaluatedKey"]))

@@ -166,6 +166,7 @@ Resources:
         AddRaidContributorFunction: !Ref AddRaidContributor
         InviteContributorFunction: !Ref InviteContributor
         AuthenticateContributorFunction: !Ref AuthenticateContributor
+        GetRaidContributorsFunction: !Ref GetRaidContributors
   # IAM
   ## General
   AwsLambdaNetworkPolicy:
@@ -574,7 +575,7 @@ Resources:
       Handler: handlers.contributor_handlers.invite_contributor
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
-        AddRaidContributorHandle:
+        InviteContributorHandle:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGatewayApi
@@ -598,6 +599,20 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD/{raidId}/contributors
             Method: POST
+
+  GetRaidContributors:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../build
+      Handler: handlers.contributor_handlers.get_raid_contributors
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Events:
+        GetRaidContributorsHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/contributors
+            Method: GET
 
   # RAiD Table DynamoDB monitor that can update the content path with ANDS
   RaidDynamoDBProcessStream:

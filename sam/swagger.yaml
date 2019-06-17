@@ -898,6 +898,54 @@ paths:
           application/json: "{\"statusCode\": 200}"
         type: mock
   /RAiD/{raidId}/contributors:
+    get:
+      summary: "Return a list of contributors associated with a RAiD"
+      tags:
+      - "Contributor"
+      x-amazon-apigateway-auth:
+        type: aws_iam
+      produces:
+      - application/json
+      parameters:
+      - name: raidId
+        in: path
+        required: true
+        type: string
+        description: "RAiD handle created by minting service. Example: 10378.1/1590366"
+      - name: "limit"
+        in: "query"
+        required: false
+        type: "integer"
+        description: "The maximum number of items to return"
+      - name: "ascending"
+        in: "query"
+        required: false
+        type: "boolean"
+        description: "Order list by in ascending order (most recently created first)"
+      - name: "exclusiveStartKey"
+        in: "query"
+        required: false
+        type: "string"
+        description: "Key of the last item returned in a previous query to be used for large lists and pagination"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/RAiDContributorsModel"
+          headers:
+            Access-Control-Allow-Origin:
+              type: "string"
+      security:
+      - CustomAuthorizerJwt: []
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.GetRaidContributorsFunction}/invocations
+        httpMethod: POST
+        type: aws_proxy
     post:
       summary: "Add a contributor to a RAiD"
       tags:
@@ -1668,3 +1716,24 @@ definitions:
       description:
         type: "string"
         description: "Detailed description of the contributions"
+  RAiDContributorsModel:
+    type: "object"
+    properties:
+      startDate:
+        type: "string"
+        description: "Datetime the Contributor associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+      endDate:
+        type: "string"
+        description: "(optional) Datetime the provider Contributor with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+      orcid:
+        type: "string"
+        description: "Name of entity"
+      description:
+        type: "string"
+        description: "A description of their role on the project"
+      role:
+        type: "string"
+        description: "The title of their role on the project"
+      provider:
+        type: "string"
+        description: "The provider who added them as a contributor to the RAiD"
