@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import datetime
+import base64
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
@@ -14,6 +15,64 @@ import settings
 # Set Logging Level
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
+
+
+def authenticate_contributor(event, context):
+    """
+    Authenticate an Orcid contributor's code and save credentials to database
+    :param event:
+    :param context:
+    :return: {"message": ""}
+    """
+    if 'requestContext' not in event:
+        return {"message": "Warming Lambda container"}
+
+    try:
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+
+        # TODO sandbox or normal environment?
+        # contributor_invitation_table = dynamo_db.Table(
+        #     settings.get_environment_table(settings.CONTRIBUTOR_INVITATIONS_TABLE, environment)
+        # )
+        #
+        # contributors_table = dynamo_db.Table(
+        #     settings.get_environment_table(settings.CONTRIBUTORS_TABLE, environment)
+        # )
+
+        # Interpret and validate request body
+        if 'body' in event and event["body"]:
+            body = json.loads(event["body"])
+
+            if 'code' not in body:
+                return web_helpers.generate_web_body_response(
+                    '400',
+                    {'message': 'Invalid request body: A "code" must be provided.'},
+                    event
+                )
+
+            # TODO Orcid interaction to authenticate token
+            return web_helpers.generate_web_body_response(
+                '200',
+                {'message': 'Success: Orcid integration with RAiD completed.'},
+                event
+            )
+
+        else:
+            return web_helpers.generate_web_body_response(
+                '400',
+                {'message': 'Invalid request body: A "code" must be provided.'},
+                event
+
+            )
+
+    except Exception as e:
+        logger.error('Unable to add contributor: {}'.format(e))
+        return web_helpers.generate_web_body_response(
+            '400',
+            {'message': "Unable to authenticate contributor token. Please check structure of the JSON body."},
+            event
+        )
 
 
 def invite_contributor(event, context):

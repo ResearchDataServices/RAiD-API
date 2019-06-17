@@ -116,6 +116,27 @@ Globals:
         RAID_CONTRIBUTORS_TABLE: !GetAtt RAiDLiveDB.Outputs.RaidContributorsDB
 
 Resources:
+  # Encryption
+  RAiDKmsKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      Description: Key for encrypting sensitive contributor details
+      Enabled: "true"
+      KeyPolicy:
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Join
+                - ":"
+                - - "arn:aws:iam:"
+                  - Ref: "AWS::AccountId"
+                  - root
+            Action:
+              - "kms:*"
+            Resource:
+              - "*"
+        Version: "2012-10-17"
   # API
   ApiGatewayApi:
     Type: AWS::Serverless::Api
@@ -144,6 +165,7 @@ Resources:
         GetInstitutionsFunction: !Ref GetInstitutions
         AddRaidContributorFunction: !Ref AddRaidContributor
         InviteContributorFunction: !Ref InviteContributor
+        AuthenticateContributorFunction: !Ref AuthenticateContributor
   # IAM
   ## General
   AwsLambdaNetworkPolicy:
@@ -224,6 +246,25 @@ Resources:
           Resource: ["*"]
       Roles: [!Ref CrudLambdaIAMRole]
 
+  KmsLambdaPolicy:
+    Type: "AWS::IAM::Policy"
+    DependsOn: [CrudLambdaIAMRole]
+    Properties:
+      PolicyName: KmsPolicy
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action:
+            - "kms:Encrypt"
+            - "kms:Decrypt"
+            - "kms:ReEncrypt*"
+            - "kms:GenerateDataKey*"
+            - "kms:DescribeKey"
+          Resource:
+            - !GetAtt RAiDKmsKey.Arn
+
+      Roles: [!Ref CrudLambdaIAMRole]
+
   ## Custom Authorizer
   CustomAuthorizerRole:
       Type: "AWS::IAM::Role"
@@ -282,6 +323,24 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /auth
             Method: POST
+
+  AuthenticateContributor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../build
+      Handler: handlers.contributor_handlers.authenticate_contributor
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          RAID_KMS_KEY: !Ref RAiDKmsKey
+      Events:
+        AddRaidContributorHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /auth/orcid
+            Method: POST
+
   ## RAiD Public
   GetRaidPublic:
     Type: AWS::Serverless::Function
