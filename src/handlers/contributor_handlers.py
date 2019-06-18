@@ -8,6 +8,7 @@ from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 import json
 import urllib
+import orcid
 from helpers import web_helpers
 from helpers import raid_helpers
 from helpers import contributors_helpers
@@ -29,17 +30,22 @@ def authenticate_contributor(event, context):
         return {"message": "Warming Lambda container"}
 
     try:
-        # Initialise DynamoDB
-        dynamo_db = boto3.resource('dynamodb')
-
         # TODO sandbox or normal environment?
-        # contributor_invitation_table = dynamo_db.Table(
-        #     settings.get_environment_table(settings.CONTRIBUTOR_INVITATIONS_TABLE, environment)
-        # )
-        #
-        # contributors_table = dynamo_db.Table(
-        #     settings.get_environment_table(settings.CONTRIBUTORS_TABLE, environment)
-        # )
+        environment = settings.DEMO_ENVIRONMENT
+
+        if environment == settings.LIVE_ENVIRONMENT:
+            queue = os.environ['ORCID_INTERACTION_QUEUE']
+            orcid_redirect_uri = os.environ['ORCID_REDIRECT_URL']
+            orcid_institution_key = os.environ['ORCID_INSTITUTION_KEY']
+            orcid_institution_secret = os.environ['ORCID_INSTITUTION_SECRET']
+            orcid_sandbox = False
+
+        else:  # Use demo queue if not in the Live environment
+            queue = os.environ['DEMO_ORCID_INTERACTION_QUEUE']
+            orcid_redirect_uri = os.environ['DEMO_ORCID_REDIRECT_URL']
+            orcid_institution_key = os.environ['DEMO_ORCID_INSTITUTION_KEY']
+            orcid_institution_secret = os.environ['DEMO_ORCID_INSTITUTION_SECRET']
+            orcid_sandbox = True
 
         # Interpret and validate request body
         if 'body' in event and event["body"]:
@@ -52,7 +58,73 @@ def authenticate_contributor(event, context):
                     event
                 )
 
-            # TODO Orcid interaction to authenticate token
+            # Authenticate token with Orcid
+            api = orcid.MemberAPI(orcid_institution_key, orcid_institution_secret, sandbox=orcid_sandbox)
+            orcid_token = api.get_token_from_authorization_code(body['code'], orcid_redirect_uri)
+
+            # Get associated email adress of Orcid User
+            orcid_person_response = api.read_record_member(
+                orcid_token['orcid'],
+                'person',
+                orcid_token['access_token']
+            )
+
+            # Client Side Encrypt Key Values  TODO
+
+            # Save Orcid contributor to database
+            dynamo_db = boto3.resource('dynamodb')
+            contributors_table = dynamo_db.Table(
+                settings.get_environment_table(settings.CONTRIBUTORS_TABLE, environment)
+            )
+            now = raid_helpers.get_current_datetime()  # Get current datetime
+            contributor = {
+                'name': orcid_token['name'],
+                'access_token': orcid_token['access_token'],
+                'expires_in': orcid_token['expires_in'],
+                'token_type': orcid_token['token_type'],
+                'orcid': orcid_token['orcid'],
+                'scope': orcid_token['scope'],
+                'refresh_token': orcid_token['refresh_token'],
+                'creationDate': now
+            }
+
+            # Save Invitation to Contributor Invitations Table
+            contributors_table.put_item(Item=contributor)
+
+            if 'emails' in orcid_person_response and 'email' in orcid_person_response['emails']:
+                emails = orcid_person_response['emails']['email']
+
+                contributor_invitation_table = dynamo_db.Table(
+                    settings.get_environment_table(settings.CONTRIBUTOR_INVITATIONS_TABLE, environment)
+                )
+
+                for orcid_email in emails:
+                    #  Query existing invites that need to be processed
+                    logger.info('Query existing invitations for {}...'.format(orcid_email['email']))
+                    contributors_invitations_query_parameters = {
+                        'KeyConditionExpression': Key('email').eq(orcid_email['email']),
+                        'FilterExpression': Attr('handle').exists() & Attr('processed').not_exists()
+                    }
+
+                    contributors_invitations_query_response = contributor_invitation_table.query(
+                        **contributors_invitations_query_parameters
+                    )
+
+                    for invitation in contributors_invitations_query_response["Items"]:
+                        # Update processed value so the invitation isn't duplicated
+                        invitation['processed'] = True
+                        invitation['updatedDate'] = now
+                        contributor_invitation_table.put_item(Item=invitation)
+
+                        # Send Orcid record interaction to Queue
+                        invitation['orcid'] = contributor['orcid']
+                        invitation['type'] = 'add'  # The type or Orcid Interaction
+                        sqs_client = boto3.client('sqs')
+                        send_response = sqs_client.send_message(
+                            QueueUrl=queue,
+                            MessageBody=json.dumps(invitation)
+                        )
+
             return web_helpers.generate_web_body_response(
                 '200',
                 {'message': 'Success: Orcid integration with RAiD completed.'},
@@ -61,7 +133,7 @@ def authenticate_contributor(event, context):
 
         else:
             return web_helpers.generate_web_body_response(
-                '400',
+                '403',
                 {'message': 'Invalid request body: A "code" must be provided.'},
                 event
 
@@ -70,8 +142,9 @@ def authenticate_contributor(event, context):
     except Exception as e:
         logger.error('Unable to add contributor: {}'.format(e))
         return web_helpers.generate_web_body_response(
-            '400',
-            {'message': "Unable to authenticate contributor token. Please check structure of the JSON body."},
+            '403',
+            {'message': "Unable to authenticate contributor token. "
+                        "Please check structure of your code in the JSON body."},
             event
         )
 

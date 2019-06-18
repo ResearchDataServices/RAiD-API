@@ -61,6 +61,18 @@ Parameters:
     Type: String
   AndsDemoSecret:
     Type: String
+  OrcidInstitutionKey:
+    Type: String
+  DemoOrcidInstitutionKey:
+    Type: String
+  OrcidInstitutionSecret:
+    Type: String
+  DemoOrcidInstitutionSecret:
+    Type: String
+  OrcidRedirectUri:
+    Type: String
+  DemoOrcidRedirectUri:
+    Type: String
   ElasticsearchHost:
     Type: String
   HandleAlarmThreshold:
@@ -334,6 +346,14 @@ Resources:
       Environment:
         Variables:
           RAID_KMS_KEY: !Ref RAiDKmsKey
+          ORCID_INTERACTION_QUEUE: !Ref OrcidInteractionQueue
+          DEMO_ORCID_INTERACTION_QUEUE: !Ref DemoOrcidInteractionQueue
+          ORCID_REDIRECT_URL: !Ref OrcidRedirectUri
+          DEMO_ORCID_REDIRECT_URL: !Ref  DemoOrcidRedirectUri
+          ORCID_INSTITUTION_KEY: !Ref OrcidInstitutionKey
+          DEMO_ORCID_INSTITUTION_KEY: !Ref DemoOrcidInstitutionKey
+          ORCID_INSTITUTION_SECRET: !Ref OrcidInstitutionSecret
+          DEMO_ORCID_INSTITUTION_SECRET: !Ref DemoOrcidInstitutionSecret
       Events:
         AddRaidContributorHandle:
           Type: Api
