@@ -691,6 +691,11 @@ Resources:
         Variables:
           ORCID_INTERACTION_QUEUE: !GetAtt OrcidInteractionQueue.Arn
           DEMO_ORCID_INTERACTION_QUEUE: !GetAtt DemoOrcidInteractionQueue.Arn
+          RAID_KMS_KEY: !Ref RAiDKmsKey
+          ORCID_INSTITUTION_KEY: !Ref OrcidInstitutionKey
+          DEMO_ORCID_INSTITUTION_KEY: !Ref DemoOrcidInstitutionKey
+          ORCID_INSTITUTION_SECRET: !Ref OrcidInstitutionSecret
+          DEMO_ORCID_INSTITUTION_SECRET: !Ref DemoOrcidInstitutionSecret
 
       Events:
         OrcidInteractionQueueEvent:

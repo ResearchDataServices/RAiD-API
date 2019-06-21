@@ -3,8 +3,13 @@ import sys
 import logging
 import datetime
 import boto3
+from boto3.dynamodb.conditions import Key, Attr
+from botocore.exceptions import ClientError
 import json
+import orcid
 import settings
+from helpers import orcid_helpers
+from helpers import contributors_helpers
 
 # Set Logging Level
 logger = logging.getLogger()
@@ -24,33 +29,70 @@ def process_queue(event, context):
 
         for record in event['Records']:
             try:
+                # Load Message Body
+                body = json.loads(record['body'])
+
                 if record['eventSourceARN'] == os.environ['ORCID_INTERACTION_QUEUE']:
-                    orcid_api_base_path = settings.ORCID_API_BASE_URL
+                    environment = settings.LIVE_ENVIRONMENT
                     logger.info('Production ORCID Environment')
 
                 elif record['eventSourceARN'] == os.environ['DEMO_ORCID_INTERACTION_QUEUE']:
-                    orcid_api_base_path = settings.ORCID_SANDBOX_API_BASE_URL
+                    environment = settings.DEMO_ENVIRONMENT
                     logger.info('Sandbox ORCID Environment')
 
                 else:
                     logger.error('Unknown Queue Origin')
                     continue
 
-                logger.info('ORCID API call will use Base Url: {}'.format(orcid_api_base_path))
+                # Get Orcid member details from DynamoDB
+                contributor = contributors_helpers.get_contributor(
+                    body['orcid'], environment
+                )
 
-                # Process new message
-                body = json.loads(record['body'])
+                if contributor is None:
+                    logger.error('This Orcid user has not granted RAiD permission to be associated.')
+                    continue
 
+                # Check for existing RAiD Contributor
+                raid_contributor = contributors_helpers.get_raid_contributor(
+                    body['handle'], contributor['orcid'], body['startDate'], environment=environment
+                )
+
+                # Create Orcid Member API object and request body
+                api = orcid_helpers.get_orcid_api_object(environment=environment)
+                # TODO Use Client Side Decryption and Refresh
+                access_token = contributor['access_token']
+                orcid_json = orcid_helpers.queue_record_to_orcid_request_object(body)
+
+                # Process Orcid CRUD
                 if body['type'] == 'add':
-                    logger.info('Adding a new ORCID Record...')
-                    # TODO Add RAiD info to Contributors Orcid Activities
+                    logger.info('Adding a new ORCID Record for id:{}...'.format(contributor['orcid']))
+
+                    if raid_contributor is not None:
+                        logger.error('This Orcid user is already an active contributor.')
+                        continue
+
+                    # Send request to Orcid
+                    put_code = api.add_record(contributor['orcid'], access_token, 'work', orcid_json)
+
+                    # Save new contributor association to DynamoDB
+                    contributors_helpers.create_or_update_raid_contributor(body, put_code, environment=environment)
 
                 elif body['type'] == 'update':
-                    logger.info('Updating an ORCID Record...')
-                    # TODO Update RAiD info to Contributors Orcid Activities using the PutId
+                    logger.info('Updating an ORCID Record for id:{}...'.format(contributor['orcid']))
+
+                    # Send request to Orcid
+                    api.update_record(
+                        contributor['orcid'], access_token, 'work', raid_contributor['putCode'], orcid_json
+                    )
+
+                    # Update new contributor association to DynamoDB
+                    contributors_helpers.create_or_update_raid_contributor(
+                        body, raid_contributor['putCode'], environment=environment
+                    )
 
                 else:
-                    logger.error('Unknown Queue Origin')
+                    logger.error('Unknown type')
                     continue
 
             except Exception as e:
