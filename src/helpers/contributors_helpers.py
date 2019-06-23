@@ -9,6 +9,103 @@ import json
 import settings
 
 
+def email_contributor_invitation(sender, recipient, invitor, environment, charset='UTF-8',
+                                 ses_region='us-west-2'):
+    """
+    Email an invitation to the RAiD service and Handle inf provided
+    :param sender:
+    :param recipient:
+    :param invitor:
+    :param environment:
+    :param charset:
+    :param ses_region:
+    :return:
+    """
+    subject = 'RAiD Contributor Invitation'
+    if environment == settings.LIVE_ENVIRONMENT:
+        orcid_uri = settings.ORCID_API_BASE_URL
+        client_id = os.environ['DEMO_ORCID_INSTITUTION_KEY']
+        redirect_uri = os.environ['ORCID_REDIRECT_URL']
+    else:
+        orcid_uri = settings.ORCID_SANDBOX_API_BASE_URL
+        client_id = os.environ['ORCID_INSTITUTION_KEY']
+        redirect_uri = os.environ['DEMO_ORCID_REDIRECT_URL']
+
+    # The email body for recipients with non-HTML email clients.
+    body_text = (
+        "Welcome.\r\n"
+        "You have been invited by '{0}' to the RAiD Service. A RAiD is a handle (a string of numbers) that "
+        "is persistent and can have other digital Identifiers associated with it to trace all of the "
+        "researchers, institutions, outputs, tools and services that are used in a project.\r\n"
+        "RAiD integrates with ORCID to associate an individual's contributions to a project using their "
+        "globally unique ORCID ID. In order to do this, the RAiD Service requires you to accept it as an "
+        "ORCID Trusted Service with permission's to view your associated email addresses and create records "
+        "on your behalf. In order for integration with ORCiD to be effective, you will need to have this "
+        "email address associated with it (primary or related) so that you can be associated to a RAiD via "
+        "the email address '{0}' is familiar with.\r\n"     
+        "Please follow the link below to login or register with ORCID:\r\n"
+        "{1}/oauth/authorize?client_id={2}&response_type=code&scope=/activities/update&redirect_uri={3}"
+        "\r\n"
+        "Kind Regards,\r\n"
+        "The RAiD Service team.\r\n"
+    ).format(invitor, orcid_uri, client_id, redirect_uri)
+
+    # The HTML body of the email.
+    body_html = """
+    <html>
+    <head></head>
+    <body>
+        Welcome.
+        <br>
+        <br>You have been invited by '<i>{0}</i>' to the <i><a href="https://www.raid.org.au/" target="_blank">RAiD Service</a>.</i> A <i>RAiD</i> is a handle (a string of numbers) that is persistent and can have other digital Identifiers associated with it to trace all of the researchers, institutions, outputs, tools and services that are used in a project.
+        <br>
+        <br>
+        <i>RAiD</i> integrates with <i><a href="https://orcid.org/" target="_blank">ORCID</a></i> to associate an individual's contributions to a project using their globally unique ORCID ID. In order to do this, the <i>RAiD Service</i> requires you to accept it as an <i>ORCID</i> Trusted Service with permission's to view your associated email addresses and create records on your behalf. In order for integration with <i>ORCiD</i> to be effective, you will need to have this email address associated with it (primary or related) so that you can be associated to a <i>RAiD</i> via the email address '<i>{0}</i>' is familiar with.
+        <br>
+        <br>
+        Please follow the link below to login or register with <i>ORCID</i>:
+        <br>
+        <a href="{1}/oauth/authorize?client_id={2}&response_type=code&scope=/activities/update&redirect_uri={3}" target="_blank">
+            {1}/oauth/authorize?client_id={2}&response_type=code&scope=/activities/update&redirect_uri={3} 
+        </a>
+        <br>
+        <br>
+        Kind Regards,
+        <br>
+        The RAiD Service team.
+    </body>
+    </html>
+     """.format(invitor, orcid_uri, client_id, redirect_uri)
+
+    # Create a new SES resource and specify a region.
+    client = boto3.client('ses', region_name=ses_region)
+
+    # Send the email.
+    # Provide the contents of the email.
+    response = client.send_email(
+        Destination={
+            'ToAddresses': [recipient],
+        },
+        Message={
+            'Body': {
+                'Html': {
+                    'Charset': charset,
+                    'Data': body_html,
+                },
+                'Text': {
+                    'Charset': charset,
+                    'Data': body_text,
+                },
+            },
+            'Subject': {
+                'Charset': charset,
+                'Data': subject,
+            },
+        },
+        Source=sender
+    )
+
+
 def prettify_raid_contributors_list(db_items):
     """
     Convert sort key concatenated RAiD Contributor to a human-readable version

@@ -30,7 +30,6 @@ def get_raids_handler(event, context):
     :param context:
     :return:
     """
-    logger.error(json.dumps(event))
     provider = event['requestContext']['authorizer']['provider']
 
     query_parameters = {

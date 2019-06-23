@@ -75,6 +75,11 @@ Parameters:
     Type: String
   ElasticsearchHost:
     Type: String
+  SesEmailSender:
+    Type: String
+  SesEmailRegion:
+    Type: String
+    Default: us-west-2
   HandleAlarmThreshold:
     Type: String
     Default: 80
@@ -276,6 +281,21 @@ Resources:
           Resource:
             - !GetAtt RAiDKmsKey.Arn
 
+      Roles: [!Ref CrudLambdaIAMRole]
+
+  SendEmailPolicy:
+    Type: "AWS::IAM::Policy"
+    DependsOn: [CrudLambdaIAMRole]
+    Properties:
+      PolicyName: SendEmailPolicy
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action: [
+            "ses:SendEmail",
+            "ses:SendRawEmail"
+          ]
+          Resource: ["*"]
       Roles: [!Ref CrudLambdaIAMRole]
 
   ## Custom Authorizer
@@ -594,6 +614,9 @@ Resources:
       CodeUri: ../build
       Handler: handlers.contributor_handlers.invite_contributor
       Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          EMAILS_QUEUE: !Ref EmailsQueue
       Events:
         InviteContributorHandle:
           Type: Api
@@ -612,6 +635,7 @@ Resources:
         Variables:
           ORCID_INTERACTION_QUEUE: !Ref OrcidInteractionQueue
           DEMO_ORCID_INTERACTION_QUEUE: !Ref DemoOrcidInteractionQueue
+          EMAILS_QUEUE: !Ref EmailsQueue
       Events:
         AddRaidContributorHandle:
           Type: Api
@@ -696,7 +720,6 @@ Resources:
           DEMO_ORCID_INSTITUTION_KEY: !Ref DemoOrcidInstitutionKey
           ORCID_INSTITUTION_SECRET: !Ref OrcidInstitutionSecret
           DEMO_ORCID_INSTITUTION_SECRET: !Ref DemoOrcidInstitutionSecret
-
       Events:
         OrcidInteractionQueueEvent:
           Type: SQS
@@ -707,6 +730,28 @@ Resources:
           Type: SQS
           Properties:
             Queue: !GetAtt DemoOrcidInteractionQueue.Arn
+            BatchSize: 10
+
+  # Email Interactions
+  EmailProcessor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../build
+      Handler: handlers.contributor_handlers.process_email_queue
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ORCID_REDIRECT_URL: !Ref OrcidRedirectUri
+          DEMO_ORCID_REDIRECT_URL: !Ref  DemoOrcidRedirectUri
+          ORCID_INSTITUTION_KEY: !Ref OrcidInstitutionKey
+          DEMO_ORCID_INSTITUTION_KEY: !Ref DemoOrcidInstitutionKey
+          SES_EMAIL_SENDER: !Ref SesEmailSender
+          SES_EMAIL_REGION: !Ref SesEmailRegion
+      Events:
+        EmailsQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt EmailsQueue.Arn
             BatchSize: 10
 
   # Queues
@@ -724,6 +769,9 @@ Resources:
     Type: AWS::SQS::Queue
 
   DemoOrcidInteractionQueue:
+    Type: AWS::SQS::Queue
+
+  EmailsQueue:
     Type: AWS::SQS::Queue
 
   # Alarms and Notifications

@@ -19,6 +19,42 @@ logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
 
 
+def process_email_queue(event, context):
+    """
+    Process SQS Queue messages for sending email
+    :param event:
+    :param context:
+    :return:
+    """
+    try:
+        # Log AWS Lambda event
+        logger.info('Event: {}'.format(json.dumps(event, indent=4)))
+
+        for record in event['Records']:
+            try:
+                # Load Message Body
+                body = json.loads(record['body'])
+
+                # Send SES Email
+                contributors_helpers.email_contributor_invitation(
+                    os.environ['SES_EMAIL_SENDER'],
+                    body['recipient'],
+                    body['provider'],
+                    body['environment'],
+                    ses_region=os.environ['SES_EMAIL_REGION']
+                )
+
+            except Exception as e:
+                logger.error('Unknown error occurred.')
+                logger.error(str(e))
+
+    except Exception as e:
+        logger.error('Unknown error occurred.')
+        logger.error(str(e))
+
+    logger.info('Email SQS Queue Processed...')
+
+
 def authenticate_contributor(event, context):
     """
     Authenticate an Orcid contributor's code and save credentials to database
@@ -161,6 +197,7 @@ def invite_contributor(event, context):
 
     try:
         environment = event['requestContext']['authorizer']['environment']
+        provider = event['requestContext']['authorizer']['provider']
 
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
@@ -196,7 +233,19 @@ def invite_contributor(event, context):
             # Save Invitation to Contributor Invitations Table
             contributor_invitation_table.put_item(Item=contributor_item)
 
-            # TODO Send SES Email
+            # Send SES Email via Queue to reduce response time
+            sqs_client = boto3.client('sqs')
+            send_response = sqs_client.send_message(
+                QueueUrl=os.environ['EMAILS_QUEUE'],
+                MessageBody=json.dumps(
+                    {
+                        'recipient': body['email'],
+                        'provider': provider,
+                        'environment': environment
+                    }
+                )
+            )
+
             return web_helpers.generate_web_body_response(
                 '200',
                 {'message': 'An email invite has been sent to the contributor.'},
@@ -245,7 +294,8 @@ def add_contributor(event, context):
         environment = event['requestContext']['authorizer']['environment']
         provider = event['requestContext']['authorizer']['provider']
 
-        # Initialise DynamoDB
+        # Initialise DynamoDB and SQS
+        sqs_client = boto3.client('sqs')
         dynamo_db = boto3.resource('dynamodb')
         raid_table = dynamo_db.Table(
             settings.get_environment_table(settings.RAID_TABLE, environment)
@@ -321,7 +371,18 @@ def add_contributor(event, context):
                     contributor_item['email'] = body['email']
                     contributor_invitation_table.put_item(Item=contributor_item)
 
-                    # TODO Send SES Email
+                    # Send SES Email via Queue to reduce response time
+                    send_response = sqs_client.send_message(
+                        QueueUrl=os.environ['EMAILS_QUEUE'],
+                        MessageBody=json.dumps(
+                            {
+                                'recipient': body['email'],
+                                'provider': provider,
+                                'environment': environment
+                            }
+                        )
+                    )
+
                     return web_helpers.generate_web_body_response(
                         '200',
                         {'message': 'An email invite has been sent to the contributor.'},
@@ -354,8 +415,7 @@ def add_contributor(event, context):
                         logger.info('Sending message on Demo Orcid Interaction SQS Queue...')
                         queue = os.environ["DEMO_ORCID_INTERACTION_QUEUE"]
 
-                    SQS_client = boto3.client('sqs')
-                    send_response = SQS_client.send_message(
+                    send_response = sqs_client.send_message(
                         QueueUrl=queue,
                         MessageBody=json.dumps(contributor_item)
                     )
