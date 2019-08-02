@@ -288,17 +288,13 @@ def get_raid_handler(event, context):
                 )
 
                 contributors_query_parameters = {
-                    'ProjectionExpression': "#o, #d, #r, provider, endDate",
-                    'ExpressionAttributeNames': {"#o": "orcid-startDate", "#r": "role", "#d": "description"},
+                    'ProjectionExpression': '#o, #a',
+                    'ExpressionAttributeNames': {'#o': 'orcid', '#a': 'activities'},
                     'KeyConditionExpression': Key('handle').eq(raid_handle)
                 }
 
                 contributors_query_response = raid_contributors_table.query(**contributors_query_parameters)
-
-                contributors = contributors_helpers.prettify_raid_contributors_list(
-                    contributors_query_response["Items"]
-                )
-
+                contributors = contributors_query_response['Items']
                 raid_item["contributors"] = contributors
 
         return web_helpers.generate_web_body_response('200', raid_item, event)

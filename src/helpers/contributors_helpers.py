@@ -106,24 +106,6 @@ def email_contributor_invitation(sender, recipient, invitor, environment, charse
     )
 
 
-def prettify_raid_contributors_list(db_items):
-    """
-    Convert sort key concatenated RAiD Contributor to a human-readable version
-    :param db_items: Items return for the DynamoDB Query or Scan
-    :return:
-    """
-    items = [{
-        'orcid': '-'.join(item['orcid-startDate'].split('-')[:4]),
-        'startDate': '-'.join(item['orcid-startDate'].split('-')[4:]),
-        'endDate': None if 'endDate' not in item else item['endDate'],
-        'provider': item['provider'],
-        'role': item['role'],
-        'description': item['description']
-    } for item in db_items]
-
-    return items
-
-
 def get_contributor(orcid, environment='demo'):
     """
     Get an Orcid user that has given RAiD permission to act on behalf
@@ -149,12 +131,11 @@ def get_contributor(orcid, environment='demo'):
     return contributor
 
 
-def get_raid_contributor(handle, orcid, start_date, environment='demo'):
+def get_raid_contributor(handle, orcid, environment='demo'):
     """
     Query the RAiD Contributors for an active contributor
     :param handle: RAiD Handle
     :param orcid: The Orcid User
-    :param start_date: The data of association
     :param environment: The environment: 'demo' or' live'
     :return:
     """
@@ -165,10 +146,8 @@ def get_raid_contributor(handle, orcid, start_date, environment='demo'):
         settings.get_environment_table(settings.RAID_CONTRIBUTORS_TABLE, environment)
     )
 
-    contributor_sort_key = '{}-{}'.format(orcid, start_date)
-
     raid_contributors_query_response = raid_contributors_table.query(
-        KeyConditionExpression=Key('handle').eq(handle) & Key('orcid-startDate').eq(contributor_sort_key)
+        KeyConditionExpression=Key('handle').eq(handle) & Key('orcid').eq(orcid)
     )
 
     if raid_contributors_query_response["Count"] < 1:
@@ -194,12 +173,19 @@ def create_or_update_raid_contributor(request_body, put_code, environment='demo'
     raid_contributors_table = dynamo_db.Table(
         settings.get_environment_table(settings.RAID_CONTRIBUTORS_TABLE, environment)
     )
+
     raid_contributor = {
         'handle': request_body['handle'],
-        'orcid-startDate': '{}-{}'.format(request_body['orcid'], request_body['startDate']),
-        'provider': request_body['provider'],
-        'role': request_body['role'],
-        'description': request_body['description'],
+        'orcid': request_body['orcid'],
+        'activities': [
+            {
+                'startDate': request_body['startDate'],
+                'endDate': None,
+                'provider': request_body['provider'],
+                'role': request_body['role'],
+                'description': request_body['description']
+            }
+        ],
         'putCode': put_code
     }
 

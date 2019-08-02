@@ -492,8 +492,8 @@ def get_raid_contributors(event, context):
         raid_item = query_response['Items'][0]
 
         contributors_query_parameters = {
-            'ProjectionExpression': "#o, #d, #r, provider, endDate",
-            'ExpressionAttributeNames': {"#o": "orcid-startDate", "#r": "role", "#d": "description"},
+            'ProjectionExpression': '#o, #a',
+            'ExpressionAttributeNames': {'#o': 'orcid', '#a': 'activities'},
             'KeyConditionExpression': Key('handle').eq(raid_handle)
         }
 
@@ -501,8 +501,7 @@ def get_raid_contributors(event, context):
             event, contributors_query_parameters,
             settings.get_environment_table(
                 settings.RAID_CONTRIBUTORS_TABLE, event['requestContext']['authorizer']['environment']
-            ),
-            transformation_method=contributors_helpers.prettify_raid_contributors_list
+            )
         )
 
     except Exception as e:

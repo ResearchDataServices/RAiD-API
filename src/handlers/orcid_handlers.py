@@ -55,12 +55,11 @@ def process_queue(event, context):
 
                 # Check for existing RAiD Contributor
                 raid_contributor = contributors_helpers.get_raid_contributor(
-                    body['handle'], contributor['orcid'], body['startDate'], environment=environment
+                    body['handle'], contributor['orcid'], environment=environment
                 )
 
                 # Create Orcid Member API object and request body
                 api = orcid_helpers.get_orcid_api_object(environment=environment)
-                # TODO Use Client Side Decryption and Refresh
                 access_token = contributor['access_token']
                 orcid_json = orcid_helpers.queue_record_to_orcid_request_object(body)
 
@@ -68,7 +67,7 @@ def process_queue(event, context):
                 if body['type'] == 'add':
                     logger.info('Adding a new ORCID Record for id:{}...'.format(contributor['orcid']))
 
-                    if raid_contributor is not None:
+                    if raid_contributor is not None and any(activity['endDate'] is None for activity in raid_contributor['activities']):  # TODO Check there is not an activity still in progress
                         logger.error('This Orcid user is already an active contributor.')
                         continue
 

@@ -139,12 +139,12 @@ Resources:
       AttributeDefinitions:
         - AttributeName: "handle"
           AttributeType: "S"
-        - AttributeName: "orcid-startDate" # A contributor can have multiple entries
+        - AttributeName: "orcid"
           AttributeType: "S"
       KeySchema:
         - AttributeName: "handle"
           KeyType: "HASH"
-        - AttributeName: "orcid-startDate"
+        - AttributeName: "orcid"
           KeyType: "RANGE"
 
 Outputs:
