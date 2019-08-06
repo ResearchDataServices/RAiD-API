@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import traceback
 import datetime
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
@@ -77,29 +78,32 @@ def process_queue(event, context):
                         put_code = api.add_record(contributor['orcid'], access_token, 'work', orcid_json)
 
                         # Save new contributor association to DynamoDB
-                        contributors_helpers.create_or_update_raid_contributor(body, put_code, environment=environment)
+                        contributors_helpers.create_raid_contributor(body, put_code, environment=environment)
 
-                    elif body['type'] == 'update':  # TODO
+                    elif body['type'] == 'update':
+                        # Update new contributor association to DynamoDB
                         logger.info('Updating an ORCID Record for id:{}...'.format(contributor['orcid']))
+                        contributors_helpers.update_raid_contributor(
+                            body, raid_contributor, environment=environment
+                        )
 
                         # Send request to Orcid
+                        put_code = raid_contributor['putCode']
                         api.update_record(
-                            contributor['orcid'], access_token, 'work', raid_contributor['putCode'], orcid_json
+                            contributor['orcid'], access_token, 'work', orcid_json, put_code
                         )
 
-                        # TODO updatedDate and different helper method
-
-                        # Update new contributor association to DynamoDB
-                        contributors_helpers.create_or_update_raid_contributor(
-                            body, raid_contributor['putCode'], environment=environment
-                        )
-
-                elif body['type'] == 'delete':  # TODO
+                elif body['type'] == 'delete':
                     logger.info('Ending an ORCID Record association for id:{}...'.format(contributor['orcid']))
-
                     if raid_contributor is not None and any(
                             activity['endDate'] is None for activity in raid_contributor['activities']):
+                        # Update DynamoDB Entry
                         contributors_helpers.end_raid_contributor(raid_contributor, environment)
+
+                        # Send request to Orcid
+                        put_code = raid_contributor['putCode']
+                        api.remove_record(contributor['orcid'], access_token, 'work', put_code)
+
                     else:
                         logger.error('This Orcid user is not an active contributor.')
                         continue
@@ -109,11 +113,11 @@ def process_queue(event, context):
                     continue
 
             except Exception as e:
-                logger.error('Unknown error occurred.')
+                logger.exception('Unknown error occurred.')
                 logger.error(str(e))
 
     except Exception as e:
-        logger.error('Unknown error occurred.')
+        logger.exception('Unknown error occurred.')
         logger.error(str(e))
 
     logger.info('Orcid SQS Queue Processed...')

@@ -160,7 +160,7 @@ def get_raid_contributor(handle, orcid, environment='demo'):
     return raid_contributor
 
 
-def create_or_update_raid_contributor(request_body, put_code, environment='demo'):
+def create_raid_contributor(request_body, put_code, environment='demo'):
     """
     Create a RAiD Contributor association from a request body
     :param request_body:
@@ -191,6 +191,32 @@ def create_or_update_raid_contributor(request_body, put_code, environment='demo'
     }
 
     # Save RAiD Contributor Association to DynamoDB
+    raid_contributors_table.put_item(Item=raid_contributor)
+
+
+def update_raid_contributor(request_body, raid_contributor, environment='demo'):
+    """
+    Update a RAiD Contributor association
+    :return:
+    """
+    # Set End Date to current datetime
+    new_activities = raid_contributor['activities']
+    for i, activity in enumerate(raid_contributor['activities']):
+        if activity['endDate'] is None:
+            new_activities[i]['role'] = request_body['role']
+            new_activities[i]['description'] = request_body['description']
+            break
+
+    # Initialise DynamoDB
+    dynamo_db = boto3.resource('dynamodb')
+
+    raid_contributors_table = dynamo_db.Table(
+        settings.get_environment_table(settings.RAID_CONTRIBUTORS_TABLE, environment)
+    )
+
+    # Save the updated version
+    raid_contributor['activities'] = new_activities
+    raid_contributor['updatedDate'] = raid_helpers.get_current_datetime()
     raid_contributors_table.put_item(Item=raid_contributor)
 
 
