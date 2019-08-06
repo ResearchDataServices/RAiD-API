@@ -184,6 +184,7 @@ Resources:
         InviteContributorFunction: !Ref InviteContributor
         AuthenticateContributorFunction: !Ref AuthenticateContributor
         GetRaidContributorsFunction: !Ref GetRaidContributors
+        EndRaidContributorFunction: !Ref EndRaidContributor
   # IAM
   ## General
   AwsLambdaNetworkPolicy:
@@ -657,6 +658,24 @@ Resources:
             RestApiId: !Ref ApiGatewayApi
             Path: /RAiD/{raidId}/contributors
             Method: GET
+
+  EndRaidContributor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../build
+      Handler: handlers.contributor_handlers.end_raid_contributor
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ORCID_INTERACTION_QUEUE: !Ref OrcidInteractionQueue
+          DEMO_ORCID_INTERACTION_QUEUE: !Ref DemoOrcidInteractionQueue
+      Events:
+        AddRaidContributorHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/contributors/{orcid}
+            Method: DELETE
 
   # RAiD Table DynamoDB monitor that can update the content path with ANDS
   RaidDynamoDBProcessStream:
