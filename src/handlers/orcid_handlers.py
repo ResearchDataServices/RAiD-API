@@ -87,6 +87,8 @@ def process_queue(event, context):
                             contributor['orcid'], access_token, 'work', raid_contributor['putCode'], orcid_json
                         )
 
+                        # TODO updatedDate and different helper method
+
                         # Update new contributor association to DynamoDB
                         contributors_helpers.create_or_update_raid_contributor(
                             body, raid_contributor['putCode'], environment=environment
@@ -94,6 +96,13 @@ def process_queue(event, context):
 
                 elif body['type'] == 'delete':  # TODO
                     logger.info('Ending an ORCID Record association for id:{}...'.format(contributor['orcid']))
+
+                    if raid_contributor is not None and any(
+                            activity['endDate'] is None for activity in raid_contributor['activities']):
+                        contributors_helpers.end_raid_contributor(raid_contributor, environment)
+                    else:
+                        logger.error('This Orcid user is not an active contributor.')
+                        continue
 
                 else:
                     logger.error('Unknown type')

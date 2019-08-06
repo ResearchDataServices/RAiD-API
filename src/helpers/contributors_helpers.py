@@ -7,6 +7,7 @@ from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 import json
 import settings
+from helpers import raid_helpers
 
 
 def email_contributor_invitation(sender, recipient, invitor, environment, charset='UTF-8',
@@ -190,4 +191,29 @@ def create_or_update_raid_contributor(request_body, put_code, environment='demo'
     }
 
     # Save RAiD Contributor Association to DynamoDB
+    raid_contributors_table.put_item(Item=raid_contributor)
+
+
+def end_raid_contributor(raid_contributor, environment='demo'):
+    """
+    End a RAiD Contributor association from a handle and ORCID id
+    :return:
+    """
+    # Set End Date to current datetime
+    new_activities = raid_contributor['activities']
+    for i, activity in enumerate(raid_contributor['activities']):
+        if activity['endDate'] is None:
+            new_activities[i]['endDate'] = raid_helpers.get_current_datetime()
+            break
+
+    # Initialise DynamoDB
+    dynamo_db = boto3.resource('dynamodb')
+
+    raid_contributors_table = dynamo_db.Table(
+        settings.get_environment_table(settings.RAID_CONTRIBUTORS_TABLE, environment)
+    )
+
+    # Save the updated version
+    raid_contributor['activities'] = new_activities
+    raid_contributor['updatedDate'] = raid_helpers.get_current_datetime()
     raid_contributors_table.put_item(Item=raid_contributor)
