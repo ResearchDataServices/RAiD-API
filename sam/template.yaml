@@ -184,6 +184,7 @@ Resources:
         InviteContributorFunction: !Ref InviteContributor
         AuthenticateContributorFunction: !Ref AuthenticateContributor
         GetRaidContributorsFunction: !Ref GetRaidContributors
+        UpdateRaidContributorFunction: !Ref UpdateRaidContributor
         EndRaidContributorFunction: !Ref EndRaidContributor
   # IAM
   ## General
@@ -659,6 +660,24 @@ Resources:
             Path: /RAiD/{raidId}/contributors
             Method: GET
 
+  UpdateRaidContributor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../build
+      Handler: handlers.contributor_handlers.update_raid_contributor
+      Role: !GetAtt CrudLambdaIAMRole.Arn
+      Environment:
+        Variables:
+          ORCID_INTERACTION_QUEUE: !Ref OrcidInteractionQueue
+          DEMO_ORCID_INTERACTION_QUEUE: !Ref DemoOrcidInteractionQueue
+      Events:
+        UpdateRaidContributorHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /RAiD/{raidId}/contributors/{orcid}
+            Method: PUT
+
   EndRaidContributor:
     Type: AWS::Serverless::Function
     Properties:
@@ -670,7 +689,7 @@ Resources:
           ORCID_INTERACTION_QUEUE: !Ref OrcidInteractionQueue
           DEMO_ORCID_INTERACTION_QUEUE: !Ref DemoOrcidInteractionQueue
       Events:
-        AddRaidContributorHandle:
+        EndRaidContributorHandle:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGatewayApi

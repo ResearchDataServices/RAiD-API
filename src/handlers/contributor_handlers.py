@@ -513,9 +513,127 @@ def get_raid_contributors(event, context):
         )
 
 
+def update_raid_contributor(event, context):
+    """
+    Update association of a RAiD Contributor
+    :param event:
+    :param context:
+    :return: {"message": ""}
+    """
+    if 'requestContext' not in event:
+        return {"message": "Warming Lambda container"}
+
+    try:
+        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+        orcid = urllib.unquote(urllib.unquote(event["pathParameters"]["orcid"]))
+
+    except:
+        logger.error('Unable to validate RAiD or ORCID path parameter: {}'.format(sys.exc_info()[0]))
+        return web_helpers.generate_web_body_response(
+            '400',
+            {'message': "Incorrect path parameter type formatting for RAiD handle or contributorcontributor ORCID. Ensure it is a URL encoded string"},
+            event
+        )
+
+    try:
+        environment = event['requestContext']['authorizer']['environment']
+        provider = event['requestContext']['authorizer']['provider']
+
+        # Initialise DynamoDB
+        dynamo_db = boto3.resource('dynamodb')
+        raid_table = dynamo_db.Table(
+            settings.get_environment_table(settings.RAID_TABLE, environment)
+        )
+        # Check if RAiD exists
+        query_response = raid_table.query(KeyConditionExpression=Key('handle').eq(raid_handle))
+
+        if query_response["Count"] != 1:
+            return web_helpers.generate_web_body_response('400', {
+                'message': "Invalid RAiD handle provided in parameter path. "
+                           "Ensure it is a valid RAiD handle URL encoded string"}, event)
+
+        # Check for the active contributor
+        raid_contributor = contributors_helpers.get_raid_contributor(raid_handle, orcid, environment)
+
+        if raid_contributor is None:
+            return web_helpers.generate_web_body_response(
+                '400',
+                {
+                    'message': "ORCID id does not match any contributor"
+                },
+                event
+            )
+
+        if any(activity['endDate'] is None for activity in raid_contributor['activities']):
+            # Interpret and validate request body
+            if 'body' in event and event["body"]:
+                body = json.loads(event["body"])
+                if 'role' not in body or 'description' not in body:
+                    return web_helpers.generate_web_body_response(
+                        '400',
+                        {'message': 'Invalid request body: A "role" and "description" must be provided.'},
+                        event
+                    )
+
+                # Send to SQS queue to process and delete Orcid Record
+                sqs_client = boto3.client('sqs')
+                if environment == settings.LIVE_ENVIRONMENT:
+                    logger.info('Sending message on Orcid Interaction SQS Queue...')
+                    queue = os.environ["ORCID_INTERACTION_QUEUE"]
+
+                else:  # Use demo queue if not in the Live environment
+                    logger.info('Sending message on Demo Orcid Interaction SQS Queue...')
+                    queue = os.environ["DEMO_ORCID_INTERACTION_QUEUE"]
+
+                message_body = {
+                    'orcid': orcid,
+                    'handle': raid_handle,
+                    'role': body['role'],
+                    'description': body['description'],
+                    'provider': provider,
+                    'type': 'update'
+                }
+                sqs_client.send_message(
+                    QueueUrl=queue,
+                    MessageBody=json.dumps(message_body)
+                )
+
+                return web_helpers.generate_web_body_response(
+                    '200',
+                    {
+                        'message': 'A request to update an active Orcid member as a Contributor will be processed.'
+                    },
+                    event
+                )
+
+            else:
+                return web_helpers.generate_web_body_response(
+                    '400',
+                    {'message': 'Invalid request body: A "role" and "description" must be provided.'},
+                    event
+
+                )
+        else:
+            return web_helpers.generate_web_body_response(
+                '400',
+                {
+                    'message': "ORCID id does not match an active contributor"
+                },
+                event
+            )
+
+    except Exception as e:
+        logger.error('Unable to end a contributors activity: {}'.format(e))
+        return web_helpers.generate_web_body_response(
+            '500',
+            {'message': "Unable to update a contributor's activity..."},
+            event
+        )
+
+
 def end_raid_contributor(event, context):
     """
-    Get a list of contributors of a RAiD
+    End association of a RAiD Contributor
     :param event:
     :param context:
     :return: {"message": ""}
