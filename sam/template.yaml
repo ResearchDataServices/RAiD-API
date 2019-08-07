@@ -71,8 +71,16 @@ Parameters:
     Type: String
   OrcidRedirectUri:
     Type: String
+    Default: "https://api.raid.org.au/v1/auth/orcid"
   DemoOrcidRedirectUri:
     Type: String
+    Default: "https://api.raid.org.au/v1/auth/orcid/demo"
+  OrcidAuthSuccessUri:
+    Type: String
+    Default: "https://ui.api.raid.org.au/orcid/success"
+  OrcidAuthErrorUri:
+    Type: String
+    Default: "https://ui.api.raid.org.au/orcid/error"
   ElasticsearchHost:
     Type: String
   SesEmailSender:
@@ -372,17 +380,25 @@ Resources:
           DEMO_ORCID_INTERACTION_QUEUE: !Ref DemoOrcidInteractionQueue
           ORCID_REDIRECT_URL: !Ref OrcidRedirectUri
           DEMO_ORCID_REDIRECT_URL: !Ref  DemoOrcidRedirectUri
+          ORCID_AUTH_SUCCESS_URL: !Ref OrcidAuthSuccessUri
+          ORCID_AUTH_ERROR_URL: !Ref OrcidAuthErrorUri
           ORCID_INSTITUTION_KEY: !Ref OrcidInstitutionKey
           DEMO_ORCID_INSTITUTION_KEY: !Ref DemoOrcidInstitutionKey
           ORCID_INSTITUTION_SECRET: !Ref OrcidInstitutionSecret
           DEMO_ORCID_INSTITUTION_SECRET: !Ref DemoOrcidInstitutionSecret
       Events:
-        AddRaidContributorHandle:
+        AuthenticateContributorHandle:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGatewayApi
             Path: /auth/orcid
-            Method: POST
+            Method: GET
+        AuthenticateDemoContributorHandle:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /auth/orcid/demo
+            Method: GET
 
   ## RAiD Public
   GetRaidPublic:

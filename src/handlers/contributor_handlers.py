@@ -16,7 +16,7 @@ import settings
 
 # Set Logging Level
 logger = logging.getLogger()
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 
 
 def process_email_queue(event, context):
@@ -66,8 +66,14 @@ def authenticate_contributor(event, context):
         return {"message": "Warming Lambda container"}
 
     try:
-        # TODO sandbox or normal environment?
-        environment = settings.DEMO_ENVIRONMENT
+        # Get environment from the path
+        logger.info('Event: {}'.format(json.dumps(event)))
+        if '/demo' in event['path']:
+            environment = settings.DEMO_ENVIRONMENT
+        else:
+            environment = settings.LIVE_ENVIRONMENT
+
+        logger.info('Environment: {}'.format(environment))
 
         if environment == settings.LIVE_ENVIRONMENT:
             queue = os.environ['ORCID_INTERACTION_QUEUE']
@@ -83,20 +89,13 @@ def authenticate_contributor(event, context):
             orcid_institution_secret = os.environ['DEMO_ORCID_INSTITUTION_SECRET']
             orcid_sandbox = True
 
-        # Interpret and validate request body
-        if 'body' in event and event["body"]:
-            body = json.loads(event["body"])
-
-            if 'code' not in body:
-                return web_helpers.generate_web_body_response(
-                    '400',
-                    {'message': 'Invalid request body: A "code" must be provided.'},
-                    event
-                )
+        # Get the ORCID authentication code from the query string
+        if event['queryStringParameters'] and 'code' in event['queryStringParameters']:
+            code = event['queryStringParameters']['code']
 
             # Authenticate token with Orcid
             api = orcid.MemberAPI(orcid_institution_key, orcid_institution_secret, sandbox=orcid_sandbox)
-            orcid_token = api.get_token_from_authorization_code(body['code'], orcid_redirect_uri)
+            orcid_token = api.get_token_from_authorization_code(code, orcid_redirect_uri)
 
             # Get associated email adress of Orcid User
             orcid_person_response = api.read_record_member(
@@ -161,28 +160,15 @@ def authenticate_contributor(event, context):
                             MessageBody=json.dumps(invitation)
                         )
 
-            return web_helpers.generate_web_body_response(
-                '200',
-                {'message': 'Success: Orcid integration with RAiD completed.'},
-                event
-            )
+            return web_helpers.generate_web_redirection_response(os.environ['ORCID_AUTH_SUCCESS_URL'], event)
 
         else:
-            return web_helpers.generate_web_body_response(
-                '403',
-                {'message': 'Invalid request body: A "code" must be provided.'},
-                event
-
-            )
+            logger.error('Missing querystring parameter "code".')
+            return web_helpers.generate_web_redirection_response(os.environ['ORCID_AUTH_ERROR_URL'], event)
 
     except Exception as e:
-        logger.error('Unable to add contributor: {}'.format(e))
-        return web_helpers.generate_web_body_response(
-            '403',
-            {'message': "Unable to authenticate contributor token. "
-                        "Please check structure of your code in the JSON body."},
-            event
-        )
+        logger.exception('Unable to add contributor')
+        return web_helpers.generate_web_redirection_response(os.environ['ORCID_AUTH_ERROR_URL'], event)
 
 
 def invite_contributor(event, context):

@@ -85,6 +85,26 @@ def generate_web_body_response(status_code, body, event=None):
     }
 
 
+def generate_web_redirection_response(url, event=None):
+    """
+    Generate a valid API Gateway CORS enabled JSON body response
+    :return:
+    """
+    try:
+        if event and "ELASTICSEARCH_HOST" in os.environ:
+            event["httpStatus"] = 302
+            push_api_event_log(os.environ['AWS_REGION'], os.environ['ELASTICSEARCH_HOST'], event)
+    except:
+        logger.exception('Unable to log to elastic search')
+
+    return {
+        'statusCode': 302,
+        "headers": {
+            'Location': url
+        },
+    }
+
+
 def generate_table_list_response(event, query_parameters, table, replacement_dictionary=None, remove_dictionary=None,
                                  transformation_method=None):
     """

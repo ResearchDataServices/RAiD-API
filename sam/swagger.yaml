@@ -290,27 +290,87 @@ paths:
           application/json: "{\"statusCode\": 200}"
         type: mock
   /auth/orcid:
-    post:
+    get:
       summary: "Authenticate an Orcid redirection code of an invite RAiD Contributor"
       tags:
       - "Auth"
       consumes:
       - "application/json"
+      parameters:
+      - name: code
+        in: path
+        required: true
+        type: string
+        description: "The ORCID redirection code"
+      responses:
+        200:
+          description: 302 response
+          headers:
+            Access-Control-Allow-Origin:
+                type: "string"
+            Location:
+              type: "string"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<account>>:function:${stageVariables.AuthenticateContributorFunction}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+    options:
+      tags:
+      - "CORS"
+      consumes:
+      - application/json
       produces:
       - application/json
-      parameters:
-      - in: "body"
-        required: false
-        name: "body"
-        schema:
-          $ref: "#/definitions/CodeModel"
       responses:
         200:
           description: 200 response
           schema:
-            $ref: "#/definitions/MessageResponseModel"
+            $ref: "#/definitions/Empty"
           headers:
             Access-Control-Allow-Origin:
+              type: string
+            Access-Control-Allow-Methods:
+              type: string
+            Access-Control-Allow-Headers:
+              type: string
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: "{\"statusCode\": 200}"
+        type: mock
+  /auth/orcid/demo:
+    get:
+      summary: "Authenticate an Orcid demo redirection code of an invite RAiD Contributor"
+      tags:
+      - "Auth"
+      consumes:
+      - "application/json"
+      parameters:
+      - name: code
+        in: path
+        required: true
+        type: string
+        description: "The ORCID redirection code"
+      responses:
+        200:
+          description: 302 response
+          headers:
+            Access-Control-Allow-Origin:
+                type: "string"
+            Location:
               type: "string"
       x-amazon-apigateway-integration:
         responses:
