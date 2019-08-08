@@ -3,6 +3,7 @@ import sys
 import logging
 import traceback
 import datetime
+import base64
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
@@ -59,9 +60,14 @@ def process_queue(event, context):
                     body['handle'], contributor['orcid'], environment=environment
                 )
 
+                # Client-side encrypt token values
+                kms = boto3.client('kms')
+                access_token_decoded = base64.b64decode(contributor['access_token'])
+                decrypt_access_token = kms.decrypt(CiphertextBlob=access_token_decoded)
+                access_token = decrypt_access_token[u'Plaintext']
+
                 # Create Orcid Member API object and request body
                 api = orcid_helpers.get_orcid_api_object(environment=environment)
-                access_token = contributor['access_token']
 
                 if body['type'] == 'add' or body['type'] == 'update':
                     orcid_json = orcid_helpers.queue_record_to_orcid_request_object(body)

@@ -94,6 +94,7 @@ def authenticate_contributor(event, context):
             code = event['queryStringParameters']['code']
 
             # Authenticate token with Orcid
+            logger.info('Authenticating code with redirect URL:{}'.format(orcid_redirect_uri))
             api = orcid.MemberAPI(orcid_institution_key, orcid_institution_secret, sandbox=orcid_sandbox)
             orcid_token = api.get_token_from_authorization_code(code, orcid_redirect_uri)
 
@@ -104,7 +105,16 @@ def authenticate_contributor(event, context):
                 orcid_token['access_token']
             )
 
-            # Client Side Encrypt Key Values  TODO
+            # Client-side encrypt token values
+            kms = boto3.client('kms')
+            key_id = os.environ['RAID_KMS_KEY']
+            encrypt_access_token = kms.encrypt(KeyId=key_id, Plaintext=orcid_token['access_token'])
+            encrypted_access_token_binary = encrypt_access_token[u'CiphertextBlob']
+            encrypted_access_token_string = base64.b64encode(encrypted_access_token_binary)
+
+            encrypt_refresh_token = kms.encrypt(KeyId=key_id, Plaintext=orcid_token['refresh_token'])
+            encrypted_refresh_token_binary = encrypt_refresh_token[u'CiphertextBlob']
+            encrypted_refresh_token_string = base64.b64encode(encrypted_refresh_token_binary)
 
             # Save Orcid contributor to database
             dynamo_db = boto3.resource('dynamodb')
@@ -114,12 +124,12 @@ def authenticate_contributor(event, context):
             now = raid_helpers.get_current_datetime()  # Get current datetime
             contributor = {
                 'name': orcid_token['name'],
-                'access_token': orcid_token['access_token'],
+                'access_token': encrypted_access_token_string,
                 'expires_in': orcid_token['expires_in'],
                 'token_type': orcid_token['token_type'],
                 'orcid': orcid_token['orcid'],
                 'scope': orcid_token['scope'],
-                'refresh_token': orcid_token['refresh_token'],
+                'refresh_token': encrypted_refresh_token_string,
                 'creationDate': now
             }
 
