@@ -10,7 +10,7 @@ The DLCF will connect critical elements and points in time of the data journey f
 
 The Resource and Activity Persistent identifier (RAiD) is the first of the enabling technologies required for the DLCF.*RAiD API* is a '**proof of concept**' [Serverless](https://aws.amazon.com/serverless/) implementation designed to be hosted on Amazon Web Services (AWS) that will help create and manage RAiDs.
 
-## Current version: 1.1.1
+## Current version: 1.2.0
 
 ## Serverless Components
 AWS serverless applications are able to conform to a [multi-tier architecture]( https://d0.awsstatic.com/whitepapers/AWS_Serverless_Multi-Tier_Architectures.pdf), consisting of three defined tiers:
@@ -24,17 +24,36 @@ AWS serverless applications are able to conform to a [multi-tier architecture]( 
 
 > "The AWS Serverless Application Model (AWS SAM, previously known as Project Flourish) extends AWS CloudFormation to provide a simplified way of defining the Amazon API Gateway APIs, AWS Lambda functions, and Amazon DynamoDB tables needed by your serverless application". [(AWS 2016)](https://aws.amazon.com/about-aws/whats-new/2016/11/introducing-the-aws-serverless-application-model/)
 
+## AWS Architecture
+
+![Image SAM](RAiD-v1-2.png)
+
+
 ## Getting Started
 Development and deployment of the framework will require the following:
 
 ### Third-Party Integrations
-*RAiD* uses the [*ANDS Handle Service*](https://www.ands.org.au/online-services/handle-service) to generate unique and citable 'handles'. This allows organisations and researchers to have a 'clickable' link in their datasets, collections and papers. Handles act as the primary key for a RAiD and are associated to a URL content path which can be changed, but the handle will remain the same. The following steps a required for *RAiD API* to interact with the minting service:
-  1. Create a VPC and subnet in AWS that will have all outbound traffic come from a single static IPv4 Address.
-  2. [Register with ANDS](https://documentation.ands.org.au/pages/viewpage.action?pageId=59409375), providing the static IP Address from the previous step for the demo and live handle service.
-  3. Use the 'appID' for the 'AndsAppId' parameter in the deployment steps mentioned later in this document.
+
+##### ANDS
+
+*RAiD* uses the [*ANDS Handle Service*](https://www.ands.org.au/online-services/handle-service) to generate unique and
+citable 'handles'. This allows organisations and researchers to have a 'clickable' link in their datasets, collections
+and papers. Handles act as the primary key for a RAiD and are associated to a URL content path which can be changed,
+but the handle will remain the same. The following steps a required for *RAiD API* to interact with the minting service:
+  1. [Register with ANDS](https://documentation.ands.org.au/pages/viewpage.action?pageId=59409375).
+  2. Use the 'appID' for the 'AndsAppId' parameter in the deployment steps mentioned later in this document.
+  
+##### ORCID
+
+*RAiD* uses the [*ORCID*](https://orcid.org/) to authenticate contributors and create, update and delete records on
+their behalf:
+  1. Register with the [Sandbox ORCID environment](https://orcid.org/content/register-client-application-sandbox).
+  2. Register with the [Production ORCID environment](https://orcid.org/content/register-client-application-production-trusted-party)
+  once approved by the ORCID team.
+
 
 ### AWS Environment Prerequisites
-* AWS VPC, Subnets and Security to interact with ANDS.
+
 * AWS S3 Bucket for SAM code packages.
 * Amazon Elasticsearch Service endpoint for logging and monitoring.
 
