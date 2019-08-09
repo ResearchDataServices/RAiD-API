@@ -1147,7 +1147,7 @@ paths:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/RAiDContributorsModel"
+            $ref: "#/definitions/MessageResponseModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -1185,7 +1185,7 @@ paths:
         200:
           description: "200 response"
           schema:
-            $ref: "#/definitions/RAiDContributorsModel"
+            $ref: "#/definitions/MessageResponseModel"
           headers:
             Access-Control-Allow-Origin:
               type: "string"
@@ -1712,34 +1712,30 @@ definitions:
         items:
           type: "object"
           properties:
-            startDate:
-              type: "string"
-              description: "Datetime the Contributor associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-            endDate:
-              type: "string"
-              description: "(optional) Datetime the provider Contributor with the RAiD  (yyyy-MM-dd hh:mm:ss)"
             orcid:
               type: "string"
               description: "Name of entity"
-            description:
-              type: "string"
-              description: "A description of their role on the project"
-            role:
-              type: "string"
-              description: "The title of their role on the project"
-            provider:
-              type: "string"
-              description: "The provider who added them as a contributor to the RAiD"
-            meta:
-              type: "object"
-              description: "(optional) Object that acts as a document for optional metadata KeyValues"
-              properties:
-                name:
-                  type: "string"
-                  description: "A name alias for the RAiD"
-                description:
-                  type: "string"
-                  description: "A short description of the RAiD"
+            activities:
+              type: "array"
+              description: "The history of the contributor "
+              items:
+                type: "object"
+                properties:
+                  startDate:
+                    type: "string"
+                    description: "Datetime the Contributor associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+                  endDate:
+                    type: "string"
+                    description: "(optional) Datetime the provider Contributor with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+                  description:
+                    type: "string"
+                    description: "A description of their role on the project"
+                  role:
+                    type: "string"
+                    description: "The title of their role on the project"
+                  provider:
+                    type: "string"
+                    description: "The provider who added them as a contributor to the RAiD"
   ProviderRAiDsModel:
     type: "object"
     properties:
@@ -1929,12 +1925,6 @@ definitions:
       scannedCount:
         type: "string"
         description: "Total number of items that were scanned in the query"
-  CodeModel:
-    type: "object"
-    properties:
-      code:
-        type: "string"
-        description: "Orcid redirection code of an invite RAiD Contributor."
   MessageResponseModel:
     type: "object"
     properties:
@@ -1947,27 +1937,15 @@ definitions:
       email:
         type: "string"
         description: "The email address to invite a an Orcid user to RAiD."
-  InviteContributorEmailModel:
-    type: "object"
-    properties:
-      email:
-        type: "string"
-        description: "The email address to invite a RAiD Contributor."
-      startDate:
-        type: "string"
-        description: "Datetime the Contributor associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-      role:
-        type: "string"
-        description: "Project role of the Contributor"
-      description:
-        type: "string"
-        description: "Detailed description of the contributions"
   InviteContributorOrcidModel:
     type: "object"
     properties:
       orcid:
         type: "string"
-        description: "The Orcid on an active RAiD Contributor."
+        description: "The Orcid on an active RAiD Contributor is required is an email is not provided."
+      email:
+        type: "string"
+        description: "The email address to invite a RAiD Contributor is an orcid is not provided"
       startDate:
         type: "string"
         description: "Datetime the Contributor associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
@@ -1989,21 +1967,39 @@ definitions:
   RAiDContributorsModel:
     type: "object"
     properties:
-      startDate:
+      count:
         type: "string"
-        description: "Datetime the Contributor associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-      endDate:
+        description: "Number of items returned"
+      items:
+        type: "array"
+        description: "(optional) Contributor associated to the RAiD"
+        items:
+          type: "object"
+          properties:
+            orcid:
+              type: "string"
+              description: "Name of entity"
+            activities:
+              type: "array"
+              description: "The history of the contributor "
+              items:
+                type: "object"
+                properties:
+                  startDate:
+                    type: "string"
+                    description: "Datetime the Contributor associated with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+                  endDate:
+                    type: "string"
+                    description: "(optional) Datetime the provider Contributor with the RAiD  (yyyy-MM-dd hh:mm:ss)"
+                  description:
+                    type: "string"
+                    description: "A description of their role on the project"
+                  role:
+                    type: "string"
+                    description: "The title of their role on the project"
+                  provider:
+                    type: "string"
+                    description: "The provider who added them as a contributor to the RAiD"
+      scannedCount:
         type: "string"
-        description: "(optional) Datetime the provider Contributor with the RAiD  (yyyy-MM-dd hh:mm:ss)"
-      orcid:
-        type: "string"
-        description: "Name of entity"
-      description:
-        type: "string"
-        description: "A description of their role on the project"
-      role:
-        type: "string"
-        description: "The title of their role on the project"
-      provider:
-        type: "string"
-        description: "The provider who added them as a contributor to the RAiD"
+        description: "Total number of items that were scanned in the query"
