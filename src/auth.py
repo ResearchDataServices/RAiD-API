@@ -237,7 +237,7 @@ def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_
                               options={'verify_exp': False})
         else:
             # Self Signed
-            return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_self, audience=jwt_audience)
+            return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_self, audience=jwt_audience, options={'verify_exp': False, 'verify_iat': False})
 
     except jwt.ExpiredSignatureError:
         # Signature has expired

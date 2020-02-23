@@ -1,0 +1,25 @@
+# All values below are examples dummy value except for generic endpoints
+    aws_stack_name: RAiD-Example
+    aws_profile: Raid
+    aws_region: ap-southeast-2
+    aws_account: 0123456789012
+    aws_ses_email_sender: john.smith@foobar-example.com
+    aws_ses_email_region: us-west-2
+    aws_s3_bucket: s3-bucket-name
+    code_version: v1_2_0
+    ands_app_id: 12345678910
+    ands_app_secret: 12345678910
+    ands_demo_secret: 12345678910
+    ands_service: https://handle.ands.org.au/pids/
+    ands_demo_service: https://demo.ands.org.au:8443/pids/
+    orcid_institution_key: APP-FOOBAR
+    orcid_demo_institution_key: APP-FOOBAR
+    orcid_institution_secret: 12345678-0000-0000-0000-0123456789012
+    orcid_demo_institution_secret: 12345678-0000-0000-0000-0123456789012
+    orcid_redirect_uri: https://api.raid.org.au/v1/auth/orcid
+    orcid_demo_redirect_uri: https://api.raid.org.au/v1/auth/orcid/demo
+    orcid_auth_success_url: https://ui.api.raid.org.au/orcid/success
+    orcid_auth_error_uri: https://ui.api.raid.org.au/orcid/error
+    elastic_search_host: example.ap-southeast-2.es.amazonaws.com
+    raid_jwt_secret: "12345678910"
+    handle_alarm_threshold: 5

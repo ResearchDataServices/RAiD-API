@@ -97,9 +97,15 @@ tmp/
 artifacts/
 admin/deployment
 *template-out.yaml
+*swagger-out.yaml
 admin/site/node_modules
 admin/site/bower_components
 admin/site/dist
 sam/swagger.yaml-e
 Makefile
 ui.api.raid.org.au
+
+# Ansible Var files
+vars/*
+!vars/example.yml
+!vars/prd.yml

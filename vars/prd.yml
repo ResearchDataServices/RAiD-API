@@ -1,0 +1,25 @@
+# All sensitive and secret values are stores in AWS SSM Parameter store except safe generic ones
+    aws_stack_name: RAiD
+    aws_profile: Raid
+    aws_region: ap-southeast-2
+    aws_account: "{{ lookup('aws_ssm', '/raid/settings/aws_account', aws_profile=aws_profile ) }}"
+    aws_ses_email_sender: "{{ lookup('aws_ssm', '/raid/settings/aws_ses_email_sender', aws_profile=aws_profile ) }}"
+    aws_ses_email_region: "{{ lookup('aws_ssm', '/raid/settings/aws_ses_email_region', aws_profile=aws_profile ) }}"
+    aws_s3_bucket: "{{ lookup('aws_ssm', '/raid/settings/aws_s3_bucket', aws_profile=aws_profile ) }}"
+    code_version: v1_2_0
+    ands_app_id: "{{ lookup('aws_ssm', '/raid/settings/ands_app_id', aws_profile=aws_profile ) }}"
+    ands_app_secret: "{{ lookup('aws_ssm', '/raid/settings/ands_app_secret', aws_profile=aws_profile ) }}"
+    ands_demo_secret: "{{ lookup('aws_ssm', '/raid/settings/ands_demo_secret', aws_profile=aws_profile ) }}"
+    ands_service: https://handle.ands.org.au/pids/
+    ands_demo_service: https://demo.ands.org.au:8443/pids/
+    orcid_institution_key: "{{ lookup('aws_ssm', '/raid/settings/orcid_institution_key', aws_profile=aws_profile ) }}"
+    orcid_demo_institution_key: "{{ lookup('aws_ssm', '/raid/settings/orcid_demo_institution_key', aws_profile=aws_profile ) }}"
+    orcid_institution_secret: "{{ lookup('aws_ssm', '/raid/settings/orcid_institution_secret', aws_profile=aws_profile ) }}"
+    orcid_demo_institution_secret: "{{ lookup('aws_ssm', '/raid/settings/orcid_demo_institution_secret', aws_profile=aws_profile ) }}"
+    orcid_redirect_uri: https://api.raid.org.au/v1/auth/orcid
+    orcid_demo_redirect_uri: https://api.raid.org.au/v1/auth/orcid/demo
+    orcid_auth_success_url: https://ui.api.raid.org.au/orcid/success
+    orcid_auth_error_uri: https://ui.api.raid.org.au/orcid/error
+    elastic_search_host: "{{ lookup('aws_ssm', '/raid/settings/elastic_search_host', aws_profile=aws_profile ) }}"
+    raid_jwt_secret: "{{ lookup('aws_ssm', '/raid/settings/raid_jwt_secret', aws_profile=aws_profile ) }}"
+    handle_alarm_threshold: 5

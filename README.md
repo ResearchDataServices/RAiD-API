@@ -62,6 +62,7 @@ their behalf:
 * [PIP](https://pip.pypa.io/en/stable/) : Install and manage Python Modules
 * [AWS Command Line Interface](https://aws.amazon.com/cli/): Unified tool to manage your AWS services.
 * [Boto3](https://boto3.readthedocs.io/en/latest/) : Amazon Web Services SDK for Python.
+* [Ansible](https://www.ansible.com/): Ansible to use as orchestration tool to deploy and fetch secure values 
 
 ### Installing System Deployment Prerequisites
 
@@ -79,38 +80,28 @@ AWS Secret Access Key [None]: <Secret>
 Default region name [None]: <Region>
 Default output format [None]: ENTER
 
-# Install Boto3
-pip install boto3==1.4.4
+# Install Boto3 and Ansible
+pip install boto3==1.12.5
+pip install ansible==2.9.5
 ```
 
 ## Deployment
 
-### SAM
+### Ansible
+
+Ansible will deploy the AWS resources and use CloudFormation parameters based on what is in the "var" file provided. By default it will use an environment of "dev" and look for a file called ```vars/dev.yml```. There is an example file called ```vars/example.yml``` that will show you what you need to set in your own development var file.
+
+In addition there is a provided ```vars/prd.yml``` which informs Ansible to look up values safely stored in the [AWS Systems Manager Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html). **For this reason, there are no secret values stored in the "prd" file and it is fine to be uploaded.**
+
 ```bash
-# Install packages listed in requirements to a directory for package deployment
-pip install -r src/requirements.txt -t src/
+# Set Fork settings if using OSX to avoid async errors
+export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 
-# Change path into SAM
-cd sam
+# Deploy RAiD using Ansible (default to development)
+ansible-playbook site.yml -vvv
 
-# Package SAM code and replace MY_S3_Bucket with your own
-aws cloudformation package --template-file template.yaml --output-template-file template-out.yaml --s3-bucket MY_S3_Bucket
-
-# Replace Swagger AWS account id and region placeholders with your own
-sed -i "s/<<account>>/AWS_ACCOUNT_ID/g" 'swagger.yaml'
-sed -i "s/<<region>>/AWS_REGION/g" 'swagger.yaml'
-
-# Deploy SAM as an S3 CloudFormation Stack
-## Replacing YOUR_SECRET ANDS_APP_ID SUBNET_ID SECURITY_GROUP ES_URL
-aws cloudformation deploy --template-file template-out.yaml \
---stack-name RAiD --parameter-overrides \
-JwtSecret=YOUR_SECRET \
-AndsAppId=ANDS_APP_ID \
-AndsSecret=ANDS_SECRET \
-AndsSubnets=SUBNET_ID \
-AndsSecurityGroups=SECURITY_GROUP \
-ElasticsearchHost=ES_URL \
---capabilities CAPABILITY_IAM
+# Deploy RAiD using Ansible and point to production vars file (use vars/prd.yml)
+ansible-playbook site.yml -vvv --extra-vars "env=prd"
 ```
 
 ## License

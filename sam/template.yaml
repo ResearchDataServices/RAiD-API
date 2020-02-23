@@ -112,8 +112,6 @@ Globals:
           Ref: ProviderRole
         INSTITUTION_ROLE:
           Ref: InstitutionRole
-        ELASTICSEARCH_HOST:
-          Ref: ElasticsearchHost
         ANDS_SERVICE:
           Ref: AndsService
         DEMO_ANDS_SERVICE:
@@ -166,7 +164,7 @@ Resources:
   ApiGatewayApi:
     Type: AWS::Serverless::Api
     Properties:
-      DefinitionUri: swagger.yaml
+      DefinitionUri: swagger-out.yaml
       StageName: v1
       Variables:
         CustomAuthorizer: !Ref CustomAuthorizer

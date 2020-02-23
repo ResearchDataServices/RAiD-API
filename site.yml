@@ -1,0 +1,72 @@
+- hosts: localhost
+  gather_facts: false
+  vars:
+    # Default to a dev environment
+    env: dev
+    # Default pip version (for Python 2.7 Runtime)
+    pip_version: pip2
+  vars_files:
+    - "vars/{{ env }}.yml"
+  tasks:
+  - debug: var=aws_account
+  - name: Clean build path
+    file:
+      state: absent
+      path: build
+  - pip:
+      requirements: requirements.txt
+      extra_args: "-t build"
+      chdir: .
+      executable: '{{ pip_version }}'
+  - name: Copy Lambda Python libraries to build path
+    copy:
+      src: src/.
+      dest: build/
+  - name: Unarchive python2.7-lxml
+    shell: >
+      tar -xvzf compiled_python_packages/python2.7-lxml-3.6.0.tar.gz -C build/
+  - name: Transform Swagger
+    template:
+      src: sam/swagger.yaml
+      dest: sam/swagger-out.yaml
+  - name: Cloudformation Package
+    shell: >
+      aws cloudformation package \
+      --template-file sam/template.yaml \
+      --output-template-file sam/template-out.yaml \
+      --s3-bucket {{ aws_s3_bucket }} \
+      --s3-prefix {{ aws_stack_name }}/{{ code_version }} \
+      --profile {{ aws_profile }} \
+      --region {{ aws_region }}
+    register: raid_package
+  - debug: var=raid_package.stdout_lines
+  - name: Cloudformation Deploy
+    cloudformation:
+      region: '{{ aws_region }}'
+      stack_name: '{{ aws_stack_name }}'
+      state: present
+      template: sam/template-out.yaml
+      capabilities:
+        - CAPABILITY_IAM
+        - CAPABILITY_AUTO_EXPAND
+      template_parameters:
+        AndsAppId: '{{ ands_app_id }}'
+        AndsSecret: '{{ ands_app_secret }}'
+        AndsDemoSecret: '{{ ands_demo_secret }}'
+        AndsService: '{{ ands_service }}'
+        DemoAndsService: '{{ ands_demo_service }}'
+        OrcidInstitutionKey: '{{ orcid_institution_key }}'
+        DemoOrcidInstitutionKey: '{{ orcid_demo_institution_key }}'
+        OrcidInstitutionSecret: '{{ orcid_institution_secret }}'
+        DemoOrcidInstitutionSecret: '{{ orcid_demo_institution_secret }}'
+        OrcidRedirectUri: '{{ orcid_redirect_uri }}'
+        DemoOrcidRedirectUri: '{{ orcid_demo_redirect_uri }}'
+        ElasticsearchHost: '{{ elastic_search_host }}'
+        JwtSecret: '{{ raid_jwt_secret }}'
+        SesEmailSender: '{{ aws_ses_email_sender }}'
+        SesEmailRegion: '{{ aws_ses_email_region }}'
+        HandleAlarmThreshold: '{{ handle_alarm_threshold }}'
+      tags:
+        'Environment': "{{ env }}"
+      profile: '{{ aws_profile }}'
+    register: raid_stack
