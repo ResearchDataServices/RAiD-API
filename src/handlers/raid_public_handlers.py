@@ -2,7 +2,7 @@ import sys
 import logging
 import boto3
 from boto3.dynamodb.conditions import Key
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from helpers import web_helpers
 import settings
 
@@ -19,7 +19,7 @@ def get_raid_public_handler(event, context):
     :return:
     """
     try:
-        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+        raid_handle = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["raidId"]))
 
     except:
         logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))
@@ -87,7 +87,7 @@ def redirect_raid_path_handler(event, context):
     :return:
     """
     try:
-        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+        raid_handle = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["raidId"]))
 
     except:
         logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))

@@ -1,16 +1,29 @@
 # To deploy for the first time, and for each update,
 # run both of the following commands in order:
-#
-# aws cloudformation package \
-# --template-file template.yaml \
-# --output-template-file template-out.yaml \
-# --s3-bucket <your-s3-bucket-name>
-#
-# aws cloudformation deploy \
-# --template-file <path-to-file>/template-out.yaml \
-# --stack-name <STACK_NAME> \
-# --parameter-overrides Tracing=Active JwtSecret=<TOKEN_SECRET> MetadataTable=<<>> TokenTable=<<>>\
-# --capabilities CAPABILITY_IAM
+
+# Replace Swagger AWS account id and region placeholders with your own
+#   sed -i "s/<<account>>/AWS_ACCOUNT_ID/g" 'sam/admin-swagger.yaml'
+#   sed -i "s/<<region>>/ap-southeast-2/g" 'sam/admin-swagger.yaml'
+
+# Build Local Python dependencies to '.aws-sam' directory
+#   sam build --use-container -t sam/admin-template.yaml
+
+# Package SAM code and replace MY_S3_Bucket with your own
+# sam package \
+#     --output-template-file .aws-sam/build/admin-template-out.yaml \
+#     --s3-bucket MY_S3_Bucket
+
+# Deploy SAM as an S3 CloudFormation Stack
+## Replacing YOUR_SECRET, YOUR_METADATA_TABLE (from MetadataDB output from RAiD Deployment), YOUR_TOKEN_TABLE (from TokenDB output from RAiD Deployment), 
+# sam deploy \
+#     --stack-name RAiD-Testing-Admin \
+#     --template-file .aws-sam/build/admin-template-out.yaml \
+#     --confirm-changeset \
+#     --parameter-overrides \
+#         JwtSecret="YOUR_SECRET" \
+#         MetadataTable="YOUR_METADATA_TABLE" \
+#         TokenTable="YOUR_TOKEN_TABLE" \
+#     --capabilities CAPABILITY_IAM
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
@@ -18,12 +31,6 @@ Transform: 'AWS::Serverless-2016-10-31'
 Description: RAiD administrative AWS resources
 
 Parameters:
-  Tracing:
-    Type: String
-    Default: Active
-    AllowedValues:
-      - Active
-      - PassThrough
   JwtIssuer:
     Type: String
     Default: https://www.raid.org.au
@@ -32,6 +39,7 @@ Parameters:
     Default: https://api.raid.org.au
   JwtSecret:
     Type: String
+    NoEcho: true
   MetadataTable:
     Type: String
   TokenTable:
@@ -117,7 +125,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handlers.admin_metadata_handlers.get_service_points_handler
-      Runtime: python2.7
+      Runtime: python3.8
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -137,7 +145,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handlers.admin_metadata_handlers.get_institution_handler
-      Runtime: python2.7
+      Runtime: python3.8
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -158,7 +166,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handlers.admin_metadata_handlers.create_metadata_handler
-      Runtime: python2.7
+      Runtime: python3.8
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -181,7 +189,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handlers.admin_metadata_handlers.update_metadata_handler
-      Runtime: python2.7
+      Runtime: python3.8
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -204,7 +212,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handlers.admin_metadata_handlers.delete_metadata_handler
-      Runtime: python2.7
+      Runtime: python3.8
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -227,7 +235,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handlers.admin_metadata_handlers.get_metadata_handler
-      Runtime: python2.7
+      Runtime: python3.8
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -251,7 +259,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handlers.admin_token_handlers.create_key_handler
-      Runtime: python2.7
+      Runtime: python3.8
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -274,7 +282,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handlers.admin_token_handlers.delete_key_handler
-      Runtime: python2.7
+      Runtime: python3.8
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:
@@ -297,7 +305,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: handlers.admin_token_handlers.get_keys_handler
-      Runtime: python2.7
+      Runtime: python3.8
       CodeUri: ../src
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Environment:

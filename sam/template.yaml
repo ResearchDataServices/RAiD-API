@@ -5,23 +5,37 @@
 # To deploy for the first time, and for each update,
 # run both of the following commands in order:
 #
-# aws cloudformation package \
-# --template-file template.yaml \
-# --output-template-file template-out.yaml \
-# --s3-bucket <your-s3-bucket-name>
-#
-# aws cloudformation deploy \=
-# --template-file <path-to-file>/template-out.yaml \
-# --stack-name <STACK_NAME>  \
-# --parameter-overrides JwtSecret=<<jwt-secret>> \
-#       AndsService=<<ands_service>> \
-#       DemoAndsService=<<ands_service>> \
-#       AndsAppId=<<app_id>> \
-#       AndsSecurityGroups=<<sg1,sg1>> \
-#       ElasticsearchHost=<<....ap-southeast-2.es.amazonaws.com>> \
-#       AndsSecret=<<>> \
-#       AndsDemoSecret=<<>> \
-# --capabilities CAPABILITY_IAM
+# Replace Swagger AWS account id and region placeholders with your own
+#   sed -i "s/<<account>>/AWS_ACCOUNT_ID/g" 'sam/swagger.yaml'
+#   sed -i "s/<<region>>/ap-southeast-2/g" 'sam/swagger.yaml'
+
+# Build Local Python dependencies to '.aws-sam' directory
+#   sam build --use-container -t sam/template.yaml
+
+# Package SAM code and replace MY_S3_Bucket with your own
+#   sam package \
+#       --output-template-file .aws-sam/build/template-out.yaml \
+#       --s3-bucket MY_S3_Bucket
+
+# Deploy SAM as an S3 CloudFormation Stack
+## Replacing YOUR_SECRET ANDS_APP_ID ANDS_SECRET
+### NOTE #####
+### When testing, have AndsService as "https://demo.ands.org.au:8443/pids/"
+### and AndsSecret your your value for "ANDS_DEMO_SECRET". This wiil prevent
+### you from creating real minted AND Handle's .
+###
+#   sam deploy \
+#       --stack-name RAiD-Testing \
+#       --template-file .aws-sam/build/template-out.yaml \
+#       --confirm-changeset \
+#       --parameter-overrides \
+#           JwtSecret="YOUR_SECRET" \
+#           AndsService="https://handle.ands.org.au/pids/" \
+#           DemoAndsService="https://demo.ands.org.au:8443/pids/" \
+#           AndsAppId="ANDS_APP_ID" \
+#           AndsSecret="ANDS_SECRET" \
+#           AndsDemoSecret="ANDS_DEMO_SECRET" \
+#       --capabilities CAPABILITY_IAM
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
@@ -45,6 +59,7 @@ Parameters:
     Default: https://api.raid.org.au
   JwtSecret:
     Type: String
+    NoEcho: true
   ProviderRole:
     Type: String
     Default: service
@@ -59,18 +74,39 @@ Parameters:
     Type: String
   AndsSecret:
     Type: String
+    NoEcho: true
   AndsDemoSecret:
     Type: String
-  ElasticsearchHost:
-    Type: String
+    NoEcho: true
   HandleAlarmThreshold:
     Type: String
     Default: 80
     Description: "The minimum safe queue depth threshold before more ANDS Handles should be minted"
+  EnableHandleAlarms:
+    Description: Boolean as to whether ANDS Handles should be pre-minted and
+      availible in a queue for when RAiDs are created to prevent delay.
+    Default: true
+    Type: String
+    AllowedValues:
+      - true
+      - false
+  AutomatedBackups:
+    Description: Boolean as to whether to enable automated Backups for
+      DynamoDB Tables
+    Default: true
+    Type: String
+    AllowedValues:
+      - true
+      - false
+
+Conditions:
+  CreateHandleAlarmResources: !Equals 
+    - !Ref EnableHandleAlarms
+    - true
 
 Globals:
   Function:
-    Runtime: python2.7
+    Runtime: python3.8
     Timeout: 30
     MemorySize: 512
     Environment:
@@ -87,8 +123,6 @@ Globals:
           Ref: ProviderRole
         INSTITUTION_ROLE:
           Ref: InstitutionRole
-        ELASTICSEARCH_HOST:
-          Ref: ElasticsearchHost
         ANDS_SERVICE:
           Ref: AndsService
         DEMO_ANDS_SERVICE:
@@ -106,8 +140,6 @@ Globals:
         METADATA_TABLE: !Ref MetadataTable
         ANDS_HANDLES_QUEUE: !Ref AndsHandlesQueue
         DEMO_ANDS_HANDLES_QUEUE: !Ref DemoAndsHandlesQueue
-        ANDS_HANDLE_ALARM_TOPIC: !Ref AndsHandleAlarmTopic
-        DEMO_ANDS_HANDLE_ALARM_TOPIC: !Ref DemoAndsHandleAlarmTopic
 
 Resources:
   # API
@@ -256,7 +288,7 @@ Resources:
   CustomAuthorizer:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.auth_handlers.custom_authorisation_handler
       Role: !GetAtt CustomAuthorizerRole.Arn
 
@@ -264,7 +296,7 @@ Resources:
   AuthenticateToken:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.auth_handlers.authenticate_token_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -278,7 +310,7 @@ Resources:
   GetRaidPublic:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.raid_public_handlers.get_raid_public_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -291,7 +323,7 @@ Resources:
   RedirectRaidContentPath:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.raid_public_handlers.redirect_raid_path_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -305,7 +337,7 @@ Resources:
   GetRaids:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.raid_handlers.get_raids_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -318,11 +350,11 @@ Resources:
   CreateRaid:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.raid_handlers.create_raid_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       MemorySize: 1024
-      Tracing: Active
+      Tracing: !Ref Tracing
       Events:
         CreateRaidHandle:
           Type: Api
@@ -337,10 +369,10 @@ Resources:
   UpdateRaid:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.raid_handlers.update_raid
       Role: !GetAtt CrudLambdaIAMRole.Arn
-      Tracing: Active
+      Tracing: !Ref Tracing
       Events:
         UpdateRaidHandle:
           Type: Api
@@ -355,7 +387,7 @@ Resources:
   GetRaid:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.raid_handlers.get_raid_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -369,7 +401,7 @@ Resources:
   GetOwnerRaids:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.owner_handlers.get_owner_raids_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -382,7 +414,7 @@ Resources:
   UpdateRaidOwner:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.owner_handlers.update_raid_owner_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -396,7 +428,7 @@ Resources:
   GetProviders:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.provider_handlers.get_providers_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -409,7 +441,7 @@ Resources:
   GetRaidProviders:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.provider_handlers.get_raid_providers_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -422,7 +454,7 @@ Resources:
   CreateRaidProviderAssociation:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.provider_handlers.create_raid_provider_association_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -435,7 +467,7 @@ Resources:
   EndRaidProviderAssociation:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.provider_handlers.end_raid_provider_association_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -449,7 +481,7 @@ Resources:
   GetInstitutions:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.institution_handlers.get_institutions_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -462,7 +494,7 @@ Resources:
   GetRaidInstitutions:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.institution_handlers.get_raid_institutions_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -475,7 +507,7 @@ Resources:
   CreateRaidInstitutionAssociation:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.institution_handlers.create_raid_institution_association_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -488,7 +520,7 @@ Resources:
   EndRaidInstitutionAssociation:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Handler: handlers.institution_handlers.end_raid_institution_association_handler
       Role: !GetAtt CrudLambdaIAMRole.Arn
       Events:
@@ -503,7 +535,7 @@ Resources:
   RaidDynamoDBProcessStream:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Timeout: 300
       Handler: handlers.db_streams.raid_table_dynamodb_stream_event
       MemorySize: 1024
@@ -529,12 +561,17 @@ Resources:
   # ANDS Handle Creator, storing in SQS and DynamoDB
   CreateAndsHandles:
     Type: AWS::Serverless::Function
+    Condition: CreateHandleAlarmResources
     Properties:
-      CodeUri: ../build
+      CodeUri: ../src
       Timeout: 300
       Handler: handlers.ands_handlers.create_ands_handles_from_event
       Role: !GetAtt CrudLambdaIAMRole.Arn
       MemorySize: 1024
+      Environment:
+        Variables:
+          ANDS_HANDLE_ALARM_TOPIC: !Ref AndsHandleAlarmTopic
+          DEMO_ANDS_HANDLE_ALARM_TOPIC: !Ref DemoAndsHandleAlarmTopic
       Events:
         AndsHandleAlarm:
           Type: SNS
@@ -558,9 +595,11 @@ Resources:
   # Alarms and Notifications
   AndsHandleAlarmTopic:
     Type: AWS::SNS::Topic
+    Condition: CreateHandleAlarmResources
 
   AndsHandleQueueDepthAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: CreateHandleAlarmResources
     Properties:
       AlarmDescription: "Alarm if queue depth gets below N messages"
       Namespace: "AWS/SQS"
@@ -579,9 +618,11 @@ Resources:
 
   DemoAndsHandleAlarmTopic:
     Type: AWS::SNS::Topic
+    Condition: CreateHandleAlarmResources
 
   DemoAndsHandleQueueDepthAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: CreateHandleAlarmResources
     Properties:
       AlarmDescription: "Alarm if queue depth gets below N messages"
       Namespace: "AWS/SQS"
@@ -623,7 +664,8 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
-
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !Ref AutomatedBackups
   ## Metadata table
   MetadataTable:
     Type: "AWS::DynamoDB::Table"
@@ -660,6 +702,8 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !Ref AutomatedBackups
   ## JWT token table
   TokenTable:
     Type: "AWS::DynamoDB::Table"
@@ -682,17 +726,24 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !Ref AutomatedBackups
   ## RAiD
   RAiDDemoDB:
     Type: "AWS::CloudFormation::Stack"
     DependsOn: TokenTable
     Properties:
       TemplateURL: database-template.yaml
+      Parameters:
+        AutomatedBackups: !Ref AutomatedBackups
   RAiDLiveDB:
     Type: "AWS::CloudFormation::Stack"
     DependsOn: RAiDDemoDB
     Properties:
       TemplateURL: database-template.yaml
+      Parameters:
+        AutomatedBackups: !Ref AutomatedBackups
+
 Outputs:
   RaidDemoDB:
     Value: !GetAtt RAiDDemoDB.Outputs.RaidDB

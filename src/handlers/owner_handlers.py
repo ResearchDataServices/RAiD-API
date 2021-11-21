@@ -4,7 +4,7 @@ import boto3
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from helpers import web_helpers
 from helpers import db
 import settings
@@ -47,7 +47,7 @@ def update_raid_owner_handler(event, context):
     :return:
     """
     try:
-        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+        raid_handle = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["raidId"]))
         body = json.loads(event["body"])
         new_owner = body['name']
     except ValueError as e:

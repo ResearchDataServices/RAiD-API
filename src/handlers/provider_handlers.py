@@ -5,7 +5,7 @@ import datetime
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from helpers import web_helpers
 from helpers import raid_helpers
 import settings
@@ -45,7 +45,7 @@ def get_raid_providers_handler(event, context):
     :return:
     """
     try:
-        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+        raid_handle = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["raidId"]))
 
     except:
         logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))
@@ -76,7 +76,7 @@ def create_raid_provider_association_handler(event, context):
     :return:
     """
     try:
-        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+        raid_handle = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["raidId"]))
 
     except:
         logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))
@@ -163,7 +163,7 @@ def end_raid_provider_association_handler(event, context):
     :return:
     """
     try:
-        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+        raid_handle = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["raidId"]))
 
     except:
         logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))

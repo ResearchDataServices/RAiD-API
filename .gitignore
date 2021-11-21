@@ -93,6 +93,7 @@ ENV/
 .ropeproject
 
 # Build Artifacts
+.aws-sam
 tmp/
 artifacts/
 admin/deployment

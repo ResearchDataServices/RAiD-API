@@ -237,7 +237,8 @@ def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_
                               options={'verify_exp': False})
         else:
             # Self Signed
-            return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_self, audience=jwt_audience)
+            return jwt.decode(jwt_token, jwt_secret, issuer=jwt_issuer_self, audience=jwt_audience,
+                              options={'verify_exp': False})
 
     except jwt.ExpiredSignatureError:
         # Signature has expired
@@ -251,6 +252,6 @@ def jwt_validate(jwt_token, jwt_secret, jwt_audience, jwt_issuer_3rd_party, jwt_
     except jwt.InvalidIssuedAtError:
         # Invalid audience
         raise Exception('Unauthorized: JWT InvalidIssuedAtError')
-    except Exception, e:
-        raise Exception('Unauthorized: JWT Unexpected error')
+    except Exception as e:
+        raise Exception('Unauthorized: JWT Unexpected error: {}'.format(str(e)))
 

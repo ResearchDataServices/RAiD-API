@@ -1,6 +1,6 @@
 import os
 import json
-import urlparse
+import urllib.parse
 import sys
 import logging
 import auth
@@ -19,14 +19,14 @@ def jwt_redirection_handler(event, context):
     Parse url encoded form data for JWT token and check against secret.
     """
     # Parse form data which should contain at minimum an SAML assertion
-    body_parse = urlparse.parse_qs(event["body"])
+    body_parse = urllib.parse.parse_qs(event["body"])
     # Capture JWT token
     jwt_token = body_parse["assertion"][0]
 
     # Decode and validate JWT token
     decoded = auth.jwt_validate(jwt_token, os.environ['JWT_SECRET'], os.environ['JWT_AUDIENCE'],
                                 os.environ['JWT_ISSUER_3RD_PARTY'], os.environ['JWT_ISSUER_SELF'])
-    print(json.dumps(decoded))
+    print((json.dumps(decoded)))
 
     # Generate Cookie string
     cookie_string = 'jwt_token={0}; domain={1}; Path=/;'.format(jwt_token, os.environ['SITE_DOMAIN'])
@@ -42,8 +42,8 @@ def custom_authorisation_handler(event, context):
     Perform validation of API Gateway custom authoriser by checking JWT user token
     from header.
     """
-    print("Client token: " + event['authorizationToken'])
-    print("Method ARN: " + event['methodArn'])
+    print(("Client token: " + event['authorizationToken']))
+    print(("Method ARN: " + event['methodArn']))
 
     # Validate the incoming JWT token from pass Auth header
     authentication_token = event["authorizationToken"]
@@ -134,7 +134,7 @@ def authenticate_token_handler(event, context):
 
         return web_helpers.generate_web_body_response('200', decoded_token, event)
 
-    except Exception, e:
+    except Exception as e:
         if 'Unauthorized:' in str(e):
             return web_helpers.generate_web_body_response('401', str(e), event)
 

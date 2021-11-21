@@ -28,8 +28,8 @@ def raid_table_dynamodb_stream_event(event, context):
         for record in event['Records']:
             # Convert low-level DynamoDB format to Python dictionary
             deserializer = TypeDeserializer()
-            table_keys = {k: deserializer.deserialize(v) for k, v in record['dynamodb']['Keys'].items()}
-            table_attributes = {k: deserializer.deserialize(v) for k, v in record['dynamodb']['NewImage'].items()}
+            table_keys = {k: deserializer.deserialize(v) for k, v in list(record['dynamodb']['Keys'].items())}
+            table_attributes = {k: deserializer.deserialize(v) for k, v in list(record['dynamodb']['NewImage'].items())}
 
             if record['eventSourceARN'] == os.environ['DEMO_RAID_STREAM_ARN']:
                 ands_url_path = "{}modifyValueByIndex?handle={}&value={}&index={}".format(
@@ -80,7 +80,7 @@ def raid_table_dynamodb_stream_event(event, context):
 
             elif record['eventName'] == 'MODIFY':
                 old_table_attributes = {
-                    k: deserializer.deserialize(v) for k, v in record['dynamodb']['OldImage'].items()
+                    k: deserializer.deserialize(v) for k, v in list(record['dynamodb']['OldImage'].items())
                 }
 
                 # Update handle content Path if it is different

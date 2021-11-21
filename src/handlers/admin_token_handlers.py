@@ -3,7 +3,7 @@ import sys
 import json
 import logging
 import datetime
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 from helpers import web_helpers
@@ -23,7 +23,7 @@ logger.setLevel(logging.ERROR)
 
 def create_key_handler(event, context):
     try:
-        name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
+        name = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["name"]))
 
         # Get current datetime
         now = datetime.datetime.now().isoformat()
@@ -72,7 +72,7 @@ def create_key_handler(event, context):
 
         return web_helpers.generate_web_body_response('200', item)
 
-    except Exception, e:
+    except Exception as e:
         logger.error('Unexpected error: {}'.format(sys.exc_info()[0]))
         return web_helpers.generate_web_body_response(
             '400',
@@ -82,8 +82,8 @@ def create_key_handler(event, context):
 
 def delete_key_handler(event, context):
     try:
-        name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
-        date_created = urllib.unquote(urllib.unquote(event["pathParameters"]["datetime"]))
+        name = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["name"]))
+        date_created = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["datetime"]))
 
         # Initialise DynamoDB
         dynamodb = boto3.resource('dynamodb')
@@ -101,7 +101,7 @@ def delete_key_handler(event, context):
 
 def get_keys_handler(event, context):
     try:
-        name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
+        name = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["name"]))
 
         query_parameters = {'KeyConditionExpression': Key('name').eq(name)}
 

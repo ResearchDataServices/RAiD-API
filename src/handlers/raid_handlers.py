@@ -6,7 +6,7 @@ import boto3
 from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from aws_xray_sdk.core import patch
 from helpers import web_helpers
 from helpers import ands_helpers
@@ -204,7 +204,7 @@ def get_raid_handler(event, context):
     :return:
     """
     try:
-        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+        raid_handle = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["raidId"]))
 
     except:
         logger.error('Unable to validate RAiD parameter: {}'.format(sys.exc_info()[0]))
@@ -306,7 +306,7 @@ def update_raid(event, context):
 
     # Check for provided RAiD and content path to mint
     try:
-        raid_handle = urllib.unquote(urllib.unquote(event["pathParameters"]["raidId"]))
+        raid_handle = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["raidId"]))
         body = json.loads(event["body"])
         new_content_path = body['contentPath']
         new_description = body['description']

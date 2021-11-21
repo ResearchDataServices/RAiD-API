@@ -2,7 +2,7 @@ import requests
 import logging
 import json
 import base64
-from xml.etree import ElementTree
+from lxml import etree as ElementTree
 import settings
 import boto3
 

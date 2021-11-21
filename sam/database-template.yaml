@@ -1,4 +1,13 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  AutomatedBackups:
+    Description: Boolean as to whether to enable automated Backups for
+      DynamoDB Tables
+    Default: true
+    Type: String
+    AllowedValues:
+      - true
+      - false
 Resources:
   RAiDTable:
     Type: "AWS::DynamoDB::Table"
@@ -16,6 +25,8 @@ Resources:
         WriteCapacityUnits: 5
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !Ref AutomatedBackups
   AssociationIndexTable:
     Type: "AWS::DynamoDB::Table"
     Properties:
@@ -120,6 +131,8 @@ Resources:
           ProvisionedThroughput:
             ReadCapacityUnits: 5
             WriteCapacityUnits: 5
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !Ref AutomatedBackups
 Outputs:
   RaidDB:
     Value: !Ref 'RAiDTable'

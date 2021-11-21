@@ -4,7 +4,7 @@ import logging
 import boto3
 from boto3.dynamodb.conditions import Key
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from helpers import web_helpers
 import settings
 
@@ -51,7 +51,7 @@ def create_metadata_handler(event, context):
 
         return web_helpers.generate_web_body_response('200', item)
 
-    except Exception, e:
+    except Exception as e:
         logger.error('Unexpected error string: {}'.format(str(e)))
         return web_helpers.generate_web_body_response(
             '500',
@@ -61,7 +61,7 @@ def create_metadata_handler(event, context):
 
 def update_metadata_handler(event, context):
     try:
-        name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
+        name = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["name"]))
 
         # Interpret and validate request body
         body = json.loads(event["body"])
@@ -118,7 +118,7 @@ def update_metadata_handler(event, context):
 
 def delete_metadata_handler(event, context):
     try:
-        name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
+        name = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["name"]))
 
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
@@ -145,7 +145,7 @@ def delete_metadata_handler(event, context):
 
 def get_metadata_handler(event, context):
     try:
-        name = urllib.unquote(urllib.unquote(event["pathParameters"]["name"]))
+        name = urllib.parse.unquote(urllib.parse.unquote(event["pathParameters"]["name"]))
 
         # Initialise DynamoDB
         dynamo_db = boto3.resource('dynamodb')
