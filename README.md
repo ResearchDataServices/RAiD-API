@@ -1,5 +1,12 @@
 ![RAiD Logo](raid-logo.png)
 
+# DEPRECATION NOTICE
+
+Note that this repo is now deprecated.  The production RAiD app still uses this code, but it is being replaced by: https://github.com/au-research/raido-v2
+
+Please create a disucussion on that repo, or email contact@raid.org if you have any questions.
+
+
 # RAiD API
 
 The [Data LifeCycle Framework](www.dlc.edu.au) (DLC) has been initiated by five primary organisations; [Australian Access Federation](https://aaf.edu.au/) (AAF), [Australia’s Academic and Research Network](https://www.aarnet.edu.au/) (AARNet), [Australian National Data Service](http://www.ands.org.au/) (ANDS), [National eResearch Collaboration Tools and Resources](https://nectar.org.au/) (NeCTAR) and [Research Data Services](http://www.rds.edu.au/) (RDS).
