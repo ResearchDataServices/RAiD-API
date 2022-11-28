@@ -4,7 +4,7 @@
 
 Note that this repo is now deprecated.  The production RAiD app still uses this code, but it is being replaced by: https://github.com/au-research/raido-v2
 
-Please create a disucussion on that repo, or email contact@raid.org if you have any questions.
+Please create a discussion on that repo, or email contact@raid.org if you have any questions.
 
 
 # RAiD API
