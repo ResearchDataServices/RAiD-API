@@ -1,8 +1,6 @@
-![RAiD Logo](raid-logo.png)
+# SUPERSESSION NOTICE
 
-# DEPRECATION NOTICE
-
-Note that this repo is now deprecated.  The production RAiD app still uses this code, but it is being replaced by: https://github.com/au-research/raido
+Note that this repo is now superseded.  The production RAiD app can be found at: https://github.com/au-research/raido
 
 Please create a discussion on that repo, or email contact@raid.org if you have any questions.
 
